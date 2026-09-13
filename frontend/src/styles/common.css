@@ -1,0 +1,145 @@
+html,
+body {
+  padding: 0;
+  margin: 0;
+}
+
+body {
+  height: calc(var(--vh) * 100);
+  display: flex;
+  flex-direction: column;
+}
+
+h3 {
+  font-size: 1.1em !important;
+  font-weight: bold !important;
+  margin-top: 1em !important;
+  margin-bottom: 0.2em !important;
+}
+
+p {
+  margin-top: 0.2em !important;
+}
+
+#app {
+  font-family: Helvetica, Arial, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  color: #2c3e50;
+}
+
+#app_container {
+  display: flex;
+  flex-direction: column;
+  height: calc(var(--vh, 1vh) * 100);
+  margin: 0;
+}
+
+main#app_content {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow: auto;
+  padding: 0;
+  background: var(--ui-color-app-background);
+}
+
+.view {
+  padding: 0px 16px 16px 16px;
+  background-color: white;
+}
+.view-header {
+  display: flex;
+  align-items: center;
+  height: 48px;
+  border-bottom: solid 1px #e6e6e6;
+}
+.view-action {
+  display: flex;
+  flex-wrap: wrap;
+  padding-bottom: 4px;
+}
+
+.text-link {
+  color: #005aff !important;
+  text-decoration: underline !important;
+  background: none;
+  font-weight: normal;
+  cursor: pointer;
+  border: none;
+  padding: 0;
+  margin: 0;
+}
+.text-link:hover,
+.text-link:focus {
+  color: #005aff !important;
+  text-decoration: none !important;
+}
+
+.pager ul {
+  list-style: none;
+  display: flex;
+  justify-content: center;
+  padding: 0;
+}
+
+.pager ul li {
+  margin: 0 8px;
+}
+
+.pager ul li a {
+  display: block;
+  font-size: 16px;
+  padding: 0.6em 1em;
+  border-radius: 3px;
+  text-decoration: none;
+  border: solid 1px transparent;
+  color: #000000 !important;
+}
+
+.pager ul li a:hover {
+  text-decoration: none;
+  border-color: #005aff;
+}
+
+.pager ul li a:not(.pager-current-page):hover {
+  border-color: #cccccc;
+}
+
+.pager ul li a.pager-current-page {
+  border-color: #005aff;
+}
+
+@media screen and (max-width: 896px) {
+  .card-wrapper {
+    justify-content: center !important;
+  }
+}
+@media screen and (min-width: 897px) {
+  .smartphone-send-button {
+    display: none !important;
+  }
+  .smartphone-tab-menu {
+    display: none !important;
+  }
+  .timeline,
+  .filter {
+    display: block;
+  }
+  .timeline-title,
+  .filter-title {
+    display: flex;
+  }
+}
+@media screen and (min-width: 980px) {
+  .view {
+    margin: auto;
+    width: 980px;
+  }
+}
+
+.voiceover-hidden {
+  position: absolute;
+  clip: rect(1px, 1px, 1px, 1px);
+  width: 1px;
+  height: 1px;
+}

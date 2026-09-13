@@ -1,0 +1,18 @@
+export const LANGUAGES = [
+  { value: 'ja', label: '日本語' },
+  { value: 'en', label: '英語' },
+  { value: 'zh', label: '中国語' },
+  { value: 'pt', label: 'ポルトガル語' },
+  { value: 'ko', label: '韓国語' },
+  { value: 'vi', label: 'ベトナム語' },
+  { value: 'fr', label: 'フランス語' },
+  { value: 'es', label: 'スペイン語' },
+  { value: 'sv', label: 'スウェーデン語' },
+  { value: 'hi', label: 'ヒンディー語' },
+  { value: 'it', label: 'イタリア語' },
+  { value: 'ru', label: 'ロシア語' },
+  { value: 'uk', label: 'ウクライナ語' },
+  { value: 'de', label: 'ドイツ語' },
+  { value: 'tr', label: 'トルコ語' },
+  { value: 'he', label: 'ヘブライ語' },
+];

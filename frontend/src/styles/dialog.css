@@ -1,0 +1,149 @@
+.dialog-title {
+  flex: 1;
+  font-size: 20px !important;
+  font-weight: normal !important;
+  margin: 0px !important;
+  text-align: center;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.mobile-item {
+  display: none !important;
+}
+.desktop-item {
+  display: block !important;
+}
+.ui-button.desktop-item {
+  display: inline-flex !important;
+}
+
+.edit-dialog-content {
+  padding: 8px !important;
+}
+
+.mobile-bottom-action {
+  display: flex;
+  justify-content: flex-end;
+}
+
+@media screen and (max-width: 896px) {
+  .mobile-item {
+    display: block !important;
+  }
+  .ui-button.mobile-item {
+    display: inline-flex !important;
+  }
+  .desktop-item {
+    display: none !important;
+  }
+  .ui-button.desktop-item {
+    display: none !important;
+  }
+}
+
+.ui-dialog {
+  --ui-dialog-width: var(--ui-dialog-width-compact);
+  --ui-dialog-viewport-gutter: 32px;
+  position: fixed;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+@media screen and (min-width: 897px) {
+  .ui-dialog--standard {
+    --ui-dialog-width: var(--ui-dialog-width-standard);
+  }
+}
+
+.ui-dialog__backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.54);
+}
+
+.ui-dialog__panel {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  width: var(--ui-dialog-width);
+  max-width: calc(100vw - var(--ui-dialog-viewport-gutter));
+  max-height: calc(100vh - var(--ui-dialog-viewport-gutter));
+  max-height: calc(100dvh - var(--ui-dialog-viewport-gutter));
+  background: #fff;
+}
+
+.ui-dialog__header {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 56px;
+}
+
+.ui-dialog__header-start,
+.ui-dialog__header-end {
+  position: absolute;
+}
+
+.ui-dialog__header-start {
+  inset-inline-start: 8px;
+}
+
+.ui-dialog__header-end {
+  inset-inline-end: 8px;
+}
+
+.ui-dialog__header-start.ui-button--icon-only,
+.ui-dialog__header-end.ui-button--icon-only,
+.ui-dialog__header-start .ui-button--icon-only,
+.ui-dialog__header-end .ui-button--icon-only {
+  border-radius: 50%;
+}
+
+.ui-dialog__heading {
+  overflow: hidden;
+  margin: 0;
+  font-size: 20px;
+  font-weight: normal;
+  text-align: center;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ui-dialog__content {
+  overflow-y: auto;
+  padding: 0 24px 12px;
+}
+
+.ui-dialog__actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  padding: 12px 24px 24px;
+}
+
+.ui-dialog__actions > .left {
+  margin-inline-end: auto;
+}
+
+.ui-dialog__actions > .right {
+  margin-inline-start: auto;
+}
+
+.ui-dialog__status {
+  width: 100%;
+}
+
+.transparent-dialog .ui-dialog__panel {
+  background: hsla(0, 0%, 100%, 0.6);
+}
+
+@media screen and (max-width: 896px) {
+  .ui-dialog {
+    --ui-dialog-viewport-gutter: 16px;
+  }
+}

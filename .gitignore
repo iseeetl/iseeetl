@@ -1,0 +1,81 @@
+# ===== OS =====
+.DS_Store
+Thumbs.db
+
+# ===== 作業ディレクトリ =====
+/.*/
+
+# ===== ルート直下の追跡対象 =====
+/*
+!/.gitignore
+!/LICENSE
+!/LICENSES/
+!/LICENSES/**
+!/README.md
+!/docs/
+!/docs/**
+!/frontend/
+!/frontend/**
+!/backend/
+!/backend/**
+
+# ===== 依存関係 / ビルド成果物 =====
+**/node_modules/
+**/dist/
+**/build/
+**/.cache/
+**/.eslintcache
+**/coverage/
+**/.nyc_output/
+
+
+# 生成物（中身のみ無視。ディレクトリは残す）
+**/public/media/*
+**/public/profile/*
+**/public/upload/*
+
+# ===== テスト / E2E 生成物 =====
+/.test-runtime/
+/.e2e-runtime/
+/tests/e2e/reports/
+/frontend/tests/e2e/reports/
+selenium-debug.log
+tests/setup/.tmp/
+
+# ===== ログ =====
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+**/*.log
+
+# ===== 環境変数ファイル =====
+# Backendの実設定は追跡せず、公開設定例とE2E用設定例だけを管理する。
+/backend/.env
+/backend/.env.*
+!/backend/.env.e2e.example
+!/backend/.env.example
+# Frontendの実設定は追跡せず、公開設定例とE2E用設定例だけを管理する。
+/frontend/.env
+/frontend/.env.*
+!/frontend/.env.example
+!/frontend/.env.e2e.example
+
+# ===== 資格情報 / 秘密ファイル（プロジェクト固有） =====
+**/backend/config/iseeetl-*.json
+**/secrets/
+**/credentials/
+**/keys/
+**/*.pem
+**/*.key
+**/*.p12
+**/*.pfx
+
+# ===== エディタ設定 =====
+.idea/
+.vscode/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw*

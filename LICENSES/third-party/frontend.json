@@ -1,0 +1,12 @@
+{
+  "@vue/devtools-api@6.6.4": {
+    "identifier": "MIT",
+    "file": "vue-devtools-api-6.6.4.txt",
+    "source": "https://raw.githubusercontent.com/vuejs/vue-devtools/df6ab6bb7791a7a525a97990de73b3ea5e9a1941/LICENSE"
+  },
+  "@vuelidate/core@2.0.3": {
+    "identifier": "MIT",
+    "file": "vuelidate-core-2.0.3.txt",
+    "source": "https://raw.githubusercontent.com/vuelidate/vuelidate/4389076e2b6a0ce76f147d1d7acc5184d8746e64/LICENSE"
+  }
+}

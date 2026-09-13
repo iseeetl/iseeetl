@@ -1,0 +1,87 @@
+export default [
+  {
+    path: '/management/floortag',
+    name: 'FloorTagManagement',
+    component: () => import('@/views/management/FloorTagManagement.vue'),
+    meta: { isManagement: true },
+  },
+  {
+    path: '/management/categorytag',
+    name: 'CategoryTagManagement',
+    component: () => import('@/views/management/CategoryTagManagement.vue'),
+    meta: { isManagement: true },
+  },
+  {
+    path: '/management/ai-analysis-settings',
+    name: 'AIAnalysisSettingManagement',
+    component: () => import('@/views/management/AIAnalysisSettingManagement.vue'),
+    meta: { isManagement: true },
+  },
+  {
+    path: '/management/roomtag',
+    name: 'RoomTagManagement',
+    component: () => import('@/views/management/RoomTagManagement.vue'),
+    meta: { isManagement: true },
+  },
+  {
+    path: '/management/floor',
+    name: 'FloorManagement',
+    component: () => import('@/views/management/FloorManagement.vue'),
+    meta: { isManagement: true },
+  },
+  {
+    path: '/management/post',
+    name: 'PostManagement',
+    component: () => import('@/views/management/PostManagement.vue'),
+    meta: { isManagement: true },
+  },
+  {
+    path: '/management/spam',
+    name: 'SpamManagement',
+    component: () => import('@/views/management/SpamManagement.vue'),
+    meta: { isManagement: true },
+  },
+  {
+    path: '/management/user',
+    name: 'UserManagement',
+    component: () => import('@/views/management/UserManagement.vue'),
+    meta: { isManagement: true },
+  },
+  {
+    path: '/management/timeline',
+    name: 'TimelineDataManagement',
+    component: () => import('@/views/management/TimelineDataManagement.vue'),
+    meta: { isManagement: true },
+  },
+  {
+    path: '/management/timeline/floor/:floorId',
+    name: 'TimelineRoomDataManagement',
+    component: () => import('@/views/management/TimelineRoomDataManagement.vue'),
+    props: true,
+    meta: { isManagement: true },
+  },
+  {
+    path: '/management/floormember',
+    name: 'FloorMemberManagement',
+    component: () => import('@/views/management/FloorMemberManagement.vue'),
+    meta: { isManagement: true },
+  },
+  {
+    path: '/management/roommember',
+    name: 'RoomMemberManagement',
+    component: () => import('@/views/management/RoomMemberManagement.vue'),
+    meta: { isManagement: true },
+  },
+  {
+    path: '/management/room',
+    name: 'RoomManagement',
+    component: () => import('@/views/management/RoomManagement.vue'),
+    meta: { isManagement: true },
+  },
+  {
+    path: '/management/quicktext',
+    name: 'QuickTextManagement',
+    component: () => import('@/views/management/QuickTextManagement.vue'),
+    meta: { isManagement: true },
+  },
+];

@@ -1,0 +1,81 @@
+.static-document-container {
+  min-width: 0;
+}
+
+.static-document-status,
+.static-document-error {
+  margin: 16px 0;
+}
+
+.static-document-error .ui-button {
+  margin-left: 0;
+}
+
+.static-document {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.static-document h2,
+.static-document h3,
+.static-document h4 {
+  margin: 1.5rem 0 0.5rem !important;
+  font-weight: bold !important;
+}
+
+.static-document h2 {
+  font-size: 1.35em !important;
+}
+
+.static-document h3 {
+  font-size: 1.1em !important;
+}
+
+.static-document p,
+.static-document li,
+.static-document dd,
+.static-document address {
+  line-height: 1.7;
+}
+
+.static-document a,
+.static-document p,
+.static-document li {
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
+.static-document table {
+  display: block;
+  width: 100%;
+  margin: 1rem 0;
+  overflow-x: auto;
+  border-collapse: collapse;
+  -webkit-overflow-scrolling: touch;
+}
+
+.static-document thead th {
+  background: #e6e6e6;
+}
+
+.static-document th,
+.static-document td {
+  min-width: 120px;
+  padding: 0.75rem 1rem;
+  border: 1px solid #000;
+  overflow-wrap: anywhere;
+  text-align: start;
+  vertical-align: top;
+}
+
+.static-document tbody tr:nth-child(even) {
+  background: #fafafa;
+}
+
+@media screen and (max-width: 896px) {
+  .static-document th,
+  .static-document td {
+    padding: 0.5rem 0.75rem;
+    font-size: 0.875rem;
+  }
+}

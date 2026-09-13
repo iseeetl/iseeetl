@@ -1,0 +1,246 @@
+fieldset {
+  border: 0px;
+  padding: 0px;
+  margin: 0px;
+}
+
+figure {
+  margin: 0px;
+  padding: 0px;
+}
+figcaption {
+  color: white;
+}
+
+legend {
+  font-size: 16px;
+}
+
+.edit-input-field {
+  padding: 8px;
+  background: white;
+  border-radius: 3px;
+  margin-bottom: 8px;
+}
+.edit-input-field legend {
+  margin-bottom: 8px;
+}
+
+label {
+  padding-inline-start: 4px;
+}
+
+textarea {
+  border: 1px solid #bbb !important;
+  border-radius: 3px !important;
+  font-size: 16px !important;
+}
+
+.media-button {
+  margin: 0px;
+  padding: 0px;
+  background-color: transparent;
+  background-repeat: no-repeat;
+  border: none;
+}
+
+/* チェックボックス */
+.checkbox-label {
+  padding: 0px;
+}
+.checkbox-input {
+  margin: 0;
+  margin-inline-end: 2px;
+  padding: 0px;
+}
+.checkbox-group {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+}
+.checkbox-group label {
+  margin: 0;
+  margin-inline-end: 10px;
+  padding: 0px;
+}
+.checkbox-group input {
+  margin: 0;
+  margin-inline-end: 2px;
+  padding: 0px;
+}
+
+.right-button-wrapper {
+  display: flex;
+  justify-content: flex-end;
+}
+.right-button {
+  margin-inline-end: 0px;
+}
+
+.screen-reader-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+.display-none-input {
+  display: none;
+}
+
+.subtitle_wrapper {
+  display: flex;
+  justify-content: flex-start;
+  align-items: center;
+}
+
+.input-select {
+  font-size: 16px;
+  height: 32px;
+  min-width: 100px;
+}
+
+.text-count {
+  height: 20px;
+  position: absolute;
+  top: 0px;
+  inset-inline-end: 0px;
+  font-size: 12px;
+}
+
+.ui-field {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding-top: 12px;
+  margin: 4px 0 24px;
+}
+
+.ui-field__label,
+.ui-field__description {
+  padding-inline-start: 0;
+  color: #000;
+}
+
+.ui-field__label {
+  position: absolute;
+  z-index: 1;
+  top: 22px;
+  inset-inline-start: 8px;
+  overflow: hidden;
+  max-width: calc(100% - 16px);
+  padding: 0 2px;
+  background: #fff;
+  line-height: 20px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  pointer-events: none;
+  transition: top 150ms ease, font-size 150ms ease, line-height 150ms ease, color 150ms ease;
+}
+
+.ui-field--label-raised .ui-field__label {
+  top: 0;
+  font-size: 12px;
+  line-height: 16px;
+}
+
+.ui-field--focused .ui-field__label {
+  color: var(--ui-color-primary);
+}
+
+.ui-field__control {
+  position: relative;
+}
+
+.ui-field__counter {
+  position: absolute;
+  top: 0;
+  inset-inline-end: 0;
+  height: 20px;
+  font-size: 12px;
+}
+
+.ui-field__control input,
+.ui-field__control textarea,
+.ui-field__control select {
+  box-sizing: border-box;
+  width: 100%;
+  min-height: 40px;
+  border: 1px solid var(--ui-color-border);
+  border-radius: 3px;
+  font-size: 16px;
+}
+
+.ui-field__control input,
+.ui-field__control select {
+  padding: 0 8px;
+}
+
+.ui-field__control textarea {
+  padding: 5px 8px;
+  border-color: var(--ui-color-border) !important;
+}
+
+.ui-field__description,
+.ui-field__error {
+  margin: 0;
+}
+
+.ui-field__error {
+  color: var(--ui-color-danger);
+}
+
+.ui-field__control [aria-invalid='true'] {
+  border-color: var(--ui-color-danger);
+}
+
+.ui-field__control textarea[aria-invalid='true'] {
+  border-color: var(--ui-color-danger) !important;
+}
+
+/* 文字数表示と録音操作が重ならないよう、配置領域を分ける。 */
+.timeline-comment-field {
+  position: relative;
+}
+
+.timeline-comment-field .ui-field__control textarea {
+  min-height: 96px;
+  padding-inline-end: 64px;
+}
+
+.timeline-comment-field .ui-field__counter {
+  top: 4px;
+  inset-inline-end: 8px;
+}
+
+.timeline-comment-field .wave-overlay {
+  position: absolute;
+  top: 50%;
+  inset-inline-start: 0;
+  z-index: 2;
+  width: 100%;
+  height: 48px;
+  opacity: 0.9;
+  pointer-events: none;
+  transform: translateY(-50%);
+}
+
+.timeline-comment-field .record-button {
+  position: absolute;
+  inset-inline-end: 12px;
+  bottom: 8px;
+  z-index: 3;
+  margin: 0;
+  padding: 2px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  background: #fafafa;
+  cursor: pointer;
+}

@@ -1,0 +1,32 @@
+:root {
+  --ui-color-primary: #4d4dff;
+  --ui-color-danger: #db0000;
+  --ui-color-success: #008000;
+  --ui-color-cancel: #eeeeee;
+  --ui-color-surface: #ffffff;
+  --ui-color-app-background: rgb(230, 230, 230);
+  --ui-color-border: #767676;
+  --ui-color-focus: #005aff;
+  --ui-breakpoint-mobile: 896px;
+  --ui-dialog-width-compact: 400px;
+  --ui-dialog-width-standard: 480px;
+}
+
+:focus-visible,
+article[tabindex='-1']:focus {
+  outline: 2px solid var(--ui-color-focus);
+  outline-offset: 2px;
+}
+
+.view-title {
+  margin: 0;
+  font-size: 20px;
+  font-weight: 500;
+  line-height: 26px;
+}
+
+.empty-state-caption {
+  font-size: 12px;
+  font-weight: 400;
+  line-height: 17px;
+}

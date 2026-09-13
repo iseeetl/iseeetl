@@ -1,0 +1,8 @@
+.error-color {
+  color: #db0000;
+}
+
+::selection {
+  background: #3390ff !important;
+  color: white !important;
+}

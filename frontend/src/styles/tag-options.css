@@ -1,0 +1,28 @@
+.tag-options {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px 16px;
+}
+.tag-options > .tag-option {
+  display: flex;
+  flex: 0 0 auto;
+  align-items: flex-start;
+  gap: 8px;
+  min-width: 0;
+  max-width: 100%;
+  margin: 0;
+  padding: 0;
+  font-size: 16px;
+  line-height: 1.5;
+  cursor: pointer;
+}
+.tag-option input {
+  flex: 0 0 auto;
+  width: 16px;
+  height: 16px;
+  margin: 4px 0 0;
+}
+.tag-option span {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
