@@ -10,6 +10,7 @@ const { buildDeleteFlagUpdate } = require('../_shared/updateHelpers');
 const { requireAdminUser } = require('../_shared/memberHelpers');
 const { validateRoomImage, removeReplacedRoomImage } = require('./roomImage.service');
 const translationService = require('../translation.service');
+const { buildEmptyMessageUpdate } = require('./roomEmptyMessage.service');
 const {
   withAIAnalysisIntegrityLock,
 } = require('../analysis/settings/referenceIntegrity');
@@ -82,7 +83,9 @@ exports.managementUpdate = async (body, jwtPayload, io) => {
       )
     : foundRoom.translations;
 
+  const emptyMessage = await buildEmptyMessageUpdate({ body, room: foundRoom, floor: foundFloor, userId: decodedUserId });
   const updateRoom = {
+    ...emptyMessage,
     title,
     description,
     lang,

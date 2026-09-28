@@ -1,4 +1,7 @@
 {
+  "まだ投稿がありません。投稿されると、ここに表示されます。": "Non ci sono ancora post. I nuovi post appariranno qui.",
+  "投稿がないときの案内文": "Messaggio in assenza di post",
+  "空欄の場合は、標準の案内文を表示します。": "Lascia vuoto per mostrare il messaggio predefinito.",
   "フロア編集者はキックできません。": "Non è possibile espellere gli editor del piano.",
   "フロアメンバーはキックできません。": "Non è possibile espellere i membri del piano.",
   "ログアウトしました": "Disconnessione effettuata",

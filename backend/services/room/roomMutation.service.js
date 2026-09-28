@@ -6,6 +6,7 @@ const FloorMember = require('../../models/FloorMember');
 const Room = require('../../models/Room');
 
 const translationService = require('../translation.service');
+const { buildEmptyMessageUpdate } = require('./roomEmptyMessage.service');
 const { validateRoomImage, removeReplacedRoomImage } = require('./roomImage.service');
 const { findActiveUser, findActiveFloor, findRoomWithFloor } = require('../_shared/activeResource');
 const { canManageFloor } = require('../_shared/floorAccess');
@@ -58,7 +59,9 @@ exports.create = async (body, jwtPayload) => {
       )
     : [];
 
+  const emptyMessage = await buildEmptyMessageUpdate({ body, floor: foundFloor, userId: decodedUserId });
   const newRoom = {
+    ...emptyMessage,
     floor: floorId,
     user: decodedUserId,
     title,
@@ -139,7 +142,9 @@ exports.update = async (body, jwtPayload, io) => {
     );
   }
 
+  const emptyMessage = await buildEmptyMessageUpdate({ body, room: foundRoom, floor: foundFloor, userId: decodedUserId });
   const updateRoom = {
+    ...emptyMessage,
     title,
     description,
     lang,

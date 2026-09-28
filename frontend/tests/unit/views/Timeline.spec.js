@@ -1759,3 +1759,19 @@ describe('タイムライン画面', () => {
     });
   });
 });
+
+describe('タイムラインの案内文とカラムの接続', () => {
+  it('案内文と投稿の有無をカラムへ渡し、切断中には表示しない', async () => {
+    const wrapper = createWrapper({ mocks: { $i18n: { locale: 'en' } } });
+    const filter = { conditions: null, posts: [] };
+    await wrapper.setData({
+      room: { ...wrapper.vm.room, emptyMessageSource: { lang: 'ja', empty_message: 'ようこそ', empty_message_translations: [{ lang: 'en', content: 'Welcome' }] } },
+      timeline: { ...wrapper.vm.timeline, filters: [filter], isEmpty: true },
+      infra: { ...wrapper.vm.infra, isSocketConnect: true },
+    });
+    expect(wrapper.vm.commonColumnProps(filter, 0)).toMatchObject({ emptyMessage: 'Welcome', showEmptyMessage: true });
+    await wrapper.setData({ infra: { ...wrapper.vm.infra, isSocketConnect: false } });
+    expect(wrapper.vm.commonColumnProps(filter, 0).showEmptyMessage).toBe(false);
+    wrapper.unmount();
+  });
+});

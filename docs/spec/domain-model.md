@@ -91,6 +91,7 @@ RoomTag ─ RoomAIAnalysisSetting
 
 - `floor` で所属フロア、`user` でルーム作成者を示す
 - `display_order` でフロア内の表示順を保持する
+- `empty_message` と `empty_message_translations` で投稿がないときの案内文と翻訳を保持する。未設定なら画面に標準文を表示する
 - `member_only`、`guest_reaction_only`、`room_display_hidden` などの利用条件を保持する
 - 設定の意味と組み合わせは [ロール・権限仕様](roles-and-permissions.md) を参照してください
 - `delete_flg`、`deleted_at` による論理削除を使用する

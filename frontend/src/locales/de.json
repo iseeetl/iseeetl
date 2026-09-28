@@ -1,4 +1,7 @@
 {
+  "まだ投稿がありません。投稿されると、ここに表示されます。": "Noch keine Beiträge. Neue Beiträge werden hier angezeigt.",
+  "投稿がないときの案内文": "Hinweis bei fehlenden Beiträgen",
+  "空欄の場合は、標準の案内文を表示します。": "Leer lassen, um den Standardhinweis anzuzeigen.",
   "フロア編集者はキックできません。": "Etagenbearbeiter können nicht ausgeschlossen werden.",
   "フロアメンバーはキックできません。": "Etagenmitglieder können nicht ausgeschlossen werden.",
   "ログアウトしました": "Abgemeldet",

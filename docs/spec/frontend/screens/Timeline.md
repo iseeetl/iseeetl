@@ -101,6 +101,16 @@
 
 ## 操作と動作
 
+### 投稿がないときの案内表示
+
+- 初期取得に成功し、ルーム全体に削除されていない投稿がない場合だけ、タイムライン中央へ案内文を表示する。PC・スマートフォン・AR表示で共通とする
+- 読み込み中、取得失敗時、切断中は表示しない。絞り込み、表示範囲、ページ送りの結果が空であることだけでは表示しない
+- 初回接続・再接続と投稿削除時に、絞り込みなしの投稿取得APIでルーム全体の投稿の有無を確認する。投稿作成の受信時はすぐに案内を隠し、それ以前に開始した取得結果では再表示しない
+- 標準文は「まだ投稿がありません。投稿されると、ここに表示されます。」。`empty_message`が未保存・null・空欄の場合は、表示言語の標準文を使う
+- 独自の案内文は表示言語の翻訳、なければ原文を使う。原文言語が未設定、または表示言語と同じ場合も原文を使う
+- 案内文はプレーンテキストで表示し、HTMLとして解釈しない。画面幅に合わせて自然に折り返す
+
+
 ### 初期化と入室判定
 
 1. ログイン中の場合は`POST /api/kickeduser/check`で対象フロアのキック状態を確認する。キック済みならフロアへ戻る
@@ -423,6 +433,9 @@ Analyticsの利用不能化、検証失敗、実行時処理例外は、保存�
 - `frontend/src/features/timeline/filterMethods.js`
 
 ### テスト
+
+- `frontend/tests/e2e/specs/flows/timeline/empty-message.e2e.js`
+- `frontend/tests/unit/features/timeline/emptyState.spec.js`
 
 - `frontend/tests/unit/views/Timeline.spec.js`
 - `frontend/tests/unit/features/timeline/observers.spec.js`

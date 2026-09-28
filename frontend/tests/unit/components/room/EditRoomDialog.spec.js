@@ -404,6 +404,7 @@ describe('ルームの編集', () => {
       floor_id: 'floor-1',
       title: 'Room',
       description: 'Desc',
+      empty_message: '',
       lang: 'ja',
       guest_reaction_only: false,
       member_only: false,
@@ -455,6 +456,7 @@ describe('ルームの編集', () => {
       id: 'r1',
       title: 'Room',
       description: 'Desc',
+      empty_message: '',
       lang: 'ja',
       imageName: null,
       guestReactionOnly: false,
@@ -474,6 +476,7 @@ describe('ルームの編集', () => {
       _id: 'r1',
       title: 'Room',
       description: 'Desc',
+      empty_message: '',
       lang: 'ja',
       image_name: null,
       guest_reaction_only: false,
@@ -846,6 +849,7 @@ describe('ルームの編集', () => {
       id: 'r1',
       title: 'Room',
       description: 'Desc',
+      empty_message: '',
       lang: 'ja',
       imageName: null,
       guestReactionOnly: false,
@@ -861,5 +865,48 @@ describe('ルームの編集', () => {
     await flushPromises();
 
     expect(dispatchCalls).to.include('doLogout');
+  });
+});
+
+describe('投稿がないときの案内文の編集', () => {
+  afterEach(() => vi.restoreAllMocks());
+  it('旧ルームは空欄で開き、変更を未保存として検出する', async () => {
+    const wrapper = createWrapper({ props: { room: existingRoom() } });
+    wrapper.vm.openedDialog();
+    expect(wrapper.vm.emptyMessage).toBe('');
+    expect(wrapper.vm.hasUnsavedChanges).toBe(false);
+    await wrapper.setData({ emptyMessage: 'ようこそ' });
+    expect(wrapper.vm.hasUnsavedChanges).toBe(true);
+    wrapper.vm.clearValue();
+    expect(wrapper.vm.emptyMessage).toBe('');
+    wrapper.unmount();
+  });
+  it('新規作成の案内文を前後の空白を除いて送信する', async () => {
+    const create = vi.spyOn(roomApi, 'create').mockResolvedValue({ data: createdRoom() });
+    const wrapper = createWrapper();
+    wrapper.vm.openedDialog();
+    await wrapper.setData({ title: 'ルーム', emptyMessage: ' ようこそ ' });
+    await wrapper.vm.create();
+    expect(create.mock.calls[0][0].empty_message).toBe('ようこそ');
+    wrapper.unmount();
+  });
+  it.each([false, true])('保存済みの原文を編集でき、空欄への変更も送信する（管理画面:%s）', async (managementMode) => {
+    const update = vi.spyOn(roomApi, 'update').mockResolvedValue({ data: existingRoom() });
+    const wrapper = createWrapper({ props: { managementMode, room: existingRoom({ empty_message: 'ようこそ' }) } });
+    wrapper.vm.openedDialog();
+    expect(wrapper.vm.emptyMessage).toBe('ようこそ');
+    await wrapper.setData({ emptyMessage: '' });
+    await wrapper.vm.update();
+    expect(update.mock.calls[0][0].empty_message).toBe('');
+    expect(update.mock.calls[0][1]).toEqual({ management: managementMode });
+    wrapper.unmount();
+  });
+  it('200文字を超える案内文は保存できない', async () => {
+    const wrapper = createWrapper();
+    await wrapper.setData({ title: 'ルーム', emptyMessage: 'あ'.repeat(201) });
+    wrapper.vm.v$.$touch();
+    expect(wrapper.vm.v$.emptyMessage.$invalid).toBe(true);
+    expect(wrapper.vm.emptyMessageError).toBe('200文字まで');
+    wrapper.unmount();
   });
 });

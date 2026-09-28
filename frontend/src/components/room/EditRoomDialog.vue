@@ -73,6 +73,30 @@
             </template>
           </UiField>
         </div>
+
+        <div class="edit-input-field">
+          <UiField
+            control-id="room_empty_message"
+            counter
+            :label="`${$t('投稿がないときの案内文')} ${$t('200文字まで')}`"
+            :description="$t('空欄の場合は、標準の案内文を表示します。')"
+            :invalid="v$.emptyMessage.$dirty && v$.emptyMessage.$invalid"
+            :error="emptyMessageError"
+          >
+            <template #default="{ controlAttrs }">
+              <input
+                v-bind="controlAttrs"
+                ref="inputFieldEmptyMessage"
+                v-model="emptyMessage"
+                type="text"
+                dir="auto"
+                maxlength="200"
+                :disabled="sending"
+                @blur="v$.emptyMessage.$touch()"
+              />
+            </template>
+          </UiField>
+        </div>
       </div>
 
       <div class="room-edit-section">
@@ -300,6 +324,9 @@ export default {
     description: {
       maxLength: maxLength(200),
     },
+    emptyMessage: {
+      maxLength: maxLength(200),
+    },
   },
   data() {
     return {
@@ -307,6 +334,7 @@ export default {
       floorId: null,
       title: null,
       description: null,
+      emptyMessage: '',
       lang: null,
       imageBase64: null,
       imageFile: null,
@@ -366,6 +394,10 @@ export default {
       if (field.maxLength.$invalid) return this.$t('100文字まで');
       return '';
     },
+    emptyMessageError() {
+      const field = this.v$.emptyMessage;
+      return field.$dirty && field.maxLength.$invalid ? this.$t('200文字まで') : '';
+    },
     descriptionError() {
       const field = this.v$.description;
       if (!field.$dirty) return '';
@@ -382,6 +414,7 @@ export default {
         this.floorId = this.room.floor;
         this.title = this.room.title;
         this.description = this.room.description;
+        this.emptyMessage = this.room.empty_message || '';
         this.lang = this.room.lang ? this.room.lang : 'ja'; // 言語未設定の既存データは日本語として扱う。
         this.imageName = this.room.image_name;
         this.guestReactionOnly =
@@ -402,6 +435,7 @@ export default {
       return JSON.stringify({
         title: this.normalizeSnapshotText(this.title),
         description: this.normalizeSnapshotText(this.description),
+        emptyMessage: this.emptyMessage,
         imageName: this.normalizeSnapshotText(this.imageName),
         hasSelectedImage: this.imageFile !== null || this.imageProcessing,
         guestReactionOnly: Boolean(this.guestReactionOnly),
@@ -500,6 +534,7 @@ export default {
           floor_id: this.floorId,
           title: this.title,
           description: this.description,
+          empty_message: this.emptyMessage.trim(),
           lang: this.lang,
           guest_reaction_only: this.guestReactionOnly,
           member_only: this.memberOnly,
@@ -532,6 +567,7 @@ export default {
             _id: createdRoom._id,
             title: createdRoom.title,
             description: createdRoom.description,
+            empty_message: createdRoom.empty_message,
             lang: createdRoom.lang,
             image_name: uploadedImageName,
             guest_reaction_only: createdRoom.guest_reaction_only,
@@ -589,6 +625,7 @@ export default {
           _id: this.id,
           title: this.title,
           description: this.description,
+          empty_message: this.emptyMessage.trim(),
           lang: this.lang,
           image_name: imageNameForUpdate,
           guest_reaction_only: this.guestReactionOnly,
@@ -652,7 +689,8 @@ export default {
     },
 
     focusFirstInvalidField() {
-      const target = this.v$.title.$invalid ? this.$refs.inputFieldTitle : this.$refs.inputFieldDescription;
+      const target = this.v$.title.$invalid ? this.$refs.inputFieldTitle
+        : this.v$.description.$invalid ? this.$refs.inputFieldDescription : this.$refs.inputFieldEmptyMessage;
       if (!target) return;
       if (typeof target.scrollIntoView === 'function') target.scrollIntoView({ block: 'nearest' });
       if (typeof target.focus === 'function') target.focus();
@@ -681,6 +719,7 @@ export default {
       this.floorId = null;
       this.title = null;
       this.description = null;
+      this.emptyMessage = '';
       this.lang = null;
       this.clearImageSelection();
       this.imageName = null;

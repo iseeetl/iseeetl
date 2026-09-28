@@ -19,8 +19,17 @@ JWT必須APIでは、トークン発行時のロールではなく、リクエ�
 ### Google Translateの有効条件
 
 - Google Translateが無効な場合、新規ルームと同時に作成する`RoomTag`の翻訳は空配列になる。ルーム単語は初期化元フロア単語の保存済み翻訳を引き継ぐ
-- Google Translateが無効な場合、通常更新と管理更新は保存済みのルーム翻訳を保持する
+- Google Translateが無効な場合、通常更新と管理更新は保存済みのタイトル・説明の翻訳を保持する
 - 有効状態は[外部機能の有効状態API](capabilities.md)の`googleTranslate`を参照する
+
+### 投稿がないときの案内文
+
+- 作成・通常更新・管理更新で`empty_message`を設定できる。任意の文字列またはnull、200文字以内、改行不可
+- 前後の空白を除いて保存する。null・空文字・空白だけの入力は空文字として保存し、案内文の翻訳も消去する
+- 更新時に`empty_message`を省略すると保存済みの案内文を維持する
+- 案内文または`lang`の変更時、Google Translateが有効ならフロアの`target_langs`へ翻訳する。翻訳は`empty_message_translations`（`lang`・`content`の配列）として返し、入力からは受け付けない
+- 案内文を変更した場合、翻訳が無効でも古い翻訳は破棄する。翻訳できなかった言語では画面に原文を表示する
+- 標準文はDBへ保存せず、未設定のルームでは画面が表示言語に応じて補う
 
 ### 画像の更新
 
@@ -145,6 +154,7 @@ last_post_dateは、対象ルームで論理削除されていない最新投稿
   - floor_id: 文字列(MongoId), 必須
   - title: 文字列（1〜100文字）, 必須
   - description: 文字列（200文字以内）またはnull, 必須
+  - empty_message: 文字列（200文字以内、改行不可）またはnull, 任意。[案内文の保存条件](#投稿がないときの案内文)を参照
   - lang: 文字列（[対応言語コード](../api-conventions.md#言語コード)）, 必須
   - guest_reaction_only: 真偽値, 必須
   - member_only: 真偽値, 必須
@@ -192,6 +202,7 @@ last_post_dateは、対象ルームで論理削除されていない最新投稿
   - _id: 文字列(MongoId), 必須
   - title: 文字列（1〜100文字）, 必須
   - description: 文字列（200文字以内）またはnull, 必須
+  - empty_message: 文字列（200文字以内、改行不可）またはnull, 任意。[案内文の保存条件](#投稿がないときの案内文)を参照
   - lang: 文字列（[対応言語コード](../api-conventions.md#言語コード)）, 必須
   - image_name: 文字列（timestamp_MongoIdを基部とするファイル名）またはnull, 必須
   - guest_reaction_only: 真偽値, 必須
@@ -386,6 +397,7 @@ last_post_dateは、対象ルームで論理削除されていない最新投稿
   - _id: 文字列(MongoId), 必須
   - title: 文字列（1〜100文字）, 必須
   - description: 文字列（200文字以内）またはnull, 必須
+  - empty_message: 文字列（200文字以内、改行不可）またはnull, 任意。[案内文の保存条件](#投稿がないときの案内文)を参照
   - lang: 文字列（[対応言語コード](../api-conventions.md#言語コード)）, 必須
   - image_name: 文字列（timestamp_MongoIdを基部とするファイル名）またはnull, 必須
   - guest_reaction_only: 真偽値, 必須

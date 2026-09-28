@@ -340,3 +340,23 @@ describe('タイムラインのカラム', () => {
     expect(wrapper.vm.filteredPosts.map((post) => post._id)).to.deep.equal(['normal']);
   });
 });
+
+describe('投稿がないときの案内表示', () => {
+  it('取得完了後に案内文をプレーンテキストで表示する', async () => {
+    const wrapper = createWrapper({ props: { showEmptyMessage: true, emptyMessage: '<b>ようこそ</b>' } });
+    expect(wrapper.find('[data-testid="timeline-empty-message"]').exists()).toBe(false);
+    await wrapper.setProps({ filter: { conditions: null, _loaded: true } });
+    expect(wrapper.get('[data-testid="timeline-empty-message"]').text()).toBe('<b>ようこそ</b>');
+    expect(wrapper.find('[data-testid="timeline-empty-message"] b').exists()).toBe(false);
+    await wrapper.setProps({ filter: { conditions: null, _loaded: true, _sending: true } });
+    expect(wrapper.find('[data-testid="timeline-empty-message"]').exists()).toBe(false);
+    wrapper.unmount();
+  });
+  it('投稿がある場合と取得失敗時には表示しない', async () => {
+    const wrapper = createWrapper({ props: { showEmptyMessage: false, filter: { conditions: null, _loaded: true } } });
+    expect(wrapper.find('[data-testid="timeline-empty-message"]').exists()).toBe(false);
+    await wrapper.setProps({ showEmptyMessage: true, filter: { conditions: null, _loaded: false } });
+    expect(wrapper.find('[data-testid="timeline-empty-message"]').exists()).toBe(false);
+    wrapper.unmount();
+  });
+});

@@ -67,6 +67,7 @@
 </template>
 
 <script>
+import { getEmptyTimelineMessage, refreshTimelineEmptyState, markTimelineHasPosts } from '@/features/timeline/emptyState';
 import chatApi from '@/api/chat';
 import roomApi from '@/api/room';
 import { appendApiErrorMessage } from '@/api/apiClient';
@@ -569,6 +570,7 @@ export default {
         this.$store.dispatch('doUpdateRoomTitle', { title: roomTitle });
         this.room.title = roomTitle;
         this.room.description = this.getTranslatedDescription(room);
+        this.room.emptyMessageSource = room;
         return true;
       } catch (error) {
         if (this.shouldIgnoreTimelineRequestError(error, lifecycleGeneration)) return false;
@@ -599,12 +601,22 @@ export default {
       return found ? found._id : null;
     },
 
+    refreshTimelineEmptyState() {
+      return refreshTimelineEmptyState(this);
+    },
+
+    markTimelineHasPosts() {
+      markTimelineHasPosts(this);
+    },
+
     commonColumnProps(filter, index) {
       return buildColumnProps({
         filter,
         index,
         filters: this.timeline.filters,
         roomTags: this.room.tags,
+        emptyMessage: getEmptyTimelineMessage(this.room.emptyMessageSource, this.$i18n.locale, this.$t),
+        showEmptyMessage: this.timeline.isEmpty === true && this.infra.isSocketConnect && !this.initializationError,
         isMobile: this.isMobile,
         timelineFontFamily: this.timeline.fontFamily,
         timelineFontSize: this.timeline.fontSize,
@@ -1174,6 +1186,7 @@ export default {
           isGuest: !this.$store.getters.userIsLogin,
         });
         if (!this.canApplyTimelineRequest(lifecycleGeneration)) return;
+        tl._loaded = true;
         const list = Array.isArray(data) ? data : data?.posts || [];
         if (!list.length) {
           tl._noMore = true;
@@ -1191,6 +1204,7 @@ export default {
         });
       } catch (e) {
         if (this.shouldIgnoreTimelineRequestError(e, lifecycleGeneration)) return;
+        tl._loaded = false;
         const message = appendApiErrorMessage(this.$t('投稿の取得に失敗しました'), e, { translate: this.$t });
         this.setSnackbar(message, 'alert');
       } finally {

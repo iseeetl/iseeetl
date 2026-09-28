@@ -1,6 +1,7 @@
 const { buildReq, runValidators } = require('./_helpers');
 const {
   validateRoomTitle,
+  validateRoomEmptyMessage,
   validateRoomSearch,
   validateMemberOnly,
   validateRoomDisplayOrders,
@@ -51,6 +52,22 @@ describe('ルームの入力検証', () => {
   test('ルームの表示順が負の整数なら拒否する', async () => {
     const req = buildReq({ body: { display_order: -1 } });
     const result = await runValidators(validateRoomDisplayOrder('display_order'), req);
+    expect(result.isEmpty()).toBe(false);
+  });
+});
+
+describe('案内文の入力検証', () => {
+  test.each([
+    ['省略', undefined], ['null', null], ['空文字', ''], ['空白', ' '], ['200文字', 'あ'.repeat(200)],
+  ])('任意入力と200文字までを受け付ける（%s）', async (_label, value) => {
+    const result = await runValidators(validateRoomEmptyMessage('empty_message'), buildReq({ body: { empty_message: value } }));
+    expect(result.isEmpty()).toBe(true);
+  });
+  test.each([
+    ['数値', 123], ['オブジェクト', {}], ['配列', []], ['201文字', 'あ'.repeat(201)],
+    ['改行', '前\n後'], ['復帰', '前\r後'], ['行区切り', '前\u2028後'], ['段落区切り', '前\u2029後'],
+  ])('型違い・上限超過・改行を拒否する（%s）', async (_label, value) => {
+    const result = await runValidators(validateRoomEmptyMessage('empty_message'), buildReq({ body: { empty_message: value } }));
     expect(result.isEmpty()).toBe(false);
   });
 });

@@ -1,4 +1,7 @@
 {
+  "まだ投稿がありません。投稿されると、ここに表示されます。": "Ainda não há publicações. As novas publicações aparecerão aqui.",
+  "投稿がないときの案内文": "Mensagem quando não há publicações",
+  "空欄の場合は、標準の案内文を表示します。": "Deixe em branco para mostrar a mensagem padrão.",
   "フロア編集者はキックできません。": "Não é possível expulsar os editores do andar.",
   "フロアメンバーはキックできません。": "Não é possível expulsar os membros do andar.",
   "ログアウトしました": "Sessão encerrada",

@@ -53,6 +53,8 @@ describe('タイムラインのカラム設定', () => {
       focusedPostId: 'post-1',
       isGuestReactionOnly: false,
       showExternalShareButton: true,
+      emptyMessage: 'ようこそ',
+      showEmptyMessage: true,
       isSpeechActive: (receivedFilters, receivedIndex) => {
         speechCalls.push([receivedFilters, receivedIndex]);
         return true;
@@ -82,6 +84,8 @@ describe('タイムラインのカラム設定', () => {
       focusedPostId: 'post-1',
       isGuestReactionOnly: false,
       showExternalShareButton: true,
+      emptyMessage: 'ようこそ',
+      showEmptyMessage: true,
     });
     expect(props.posts).to.equal(posts);
     expect(props.roomTags).to.equal(roomTags);

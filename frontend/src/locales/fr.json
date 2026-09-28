@@ -1,4 +1,7 @@
 {
+  "まだ投稿がありません。投稿されると、ここに表示されます。": "Aucune publication pour le moment. Les nouvelles publications apparaîtront ici.",
+  "投稿がないときの案内文": "Message en l’absence de publications",
+  "空欄の場合は、標準の案内文を表示します。": "Laissez ce champ vide pour afficher le message par défaut.",
   "フロア編集者はキックできません。": "Les éditeurs de l’étage ne peuvent pas être exclus.",
   "フロアメンバーはキックできません。": "Les membres de l’étage ne peuvent pas être exclus.",
   "ログアウトしました": "Déconnexion réussie",

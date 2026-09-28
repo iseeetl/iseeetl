@@ -26,6 +26,7 @@ export const prepareFiltersForSession = (filters = []) =>
       const rest = { ...filter };
       delete rest.posts;
       delete rest._sending;
+      delete rest._loaded;
       return { ...rest, posts: [] };
     });
 
