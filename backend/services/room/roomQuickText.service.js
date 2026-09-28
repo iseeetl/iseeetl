@@ -6,7 +6,7 @@ const RoomQuickTextGroup = require('../../models/RoomQuickTextGroup');
 const RoomQuickTextItem = require('../../models/RoomQuickTextItem');
 
 const { findActiveUser, findRoomWithFloor } = require('../_shared/activeResource');
-const { hasFloorAccess } = require('../_shared/floorAccess');
+const { canManageFloor } = require('../_shared/floorAccess');
 const { buildQuickTextService } = require('../_shared/quickTextService');
 const { authorizeRoomMetadataAccess } = require('./roomAccess.service');
 
@@ -25,7 +25,7 @@ async function ensurePermission(roomId, jwtPayload) {
   const { room, floor } = await ensureRoomAndFloor(roomId);
   const floorMember = await FloorMember.findOne({ floor: floor._id, user: uid }).lean();
 
-  if (!hasFloorAccess({ role, floor, uid, floorMember })) {
+  if (!(await canManageFloor({ role, floor, uid, floorMember }))) {
     throw new AppError({ code: 'FORBIDDEN' });
   }
 

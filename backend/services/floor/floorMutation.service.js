@@ -8,7 +8,7 @@ const Floor = require('../../models/Floor');
 const translationService = require('../translation.service');
 const { removeFileBestEffort } = require('../upload/fileCleanup');
 const { findActiveUser, findActiveFloor } = require('../_shared/activeResource');
-const { isAdminOrCreator } = require('../_shared/floorAccess');
+const { canManageFloor } = require('../_shared/floorAccess');
 const {
   withAIAnalysisIntegrityLock,
 } = require('../analysis/settings/referenceIntegrity');
@@ -97,8 +97,7 @@ exports.update = async (body, jwtPayload) => {
       ? foundFloor.target_langs
       : [];
 
-  // サイト管理者、またはフロアを作成したフロア編集者だけに許可する。
-  if (!isAdminOrCreator(decodedUserRole, foundFloor.user.toString(), decodedUserId)) {
+  if (!(await canManageFloor({ role: decodedUserRole, floor: foundFloor, uid: decodedUserId }))) {
     throw new AppError({ code: 'FORBIDDEN' });
   }
 
@@ -196,8 +195,7 @@ exports.delete = async (body, jwtPayload, io) => {
 
   const foundFloor = await findActiveFloor(floorId, { error: { code: 'INVALID_PERMISSION' } });
 
-  // サイト管理者、またはフロアを作成したフロア編集者だけに許可する。
-  if (!isAdminOrCreator(decodedUserRole, foundFloor.user.toString(), decodedUserId)) {
+  if (!(await canManageFloor({ role: decodedUserRole, floor: foundFloor, uid: decodedUserId }))) {
     throw new AppError({ code: 'FORBIDDEN' });
   }
 

@@ -1,4 +1,6 @@
 {
+  "フロア編集者はキックできません。": "Không thể loại bỏ người chỉnh sửa tầng.",
+  "フロアメンバーはキックできません。": "Không thể loại bỏ thành viên tầng.",
   "ログアウトしました": "Đã đăng xuất",
   "ログインしました": "Đã đăng nhập",
   "アイシータイムライン": "ISeeeTimeLine",
@@ -68,7 +70,6 @@
   "フロアへ移動する": "Lên sàn",
   "フロア一覧へ移動する": "Đi tới danh sách tầng",
   "フロアに参加しました。": "Bạn đã tham gia floor.",
-  "参加したフロアでは、ルームの作成、更新、削除ができます。": "Bạn có thể tạo, cập nhật và xóa rooms trong floor này.",
   "フロアメンバーへの参加に失敗しました": "Không tham gia được thành viên của tầng",
   "ルームメンバー参加完了": "Hoàn thành tham gia thành viên trong phòng",
   "ルームへ移動する": "Chuyển đến phòng",
@@ -692,18 +693,20 @@
     "capabilities": {
       "allowed": {
         "browse": "Xem tầng và các phòng, kể cả nội dung bị ẩn",
-        "rooms": "Tạo, sửa, xóa và sắp xếp lại các phòng trong tầng",
-        "resources": "Quản lý thẻ và văn bản nhanh của phòng",
-        "members": "Xem thành viên tầng và tự rời tầng",
-        "roomMembers": "Mời và xem thành viên phòng",
-        "timeline": "Vào phòng chỉ dành cho thành viên và sử dụng dòng thời gian"
+        "management": "Quản lý cài đặt, thành viên và bài đăng của tầng và các phòng thuộc tầng, bao gồm chỉnh sửa và xóa tầng.",
+        "timeline": "Vào phòng chỉ dành cho thành viên và sử dụng dòng thời gian",
+        "floors": "Chỉnh sửa, xóa, hiển thị hoặc ẩn tầng này",
+        "rooms": "Tạo, chỉnh sửa, xóa, sắp xếp, hiển thị hoặc ẩn phòng",
+        "resources": "Quản lý thẻ và từ của tầng và phòng",
+        "members": "Mời và xóa thành viên khỏi tầng và phòng",
+        "analysis": "Thiết lập phân tích AI cho tầng và phòng",
+        "kicks": "Kick người dùng và hủy kick",
+        "othersContent": "Sửa hoặc xóa bài đăng, trả lời hoặc thông tin bổ sung của người khác"
       },
       "denied": {
-        "floor": "Sửa hoặc xóa chính tầng đó",
-        "resources": "Quản lý thẻ tầng, văn bản nhanh của tầng hoặc cài đặt phân tích AI",
-        "members": "Mời hoặc xóa thành viên tầng"
-      },
-      "creatorNote": "Bạn cũng có thể xóa thành viên khỏi các phòng do mình tạo."
+        "createFloor": "Tạo tầng mới",
+        "bulkVisibility": "Hiển thị hoặc ẩn hàng loạt tầng từ danh sách tầng"
+      }
     },
     "deleteMemberAria": "Xóa {username} khỏi thành viên tầng",
     "targetMember": "Thành viên đích"

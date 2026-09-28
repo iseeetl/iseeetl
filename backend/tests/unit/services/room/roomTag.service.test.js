@@ -1,3 +1,4 @@
+jest.mock('../../../../models/KickedUser', () => ({ findOne: jest.fn().mockResolvedValue(null) }));
 jest.mock('../../../../services/translation.service', () => ({
   translateTag: jest.fn().mockResolvedValue(['translated']),
 }));

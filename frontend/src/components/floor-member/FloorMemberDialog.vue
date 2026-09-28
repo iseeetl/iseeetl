@@ -202,7 +202,7 @@ export default {
     },
 
     canDeleteMember() {
-      return !!(this.role && (this.role.isAdmin || this.role.isFloorEditor));
+      return !!(this.role && (this.role.isAdmin || this.role.isFloorEditor || this.role.isFloorMember));
     },
 
     applyDeletedMember(memberOrId) {

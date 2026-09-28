@@ -1,4 +1,6 @@
 {
+  "フロア編集者はキックできません。": "Kat düzenleyicileri atılamaz.",
+  "フロアメンバーはキックできません。": "Kat üyeleri atılamaz.",
   "ログアウトしました": "Çıkış yapıldı",
   "ログインしました": "Giriş yapıldı",
   "アイシータイムライン": "ISeeeTimeLine",
@@ -68,7 +70,6 @@
   "フロアへ移動する": "Kata git",
   "フロア一覧へ移動する": "Kat listesine git",
   "フロアに参加しました。": "Floor’a katıldınız.",
-  "参加したフロアでは、ルームの作成、更新、削除ができます。": "Bu floor içinde rooms oluşturabilir, güncelleyebilir ve silebilirsiniz.",
   "フロアメンバーへの参加に失敗しました": "Kat üyeliğine katılma başarısız oldu",
   "ルームメンバー参加完了": "Oda üyeliği tamamlandı",
   "ルームへ移動する": "Odaya git",
@@ -692,18 +693,20 @@
     "capabilities": {
       "allowed": {
         "browse": "Gizli olanlar dahil katı ve odalarını görüntüleme",
-        "rooms": "Kattaki odaları oluşturma, düzenleme, silme ve yeniden sıralama",
-        "resources": "Oda etiketlerini ve hızlı metinlerini yönetme",
-        "members": "Kat üyelerini görüntüleme ve kattan kendiniz ayrılma",
-        "roomMembers": "Oda üyelerini davet etme ve görüntüleme",
-        "timeline": "Üyelere özel odalara girme ve zaman akışlarını kullanma"
+        "management": "Katı düzenleme ve silme dahil, bu katın ve odalarının ayarlarını, üyelerini ve gönderilerini yönetme.",
+        "timeline": "Üyelere özel odalara girme ve zaman akışlarını kullanma",
+        "floors": "Bu katı düzenleme, silme, gösterme veya gizleme",
+        "rooms": "Oda oluşturma, düzenleme, silme, sıralama, gösterme veya gizleme",
+        "resources": "Kat ve oda etiketlerini ve kelimelerini yönetme",
+        "members": "Kat ve oda üyelerini davet etme ve üyelikten çıkarma",
+        "analysis": "Kat ve odaların yapay zeka analizini yapılandırma",
+        "kicks": "Kullanıcıları uzaklaştırma ve uzaklaştırmayı kaldırma",
+        "othersContent": "Başkalarının gönderilerini, yanıtlarını veya ek bilgilerini düzenleme ya da silme"
       },
       "denied": {
-        "floor": "Katın kendisini düzenleme veya silme",
-        "resources": "Kat etiketlerini, kat hızlı metinlerini veya AI analiz ayarlarını yönetme",
-        "members": "Kat üyelerini davet etme veya kaldırma"
-      },
-      "creatorNote": "Oluşturduğunuz odalardan üyeleri de kaldırabilirsiniz."
+        "createFloor": "Kat oluşturma",
+        "bulkVisibility": "Kat listesinden katları topluca gösterme veya gizleme"
+      }
     },
     "deleteMemberAria": "{username} adlı kullanıcıyı kat üyelerinden çıkar",
     "targetMember": "Hedef üye"

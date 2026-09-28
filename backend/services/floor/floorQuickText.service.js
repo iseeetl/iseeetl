@@ -4,7 +4,7 @@ const FloorQuickTextGroup = require('../../models/FloorQuickTextGroup');
 const FloorQuickTextItem = require('../../models/FloorQuickTextItem');
 
 const { findActiveUser, findActiveFloor } = require('../_shared/activeResource');
-const { isAdminOrCreator } = require('../_shared/floorAccess');
+const { canManageFloor } = require('../_shared/floorAccess');
 const { buildQuickTextService } = require('../_shared/quickTextService');
 
 async function ensureFloorAndPermission(floorId, jwtPayload) {
@@ -14,7 +14,7 @@ async function ensureFloorAndPermission(floorId, jwtPayload) {
   const user = await findActiveUser(uid, { error: { code: 'NOT_FOUND' } });
   const floor = await findActiveFloor(floorId, { error: { code: 'NOT_FOUND' } });
 
-  if (!isAdminOrCreator(role, floor.user.toString(), uid)) {
+  if (!(await canManageFloor({ role, floor, uid }))) {
     throw new AppError({ code: 'FORBIDDEN' });
   }
 

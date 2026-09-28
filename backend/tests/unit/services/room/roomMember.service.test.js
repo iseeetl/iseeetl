@@ -1,3 +1,4 @@
+jest.mock('../../../../models/KickedUser', () => ({ findOne: jest.fn().mockResolvedValue(null) }));
 jest.mock('crypto', () => ({
   randomBytes: jest.fn().mockReturnValue({ toString: () => 'fixedtoken' }),
 }));
@@ -107,6 +108,7 @@ describe('roomMemberのサービス', () => {
     });
 
     test('権限なしユーザは 403', async () => {
+      FloorMember.findOne.mockResolvedValue(null);
       await expect(roomMemberService.invite(body, { user_role: 'User', user_id: 'guest' })).rejects.toBeInstanceOf(
         AppError
       );
@@ -180,8 +182,9 @@ describe('roomMemberのサービス', () => {
       });
     });
 
-    test('ルーム作成者はメンバーを削除できる', async () => {
-      Room.findOne.mockResolvedValue({ _id: 'room1', floor: 'floor1', user: 'uid', delete_flg: false });
+    test('フロアメンバーは他人のルームのメンバーを削除できる', async () => {
+      FloorMember.findOne.mockResolvedValue({ _id: 'fm1' });
+      Room.findOne.mockResolvedValue({ _id: 'room1', floor: 'floor1', user: 'other', delete_flg: false });
 
       await expect(roomMemberService.delete(body, { user_role: 'User', user_id: 'uid' })).resolves.toEqual(
         expect.objectContaining({ _id: 'rm1' })
@@ -191,6 +194,7 @@ describe('roomMemberのサービス', () => {
     });
 
     test('削除成功時に対象ユーザのフロア内Socket権限を再判定する', async () => {
+      FloorMember.findOne.mockResolvedValue({ _id: 'fm1' });
       Room.findOne.mockResolvedValue({ _id: 'room1', floor: 'floor1', user: 'uid', delete_flg: false });
       const io = {};
 
@@ -203,6 +207,7 @@ describe('roomMemberのサービス', () => {
     });
 
     test('権限なしユーザは 403', async () => {
+      FloorMember.findOne.mockResolvedValue(null);
       Room.findOne.mockResolvedValue({ _id: 'room1', floor: 'floor1', user: 'other', delete_flg: false });
 
       await expect(roomMemberService.delete(body, { user_role: 'User', user_id: 'uid' })).rejects.toBeInstanceOf(

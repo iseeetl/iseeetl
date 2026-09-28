@@ -4,6 +4,7 @@ import InviteFloorMemberDialog from '@/components/floor-member/InviteFloorMember
 import DialogTargetContext from '@/components/common/DialogTargetContext.vue';
 import floorMemberApi from '@/api/floorMember';
 import { API_BASE_URL } from '@/api/apiClient';
+import ja from '@/locales/ja.json';
 
 import flushPromises from '../../helpers/flushPromises';
 
@@ -62,15 +63,28 @@ describe('フロアメンバーの招待', () => {
   });
 
   it('招待作成前からメンバー一覧と同じ権限と注記を表示する', () => {
-    const wrapper = createWrapper();
+    const wrapper = createWrapper({
+      mocks: { $t: (key) => key.split('.').reduce((value, part) => value?.[part], ja) ?? key },
+    });
     const guidance = wrapper.get('[data-testid="member-capability-guidance"]');
     expect(guidance.findAll('h3').map((heading) => heading.text())).to.deep.equal([
-      'memberCapabilities.allowed', 'memberCapabilities.denied',
+      'できること', 'できないこと',
     ]);
-    expect(guidance.findAll('ul').map((list) => list.findAll('li').length)).to.deep.equal([6, 3]);
-    expect(guidance.text()).to.include('floorMemberDialogs.capabilities.denied.members');
-    expect(guidance.text()).to.include('memberCapabilities.roleNote');
-    expect(guidance.text().includes('floorMemberDialogs.capabilities.creatorNote')).to.equal(true);
+    expect(guidance.findAll('ul').map((list) => list.findAll('li').map((item) => item.text()))).to.deep.equal([
+      [
+        '所属フロアと配下ルームの閲覧（非表示を含む）',
+        '所属フロアの編集・削除・表示切替',
+        'ルームの作成・編集・削除・並び替え・表示切替',
+        'フロア・ルームのタグ・単語の管理',
+        'フロア・ルームのメンバー招待・登録解除',
+        'フロア・ルームのAI解析設定',
+        'ユーザのキック・解除',
+        'メンバー限定ルームへの入室・タイムラインの利用',
+        '他の人の投稿・返信・付加情報の編集・削除',
+      ],
+      ['フロアの新規作成', 'フロア一覧での一括表示・非表示'],
+    ]);
+    expect(guidance.text()).to.include(ja.memberCapabilities.roleNote);
   });
 
   it('長い招待URLを読取専用の複数行欄に表示し、改行を加えずコピーする', async () => {

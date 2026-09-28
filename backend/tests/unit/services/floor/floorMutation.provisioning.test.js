@@ -1,6 +1,6 @@
 const mockFindActiveUser = jest.fn();
 const mockFindActiveFloor = jest.fn();
-const mockIsAdminOrCreator = jest.fn();
+const mockCanManageFloor = jest.fn();
 const mockProvisionFloorResources = jest.fn();
 const mockRefreshFloorResourceTranslations = jest.fn();
 const mockRollbackFloorProvisioning = jest.fn();
@@ -18,7 +18,7 @@ jest.mock('../../../../services/_shared/activeResource', () => ({
   findActiveFloor: mockFindActiveFloor,
 }));
 jest.mock('../../../../services/_shared/floorAccess', () => ({
-  isAdminOrCreator: mockIsAdminOrCreator,
+  canManageFloor: mockCanManageFloor,
 }));
 jest.mock('../../../../services/floor/floorProvisioning.service', () => ({
   provisionFloorResources: mockProvisionFloorResources,
@@ -39,7 +39,7 @@ describe('フロア作成失敗時の後処理', () => {
     jest.clearAllMocks();
     mockIsGoogleTranslateEnabled.mockReturnValue(true);
     mockFindActiveUser.mockResolvedValue({ _id: 'user-1', username: 'owner' });
-    mockIsAdminOrCreator.mockReturnValue(true);
+    mockCanManageFloor.mockReturnValue(true);
     translationService.translateTitleAndDescription.mockResolvedValue([]);
     mockRollbackFloorProvisioning.mockResolvedValue();
   });

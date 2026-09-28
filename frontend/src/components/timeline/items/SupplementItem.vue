@@ -19,7 +19,7 @@
 
         <UiTooltip
           v-if="
-            ($store.getters.userRole === 'Administrator' || $store.getters.roomRole === 'FloorEditor') &&
+            canManageFloor &&
             supplement.user !== undefined &&
             supplement.user !== null &&
             $store.getters.displayUserKickButton
@@ -166,6 +166,7 @@
 </template>
 
 <script>
+import { canManageFloor } from '@/utils/floorPermissions';
 import DateUtil from '@/utils/dateUtil.js';
 import TimelineUtil from '@/features/timeline/timelineUtil.js';
 import TranslationUtil from '@/utils/translationUtil';
@@ -218,6 +219,9 @@ export default {
     };
   },
   computed: {
+    canManageFloor() {
+      return canManageFloor(this.$store.getters.userRole, this.$store.getters.roomRole);
+    },
     reactionPickerId() {
       return `${this.idPrefix}-reaction-picker-supplement-${this.supplement._id}`;
     },

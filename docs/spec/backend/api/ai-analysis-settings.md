@@ -6,6 +6,8 @@
 
 ## 共通条件
 
+対象フロアでキック済みのフロアメンバーは、管理操作を利用できません。詳しい権限は[フロア単位の認可](../../roles-and-permissions.md#フロア単位の認可)を参照してください。
+
 ### 共通項目
 
 #### 入力
@@ -14,7 +16,7 @@
 | --- | --- |
 | `analysis_kind` | `vision`、`audioScene`、`speech`、`video`、`conversation` |
 | `additional_prompt` | 必須の文字列。最大2000文字・8000バイト以内。`speech`は224バイト以内。[数え方](../../ai-analysis.md#文字数容量の数え方)を参照 |
-| `result_user` | 有効なユーザのObjectId。共通設定では`Administrator`、フロア／ルーム設定では`Administrator`または対象フロアを作成した`Editor`が送信する必須項目 |
+| `result_user` | 有効なユーザのObjectId。共通設定では`Administrator`、フロア／ルーム設定では`Administrator`、対象フロアを作成した`Editor`、または対象フロアのメンバーが送信する必須項目 |
 | `revision` | 更新・削除対象の現在の`revision`。1以上の安全な整数。競合防止に使う |
 
 各エンドポイントは許可していない項目を400 `INVALID_PARAMS`として拒否します。フロア／ルーム設定の作成・更新では、許可されたロールの違いにかかわらず`result_user`を必要とします。
@@ -99,7 +101,7 @@
 
 ### フロア設定
 
-`Administrator`または対象フロアを作成した`Editor`が利用できます。
+`Administrator`、対象フロアを作成した`Editor`、または対象フロアのメンバーが利用できます。
 
 #### POST /api/flooraianalysissetting
 
@@ -115,7 +117,7 @@
 
 #### POST /api/flooraianalysissetting/update
 
-ボディは`_id`、`floor_id`、`floor_tag`、`analysis_kind`、`additional_prompt`、`result_user`、`revision`です。`Administrator`と対象フロアを作成した`Editor`は結果ユーザを変更できます。revision不一致または有効な設定の重複は409です。
+ボディは`_id`、`floor_id`、`floor_tag`、`analysis_kind`、`additional_prompt`、`result_user`、`revision`です。`Administrator`、対象フロアを作成した`Editor`、対象フロアのメンバーは結果ユーザを変更できます。revision不一致または有効な設定の重複は409です。
 
 #### POST /api/flooraianalysissetting/delete
 
@@ -123,11 +125,11 @@
 
 #### POST /api/flooraianalysissetting/result-users/search
 
-ボディは`floor_id`と`search`です。`Administrator`または対象フロアを作成した`Editor`だけが利用できます。`search`は前後空白除去後100文字以下の文字列で、有効なユーザのusernameを大文字・小文字を区別しない部分一致で検索します。返却項目、並べ替え、メールアドレス非公開の契約は共通設定用の結果ユーザ検索と同じです。
+ボディは`floor_id`と`search`です。`Administrator`、対象フロアを作成した`Editor`、または対象フロアのメンバーだけが利用できます。`search`は前後空白除去後100文字以下の文字列で、有効なユーザのusernameを大文字・小文字を区別しない部分一致で検索します。返却項目、並べ替え、メールアドレス非公開の契約は共通設定用の結果ユーザ検索と同じです。
 
 ### ルーム設定
 
-`Administrator`または対象ルームが所属するフロアを作成した`Editor`が利用できます。`floor_id`と、`room_id`から解決したフロアが一致しない場合は400です。
+`Administrator`、対象ルームが所属するフロアを作成した`Editor`、またはそのフロアのメンバーが利用できます。`floor_id`と、`room_id`から解決したフロアが一致しない場合は400です。
 
 #### POST /api/roomaianalysissetting
 
@@ -143,7 +145,7 @@
 
 #### POST /api/roomaianalysissetting/update
 
-ボディは`_id`、`floor_id`、`room_id`、`room_tag`、`analysis_kind`、`additional_prompt`、`result_user`、`revision`です。`Administrator`と対象フロアを作成した`Editor`は結果ユーザを変更できます。
+ボディは`_id`、`floor_id`、`room_id`、`room_tag`、`analysis_kind`、`additional_prompt`、`result_user`、`revision`です。`Administrator`、対象フロアを作成した`Editor`、対象フロアのメンバーは結果ユーザを変更できます。
 
 #### POST /api/roomaianalysissetting/delete
 
@@ -151,7 +153,7 @@
 
 #### POST /api/roomaianalysissetting/result-users/search
 
-ボディは`floor_id`、`room_id`、`search`です。`Administrator`または対象ルームが所属するフロアを作成した`Editor`だけが利用でき、`floor_id`とルームから解決したフロアの一致も確認します。検索と返却の契約はフロアのエンドポイントと同じです。
+ボディは`floor_id`、`room_id`、`search`です。`Administrator`、対象ルームが所属するフロアを作成した`Editor`、またはそのフロアのメンバーだけが利用でき、`floor_id`とルームから解決したフロアの一致も確認します。検索と返却の契約はフロアのエンドポイントと同じです。
 
 ### POST /api/user/ai-analysis-result-users/search
 

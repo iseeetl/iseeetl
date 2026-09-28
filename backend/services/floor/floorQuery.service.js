@@ -4,6 +4,8 @@ const { buildPaginationOptions } = require('../_shared/paginationHelpers');
 
 const Floor = require('../../models/Floor');
 const FloorMember = require('../../models/FloorMember');
+const KickedUser = require('../../models/KickedUser');
+const { isAdminOrCreator } = require('../_shared/floorAccess');
 
 const { findActiveUser, findActiveFloor } = require('../_shared/activeResource');
 
@@ -53,12 +55,13 @@ exports.paginate = async (body, jwtPayload) => {
   const decodedUserId = jwtPayload.user_id;
 
   let query;
+  let floorIdsWithUser = [];
 
   if (decodedUserRole === ROLES.ADMINISTRATOR) {
     query = { delete_flg: false };
     if (searchQuery) query.$or = searchQuery;
   } else if (decodedUserRole === ROLES.EDITOR) {
-    const floorIdsWithUser = await FloorMember.find({ user: decodedUserId }).distinct('floor');
+    floorIdsWithUser = await FloorMember.find({ user: decodedUserId }).distinct('floor');
 
     const myQuery = [
       { floor_display_hidden: { $ne: true }, delete_flg: false },
@@ -68,7 +71,7 @@ exports.paginate = async (body, jwtPayload) => {
 
     query = searchQuery ? { $and: [{ $or: myQuery }, { $or: searchQuery }] } : { $or: myQuery };
   } else {
-    const floorIdsWithUser = await FloorMember.find({ user: decodedUserId }).distinct('floor');
+    floorIdsWithUser = await FloorMember.find({ user: decodedUserId }).distinct('floor');
 
     const myQuery = [
       { floor_display_hidden: { $ne: true }, delete_flg: false },
@@ -79,6 +82,15 @@ exports.paginate = async (body, jwtPayload) => {
   }
 
   const result = await Floor.paginate(query, options);
+  const memberFloorIds = new Set(floorIdsWithUser.map(String));
+  const kickedFloorIds = new Set(floorIdsWithUser.length
+    ? (await KickedUser.find({ user: decodedUserId, floor: { $in: floorIdsWithUser } }).distinct('floor')).map(String)
+    : []);
+  result.docs = result.docs.map((floor) => ({
+    ...floor,
+    can_manage: isAdminOrCreator(decodedUserRole, floor.user?._id, decodedUserId) ||
+      (memberFloorIds.has(String(floor._id)) && !kickedFloorIds.has(String(floor._id))),
+  }));
 
   return result;
 };

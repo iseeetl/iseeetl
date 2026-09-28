@@ -88,7 +88,7 @@ describe('フロア招待の完了画面', () => {
     expect(wrapper.vm.isError).to.equal(false);
     expect(wrapper.vm.floor_id).to.equal('f1');
     expect(wrapper.vm.message).to.equal(
-      'Floor フロアに参加しました。 参加したフロアでは、ルームの作成、更新、削除ができます。'
+      'Floor フロアに参加しました。 floorMemberDialogs.capabilities.allowed.management'
     );
     expect(wrapper.find('.view-content').attributes('aria-busy')).to.equal('false');
     expect(wrapper.find('[role="status"]').exists()).to.equal(false);

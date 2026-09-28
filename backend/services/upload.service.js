@@ -4,7 +4,7 @@ const FloorMember = require('../models/FloorMember');
 const { authorizeRoomAccess } = require('../services/room/roomAccess.service');
 const { discardTimelineMedia } = require('./media/discard.service');
 const { findActiveUser, findActiveFloor, findRoomWithFloor } = require('./_shared/activeResource');
-const { hasFloorAccess, isAdminOrCreator } = require('./_shared/floorAccess');
+const { canManageFloor } = require('./_shared/floorAccess');
 const { saveSanitizedImage } = require('./upload/imageStorage');
 const { convertAudioToMp3 } = require('./upload/audioProcessor');
 const { assertStoredFile, removeStoredFiles } = require('./upload/fileOperations');
@@ -35,7 +35,7 @@ exports.uploadFloorImage = async (body, files, jwtPayload) => {
 
   await findActiveUser(userId, { error: { code: 'INVALID_PERMISSION' } });
   const floor = await findActiveFloor(floorId, { error: { code: 'INVALID_PARAMS' } });
-  if (!isAdminOrCreator(userRole, floor.user, userId)) {
+  if (!(await canManageFloor({ role: userRole, floor, uid: userId }))) {
     throw new AppError({ code: 'FORBIDDEN' });
   }
 
@@ -66,7 +66,7 @@ exports.uploadRoomImage = async (body, files, jwtPayload) => {
   }
 
   const floorMember = await FloorMember.findOne({ floor: floor._id, user: userId }).lean();
-  if (!hasFloorAccess({ role: userRole, floor, uid: userId, floorMember })) {
+  if (!(await canManageFloor({ role: userRole, floor, uid: userId, floorMember }))) {
     throw new AppError({ code: 'FORBIDDEN' });
   }
 

@@ -74,6 +74,7 @@ const User = require('../../../models/User');
 const Floor = require('../../../models/Floor');
 const Room = require('../../../models/Room');
 const FloorMember = require('../../../models/FloorMember');
+const KickedUser = require('../../../models/KickedUser');
 
 const buildApp = () => {
   const app = express();
@@ -202,7 +203,7 @@ describe('メディアのアップロードAPI', () => {
     expect(res.body?.error?.code).toBe('INVALID_PARAMS');
   });
 
-  test('有効なファイルをフロア画像としてアップロードできる', async () => {
+  test.each(['フロア編集者', 'フロアメンバー'])('%sは有効なファイルをフロア画像としてアップロードできる', async (actorRole) => {
     const owner = await User.create({
       username: 'FloorOwner',
       mail: `floor-owner-${Date.now()}@example.com`,
@@ -216,8 +217,14 @@ describe('メディアのアップロードAPI', () => {
       lang: 'ja',
     });
 
+    let actor = owner;
+    if (actorRole === 'フロアメンバー') {
+      actor = await User.create({ username: 'FloorImageMember', mail: 'floor-image-member@example.test', lang: 'ja', role: 'Author' });
+      await FloorMember.create({ floor: floor._id, user: actor._id });
+    }
+
     const res = await postTargetedUpload(app, '/upload/floor/image', floor._id)
-      .set('Authorization', `Bearer ${buildToken(owner)}`)
+      .set('Authorization', `Bearer ${buildToken(actor)}`)
       .field('_id', floor._id.toString())
       .attach('image_file', VALID_PNG, {
         filename: 'floor.png',
@@ -229,6 +236,21 @@ describe('メディアのアップロードAPI', () => {
 
     const savedPath = path.join(process.env.MEDIA_PATH, floor._id.toString(), res.body.image_name);
     expect(fs.existsSync(savedPath)).toBe(true);
+  });
+
+  test.each(['floor', 'room'])('キック記録のあるフロアメンバーは%s画像を保存できない', async (scope) => {
+    const { owner, floor, room } = await createTimelineContext(`Kicked-${scope}`);
+    const member = await User.create({ username: 'KickedMember', mail: 'kicked-member@example.test', lang: 'ja', role: 'Author' });
+    await FloorMember.create({ floor: floor._id, user: member._id });
+    await KickedUser.create({ floor: floor._id, room: room._id, user: member._id, kicked_by: owner._id });
+    const res = await postTargetedUpload(app, `/upload/${scope}/image`, floor._id, scope === 'room' ? room._id : null)
+      .set('Authorization', `Bearer ${buildToken(member)}`)
+      .field('_id', String(scope === 'room' ? room._id : floor._id))
+      .field('floor_id', String(floor._id))
+      .attach('image_file', VALID_PNG, { filename: 'image.png', contentType: 'image/png' });
+    expect(res.status).toBe(403);
+    expect(res.body.error.code).toBe('FORBIDDEN');
+    expect(readDirSafe(path.join(process.env.MEDIA_PATH, String(floor._id)))).toEqual([]);
   });
 
   test('フロアの更新権限がないユーザの画像を保存せず拒否する', async () => {

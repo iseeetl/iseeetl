@@ -1,4 +1,6 @@
 {
+  "フロア編集者はキックできません。": "Våningsredaktörer kan inte uteslutas.",
+  "フロアメンバーはキックできません。": "Våningsmedlemmar kan inte uteslutas.",
   "ログアウトしました": "Utloggad",
   "ログインしました": "Inloggad",
   "アイシータイムライン": "ISeeeTimeLine",
@@ -68,7 +70,6 @@
   "フロアへ移動する": "Gå till golvet",
   "フロア一覧へ移動する": "Gå till golvlistan",
   "フロアに参加しました。": "Du har gått med i floor.",
-  "参加したフロアでは、ルームの作成、更新、削除ができます。": "Du kan skapa, uppdatera och ta bort rooms i detta floor.",
   "フロアメンバーへの参加に失敗しました": "Det gick inte att bli golvmedlem",
   "ルームメンバー参加完了": "Rumsmedlemskap färdigställt",
   "ルームへ移動する": "Gå till rummet",
@@ -692,18 +693,20 @@
     "capabilities": {
       "allowed": {
         "browse": "Visa våningen och dess rum, även dolda",
-        "rooms": "Skapa, redigera, ta bort och ordna om rum på våningen",
-        "resources": "Hantera rumstaggar och snabbtexter",
-        "members": "Visa våningsmedlemmar och själv lämna våningen",
-        "roomMembers": "Bjuda in och visa rumsmedlemmar",
-        "timeline": "Gå in i rum endast för medlemmar och använda deras tidslinjer"
+        "management": "Hantera inställningar, medlemmar och inlägg på våningen och i dess rum, inklusive att redigera och ta bort våningen.",
+        "timeline": "Gå in i rum endast för medlemmar och använda deras tidslinjer",
+        "floors": "Redigera, ta bort, visa eller dölja denna våning",
+        "rooms": "Skapa, redigera, ta bort, ordna om, visa eller dölja rum",
+        "resources": "Hantera taggar och ord för våningen och rummen",
+        "members": "Bjuda in och ta bort medlemmar på våningen och i rummen",
+        "analysis": "Konfigurera AI-analys för våningen och rummen",
+        "kicks": "Utesluta användare och häva uteslutningar",
+        "othersContent": "Redigera eller ta bort andras inlägg, svar eller tilläggsinformation"
       },
       "denied": {
-        "floor": "Redigera eller ta bort själva våningen",
-        "resources": "Hantera våningstaggar, våningens snabbtexter eller AI-analysinställningar",
-        "members": "Bjuda in eller ta bort våningsmedlemmar"
-      },
-      "creatorNote": "Du kan också ta bort medlemmar från rum som du har skapat."
+        "createFloor": "Skapa våningar",
+        "bulkVisibility": "Visa eller dölja våningar samtidigt från våningslistan"
+      }
     },
     "deleteMemberAria": "Ta bort {username} från våningens medlemmar",
     "targetMember": "Målmedlem"

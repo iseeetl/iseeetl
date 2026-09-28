@@ -13,8 +13,8 @@
 <script>
 const CAPABILITY_KEYS = {
   floor: {
-    allowed: ['browse', 'rooms', 'resources', 'members', 'roomMembers', 'timeline'],
-    denied: ['floor', 'resources', 'members'],
+    allowed: ['browse', 'floors', 'rooms', 'resources', 'members', 'analysis', 'kicks', 'timeline', 'othersContent'],
+    denied: ['createFloor', 'bulkVisibility'],
   },
   room: {
     allowed: ['entry', 'timeline', 'members'],
@@ -40,7 +40,6 @@ export default {
     },
     notes() {
       return [
-        ...(this.scope === 'floor' ? [this.$t('floorMemberDialogs.capabilities.creatorNote')] : []),
         this.$t('memberCapabilities.roleNote'),
       ];
     },

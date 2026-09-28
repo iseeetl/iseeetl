@@ -1,4 +1,6 @@
 const { getBaseUrl, navigateToApp, loginToTimeline } = require('../../helpers/login');
+const { clickExactFloorDialogSubmit } = require('../../helpers/role-helpers');
+const { clickSingleVisible, waitForDialogClosed } = require('../../helpers/dialog-focus');
 const {
   loginByForm,
   loginIfPresent,
@@ -303,9 +305,45 @@ module.exports = {
     assertElementPresent(browser, '.room-action', 'ルーム項目の操作');
 
     assertButtonTextPresent(browser, 'ルーム作成', 'ルームを作成');
-    assertButtonTextAbsent(browser, 'フロアタグ', 'フロアタグ');
-    assertButtonTextAbsent(browser, 'フロア単語', 'フロアの単語');
-    browser.waitForElementNotPresent('[data-testid="room-invite-floor-member-button"]', 5000);
+    assertButtonTextPresent(browser, 'フロアタグ', 'フロアタグ');
+    assertButtonTextPresent(browser, 'フロア単語', 'フロアの単語');
+    browser.waitForElementVisible('[data-testid="room-invite-floor-member-button"]', 5000);
+    assertElementPresent(browser, '[data-testid="room-floor-ai-analysis-settings-button"]', 'フロアのAI解析設定');
+    assertButtonTextAbsent(browser, 'フロア作成', 'フロア新規作成');
+
+    browser.perform(() => {
+      navigateToApp(browser, base).waitForElementVisible('#search_floor_input', 10000);
+      browser.waitForElementNotPresent('[data-testid="floor-list-create-button"]', 5000);
+      browser.waitForElementNotPresent('[data-testid="floor-list-hide-all-button"]', 5000);
+      waitForFloorTitle(browser, state.floorTitle, true);
+      const editedTitle = `${state.floorTitle} 編集済み`;
+      const editButton = `#edit_floor_button_${state.floorId}`;
+      clickSingleVisible(browser, editButton, '所属フロアの編集画面を開く');
+      browser.waitForElementVisible('#edit_floor_title', 10000);
+      browser.clearValue('#edit_floor_title').setValue('#edit_floor_title', editedTitle);
+      browser.clearValue('#edit_floor_description').setValue('#edit_floor_description', 'フロアメンバーによる編集');
+      clickSingleVisible(browser, '#floor_display_hidden', '所属フロアを非表示にする');
+      clickExactFloorDialogSubmit(browser, {
+        title: editedTitle,
+        description: 'フロアメンバーによる編集',
+        displayHidden: true,
+        label: 'フロアメンバーによる編集を保存',
+      });
+      waitForDialogClosed(browser, '#edit_floor_title');
+      waitForFloorTitle(browser, editedTitle, true);
+      browser.refresh().waitForElementVisible(editButton, 10000);
+      clickSingleVisible(browser, editButton, '再読込後に所属フロアの設定を確認する');
+      browser.waitForElementVisible('#edit_floor_title', 10000);
+      browser.assert.valueEquals('#edit_floor_title', editedTitle);
+      browser.assert.selected('#floor_display_hidden');
+      clickSingleVisible(browser, '[data-testid="base-edit-dialog-cancel"]', 'フロア編集画面を閉じる');
+      waitForDialogClosed(browser, '#edit_floor_title');
+      clickSingleVisible(browser, `#delete_floor_button_${state.floorId}`, '所属フロアの削除を選ぶ');
+      browser.waitForElementVisible('#delete_floor_dialog_description', 10000);
+      clickSingleVisible(browser, '[data-testid="delete-floor-dialog-confirm"]', '所属フロアの削除を確定');
+      waitForDialogClosed(browser, '#delete_floor_dialog_description');
+      waitForFloorTitle(browser, editedTitle, false);
+    });
 
     browser.end();
   },

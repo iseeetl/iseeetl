@@ -7,7 +7,7 @@ const CategoryTag = require('../../models/CategoryTag');
 
 const translationService = require('../translation.service');
 const { findActiveUser, findActiveFloor } = require('../_shared/activeResource');
-const { isAdminOrCreator } = require('../_shared/floorAccess');
+const { canManageFloor } = require('../_shared/floorAccess');
 const {
   assertUniqueTagNames,
   reconcileTagsByName,
@@ -34,8 +34,7 @@ exports.list = async (body, jwtPayload) => {
 
   const foundFloor = await findActiveFloor(floorId);
 
-  // サイト管理者、またはフロアを作成したフロア編集者だけに許可する。
-  if (!isAdminOrCreator(decodedUserRole, foundFloor.user.toString(), decodedUserId)) {
+  if (!(await canManageFloor({ role: decodedUserRole, floor: foundFloor, uid: decodedUserId }))) {
     throw new AppError({ code: 'FORBIDDEN' });
   }
 
@@ -56,8 +55,7 @@ exports.create = async (body, jwtPayload) => {
 
   const foundFloor = await findActiveFloor(floorId, { error: { code: 'INVALID_PERMISSION' } });
 
-  // サイト管理者、またはフロアを作成したフロア編集者だけに許可する。
-  if (!isAdminOrCreator(decodedUserRole, foundFloor.user.toString(), decodedUserId)) {
+  if (!(await canManageFloor({ role: decodedUserRole, floor: foundFloor, uid: decodedUserId }))) {
     throw new AppError({ code: 'FORBIDDEN' });
   }
 
@@ -86,8 +84,7 @@ exports.update = async (body, jwtPayload) => {
 
   const foundFloor = await findActiveFloor(foundFloorTag.floor.toString());
 
-  // サイト管理者、またはフロアを作成したフロア編集者だけに許可する。
-  if (!isAdminOrCreator(decodedUserRole, foundFloor.user.toString(), decodedUserId)) {
+  if (!(await canManageFloor({ role: decodedUserRole, floor: foundFloor, uid: decodedUserId }))) {
     throw new AppError({ code: 'FORBIDDEN' });
   }
 
@@ -116,8 +113,7 @@ exports.delete = async (body, jwtPayload) => {
 
   const foundFloor = await findActiveFloor(foundFloorTag.floor.toString());
 
-  // サイト管理者、またはフロアを作成したフロア編集者だけに許可する。
-  if (!isAdminOrCreator(foundUser.role, foundFloor.user.toString(), foundUser._id.toString())) {
+  if (!(await canManageFloor({ role: foundUser.role, floor: foundFloor, uid: foundUser._id }))) {
     throw new AppError({ code: 'FORBIDDEN' });
   }
 
@@ -135,8 +131,7 @@ exports.import = async (body, jwtPayload) => {
 
   const foundFloor = await findActiveFloor(floorId, { error: { code: 'INVALID_PARAMS' } });
 
-  // サイト管理者、またはフロアを作成したフロア編集者だけに許可する。
-  if (!isAdminOrCreator(decodedUserRole, foundFloor.user.toString(), decodedUserId)) {
+  if (!(await canManageFloor({ role: decodedUserRole, floor: foundFloor, uid: decodedUserId }))) {
     throw new AppError({ code: 'FORBIDDEN' });
   }
 
@@ -182,8 +177,7 @@ exports.init = async (body, jwtPayload) => {
 
   const foundFloor = await findActiveFloor(floorId, { error: { code: 'INVALID_PARAMS' } });
 
-  // サイト管理者、またはフロアを作成したフロア編集者だけに許可する。
-  if (!isAdminOrCreator(decodedUserRole, foundFloor.user.toString(), decodedUserId)) {
+  if (!(await canManageFloor({ role: decodedUserRole, floor: foundFloor, uid: decodedUserId }))) {
     throw new AppError({ code: 'FORBIDDEN' });
   }
 

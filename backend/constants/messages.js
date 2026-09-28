@@ -51,6 +51,8 @@ const MESSAGES = {
 
   // キック
   ALREADY_KICKED: 'このユーザーは既にアクセスを制限されています',
+  CANT_KICK_FLOOR_EDITOR: 'フロア編集者はキックできません。',
+  CANT_KICK_FLOOR_MEMBER: 'フロアメンバーはキックできません。',
   CANT_KICK: 'このユーザーのアクセスを制限することはできません',
 
   // ファイルのアップロード

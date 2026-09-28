@@ -55,7 +55,7 @@
 - `Administrator` とともにフロアを作成できる
 - 自分が作成したフロアでは `FloorEditor` として解決される
 - 他ユーザが作成したフロアでは、メンバー関係がなければ `Author` として扱われる
-- フロアの更新・削除は、自分が作成したフロアに限定される
+- 作成者としてのフロア更新・削除は、自分が作成したフロアに限定される。他のフロアでもメンバーとして所属していれば管理できる
 - 自分が作成したフロアのAI解析設定と、そのフロア配下のルームAI解析設定を、結果ユーザの検索・指定を含めて管理できる。共通設定は管理できない
 
 #### `Author`
@@ -107,18 +107,22 @@
 
 ### フロア単位の認可
 
-フロア配下の多くの操作は、共通判定 `hasFloorAccess` を使用します。許可される条件は次のいずれかです。
+フロアと配下ルームの管理は、共通判定`canManageFloor`を使用します。次のいずれかに該当する場合に許可します。
 
 - `Administrator`
-- `Editor` かつ対象フロアの作成者本人
-- 対象フロアの `FloorMember` が存在する
+- `Editor`かつ対象フロアの作成者本人
+- 対象フロアの現在の`FloorMember`で、キックされていない
 
-この判定は、非表示ルームを含むルーム一覧、ルーム作成・更新・削除・並び替え、ルームタグとルーム単語の変更操作などで使用されます。ルームタグ／ルーム単語の一覧閲覧は、後述するルームアクセス判定を使用します。
+フロアの編集・削除・単体表示切替・画像変更、タグ・単語・AI解析設定、メンバー管理、配下ルームの管理、キック操作が対象です。脱退・登録解除後はメンバーとしての管理権限を失い、以前ルームを作成したことだけでは権限が残りません。
+
+フロア新規作成と全フロアの一括表示切替は`Administrator`・`Editor`の全体権限で判定します。管理APIと共通AI解析設定は管理者専用です。フロアメンバーへの所属によって、これらの権限は付与されません。
+
+非表示ルームを含む一覧表示は`hasFloorAccess`、ルームタグ・ルーム単語の一覧閲覧は後述するルームアクセス判定を使います。
 
 #### フロアメンバー管理
 
-- 一覧: フロアアクセスを持つユーザ
-- 招待発行・メンバー削除: `Administrator` またはフロア作成者本人の `Editor`
+- 一覧: フロア管理権限を持つユーザ
+- 招待発行・メンバー削除: フロア管理権限を持つユーザ
 - 脱退: 対象の `FloorMember` 本人
 - フロア作成者は `FloorMember` へ参加する必要がなく、招待受諾もできない
 
@@ -127,12 +131,12 @@
 - ルームメンバーの一覧・招待・脱退APIは、サービス層で `member_only=true` を必須条件にしていない
 
 - 一覧: フロアアクセスを持つユーザ、または対象ルームの `RoomMember`
-- 招待発行: フロアアクセスを持つユーザ
-- メンバー削除API: `Administrator`、フロア作成者本人の `Editor`、または対象ルームの作成者
+- 招待発行: フロア管理権限を持つユーザ
+- メンバー削除API: フロア管理権限を持つユーザ。ルーム作成者は問わない
 - 脱退: 対象の `RoomMember` 本人
 - フロア作成者と `FloorMember` は、ルーム招待を受諾して `RoomMember` になる必要がない
 
-画面のメンバー削除ボタンは、`Administrator`と`FloorEditor`以外では、対象ルームの作成者が現在も`FloorMember`である場合に表示します。APIでは、この作成者に`FloorMember`であることを要求していません。
+画面のメンバー削除ボタンも、管理者、対象フロアの編集者・メンバーに表示します。
 
 `RoomMember` はメンバー限定ルームへの入室権限です。ルームメンバーであることだけでは、ルーム作成・編集・削除など、フロア内の管理権限は得られません。
 
@@ -194,11 +198,15 @@ Socket.IO接続はREST APIと同じルームアクセス判定を使用します
 ### AI解析設定
 
 - 共通設定の一覧・作成・更新・物理削除、および共通設定用の結果ユーザ検索は管理者（`Administrator`）だけに許可する。
-- フロア／ルーム設定は管理者と、現在のロールがフロア編集ユーザ（`Editor`）である対象フロアの作成者だけに許可する。`FloorMember`、`RoomMember`、ルーム作成者であることだけでは許可しない。
-- フロア／ルーム設定では、管理者と、現在のロールがフロア編集ユーザである対象フロアの作成者が適用範囲付きの結果ユーザ検索を利用し、作成・更新リクエストへ有効な`result_user`を明示する。親設定の有無は設定操作の可否に影響しない。
+- フロア／ルーム設定は、管理者、現在のロールが`Editor`である対象フロアの作成者、対象フロアのメンバーに許可する。ルームメンバーやルーム作成者であることだけでは許可しない。
+- フロア／ルーム設定では、管理者、現在のロールがフロア編集ユーザである対象フロアの作成者、対象フロアのメンバーが適用範囲付きの結果ユーザ検索を利用し、作成・更新リクエストへ有効な`result_user`を明示する。親設定の有無は設定操作の可否に影響しない。
 - フロントエンドは同じ条件でボタンと入力を制御するが、バックエンドが現在のユーザ・フロア作成者・適用範囲所属を最終確認する。
 
 詳細は[AI解析設定・実行仕様](ai-analysis.md#権限と結果ユーザ)と[AI解析設定API](backend/api/ai-analysis-settings.md)を参照してください。
+
+### キック対象の保護
+
+管理者、対象フロアの編集者・メンバーは、操作者のロールにかかわらずキックできません。編集者には`CANT_KICK_FLOOR_EDITOR`、メンバーには`CANT_KICK_FLOOR_MEMBER`を返し、画面でも理由を分けます。他のフロアでの役割は保護条件に含めません。既存のキック記録は明示的に解除するまで有効です。
 
 ### フロントエンドの責務
 
@@ -249,10 +257,12 @@ Socket.IO接続はREST APIと同じルームアクセス判定を使用します
 ### 実装
 
 - `backend/constants/roles.js`
+- `backend/services/_shared/floorAccess.js`
 - `backend/models/User.js`
 - `backend/services/auth.service.js`
 - `backend/routes/v1.js`
 - `frontend/src/components/timeline/core/TimelineHeader.vue`
+- `frontend/src/utils/floorPermissions.js`
 
 ### テスト
 
@@ -260,4 +270,7 @@ Socket.IO接続はREST APIと同じルームアクセス判定を使用します
 - `backend/tests/integration/routes/media.access.int.test.js`
 - `frontend/tests/e2e/specs/flows/role-permissions/role-permissions.e2e.js`
 - `backend/tests/unit/services/_shared/floorAccess.test.js`
+- `backend/tests/integration/routes/floorMember.permissions.int.test.js`
+- `backend/tests/integration/routes/kickedUser.route.int.test.js`
+- `frontend/tests/e2e/specs/flows/roles/floor-member.role.e2e.js`
 - `backend/tests/integration/routes/aiAnalysisSettings.route.int.test.js`

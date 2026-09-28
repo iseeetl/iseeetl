@@ -8,8 +8,7 @@ jest.mock('../../../services/_shared/activeResource', () => ({
   findRoomWithFloor: jest.fn(),
 }));
 jest.mock('../../../services/_shared/floorAccess', () => ({
-  hasFloorAccess: jest.fn(),
-  isAdminOrCreator: jest.fn(),
+  canManageFloor: jest.fn(),
 }));
 jest.mock('../../../services/room/roomAccess.service', () => ({
   authorizeRoomAccess: mockAuthorizeRoomAccess,
@@ -18,7 +17,7 @@ jest.mock('../../../services/room/roomAccess.service', () => ({
 const AppError = require('../../../utils/appError');
 const FloorMember = require('../../../models/FloorMember');
 const { findActiveFloor, findRoomWithFloor } = require('../../../services/_shared/activeResource');
-const { hasFloorAccess, isAdminOrCreator } = require('../../../services/_shared/floorAccess');
+const { canManageFloor } = require('../../../services/_shared/floorAccess');
 const {
   authorizeFloorImageUpload,
   authorizeRoomImageUpload,
@@ -39,8 +38,7 @@ describe('通常アップロードのID正規化', () => {
       room: { _id: roomId },
       floor: { _id: floorId, user: userId },
     });
-    isAdminOrCreator.mockReturnValue(true);
-    hasFloorAccess.mockReturnValue(true);
+    canManageFloor.mockReturnValue(true);
     FloorMember.findOne.mockReturnValue({ lean: jest.fn().mockResolvedValue(null) });
     mockAuthorizeRoomAccess.mockResolvedValue({
       foundRoom: { _id: roomId },

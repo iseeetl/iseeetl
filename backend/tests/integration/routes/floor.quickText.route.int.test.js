@@ -2,6 +2,7 @@ const request = require('supertest');
 const mongoose = require('mongoose');
 
 const floorQuickTextRouter = require('../../../routes/floor/floorQuickText.route');
+const FloorMember = require('../../../models/FloorMember');
 const FloorQuickTextGroup = require('../../../models/FloorQuickTextGroup');
 const FloorQuickTextItem = require('../../../models/FloorQuickTextItem');
 const { buildErrorHandledApp } = require('../_helpers/app');
@@ -34,10 +35,12 @@ describe('フロアの単語API', () => {
     });
   });
 
-  test('フロア作成者は単語グループと単語を管理できる', async () => {
+  test.each(['フロア編集者', 'フロアメンバー'])('%sは単語グループと単語を管理できる', async (role) => {
     const owner = await createUser({ role: 'Editor' });
     const floor = await createFloor(owner);
-    const token = buildToken(owner);
+    const actor = role === 'フロア編集者' ? owner : await createUser({ role: 'Author' });
+    if (role === 'フロアメンバー') await FloorMember.create({ floor: floor._id, user: actor._id });
+    const token = buildToken(actor);
 
     const groupRes = await request(app)
       .post(`/floors/${floor._id}/quick-text/groups`)

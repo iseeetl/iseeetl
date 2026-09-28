@@ -1,3 +1,4 @@
+jest.mock('../../../../models/KickedUser', () => ({ findOne: jest.fn().mockResolvedValue(null) }));
 jest.mock('../../../../services/room/roomImage.service', () => ({ validateRoomImage: jest.fn(), removeReplacedRoomImage: jest.fn() }));
 const { validateRoomImage, removeReplacedRoomImage } = require('../../../../services/room/roomImage.service');
 const path = require('path');

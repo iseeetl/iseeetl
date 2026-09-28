@@ -21,6 +21,8 @@ export const API_ERROR_TRANSLATION_KEYS = Object.freeze({
   FLOOR_MEMBER_NOT_REQUIRD: 'フロアメンバーはルームメンバーとして登録する必要はありません。',
   ALREADY_ROOM_MEMBER: '既にルームメンバーです。',
   ALREADY_KICKED: 'このユーザーは既にアクセスを制限されています。',
+  CANT_KICK_FLOOR_EDITOR: 'フロア編集者はキックできません。',
+  CANT_KICK_FLOOR_MEMBER: 'フロアメンバーはキックできません。',
   CANT_KICK: 'このユーザーのアクセスを制限することはできません。',
   INVALID_FILE_TYPE: '対象ファイルではありません',
   FILE_TOO_LARGE: 'メディアのファイルサイズが上限を超えています。',

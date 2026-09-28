@@ -1,7 +1,7 @@
 const AppError = require('../utils/appError');
 const FloorMember = require('../models/FloorMember');
 const { findActiveFloor, findRoomWithFloor } = require('../services/_shared/activeResource');
-const { hasFloorAccess, isAdminOrCreator } = require('../services/_shared/floorAccess');
+const { canManageFloor } = require('../services/_shared/floorAccess');
 const { authorizeRoomAccess } = require('../services/room/roomAccess.service');
 
 const MONGO_ID_PATTERN = /^[0-9a-fA-F]{24}$/;
@@ -31,7 +31,7 @@ const authorizeFloorImageUpload = async (req, _res, next) => {
   try {
     const target = readTarget(req);
     const floor = await findActiveFloor(target.floorId, { error: { code: 'INVALID_PARAMS' } });
-    if (!isAdminOrCreator(req.jwtPayload?.user_role, floor.user, req.jwtPayload?.user_id)) {
+    if (!(await canManageFloor({ role: req.jwtPayload?.user_role, floor, uid: req.jwtPayload?.user_id }))) {
       throw new AppError({ code: 'FORBIDDEN' });
     }
     const floorId = String(floor._id);
@@ -65,7 +65,7 @@ const authorizeRoomImageUpload = async (req, _res, next) => {
 
     const userId = req.jwtPayload?.user_id;
     const floorMember = await FloorMember.findOne({ floor: floor._id, user: userId }).lean();
-    if (!hasFloorAccess({ role: req.jwtPayload?.user_role, floor, uid: userId, floorMember })) {
+    if (!(await canManageFloor({ role: req.jwtPayload?.user_role, floor, uid: userId, floorMember }))) {
       throw new AppError({ code: 'FORBIDDEN' });
     }
     saveTarget(req, { floorId, roomId }, { room, floor });

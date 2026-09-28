@@ -1,4 +1,6 @@
 {
+  "フロア編集者はキックできません。": "Etagenbearbeiter können nicht ausgeschlossen werden.",
+  "フロアメンバーはキックできません。": "Etagenmitglieder können nicht ausgeschlossen werden.",
   "ログアウトしました": "Abgemeldet",
   "ログインしました": "Angemeldet",
   "アイシータイムライン": "ISeeeTimeLine",
@@ -68,7 +70,6 @@
   "フロアへ移動する": "Gehen Sie auf den Etage",
   "フロア一覧へ移動する": "Gehen Sie zur Stockwerksliste",
   "フロアに参加しました。": "Sie sind dem Floor beigetreten.",
-  "参加したフロアでは、ルームの作成、更新、削除ができます。": "In diesem Floor können Sie Rooms erstellen, aktualisieren und löschen.",
   "フロアメンバーへの参加に失敗しました": "Fehler beim Beitritt zu einem Floor-Mitglied",
   "ルームメンバー参加完了": "Raummitglied beitreten abgeschlossen",
   "ルームへ移動する": "Gehe ins Zimmer",
@@ -692,18 +693,20 @@
     "capabilities": {
       "allowed": {
         "browse": "Etage und Räume einschließlich ausgeblendeter Inhalte ansehen",
-        "rooms": "Räume der Etage erstellen, bearbeiten, löschen und neu anordnen",
-        "resources": "Raum-Tags und Raum-Schnelltexte verwalten",
-        "members": "Etagenmitglieder ansehen und selbst aus der Etage austreten",
-        "roomMembers": "Raummitglieder einladen und ansehen",
-        "timeline": "Räume nur für Mitglieder betreten und deren Timelines nutzen"
+        "management": "Einstellungen, Mitglieder und Beiträge dieser Etage und ihrer Räume verwalten, einschließlich Bearbeiten und Löschen der Etage.",
+        "timeline": "Räume nur für Mitglieder betreten und deren Timelines nutzen",
+        "floors": "Diese Etage bearbeiten, löschen, ein- oder ausblenden",
+        "rooms": "Räume erstellen, bearbeiten, löschen, umsortieren, ein- oder ausblenden",
+        "resources": "Tags und Wörter für Etage und Räume verwalten",
+        "members": "Etagen- und Raummitglieder einladen und entfernen",
+        "analysis": "KI-Analyse für Etage und Räume einstellen",
+        "kicks": "Benutzer ausschließen und Ausschlüsse aufheben",
+        "othersContent": "Beiträge, Antworten oder Zusatzinformationen anderer bearbeiten oder löschen"
       },
       "denied": {
-        "floor": "Die Etage selbst bearbeiten oder löschen",
-        "resources": "Etagen-Tags, Etagen-Schnelltexte oder KI-Analyseeinstellungen verwalten",
-        "members": "Etagenmitglieder einladen oder entfernen"
-      },
-      "creatorNote": "In selbst erstellten Räumen können Sie auch Mitglieder entfernen."
+        "createFloor": "Etagen erstellen",
+        "bulkVisibility": "Etagen in der Etagenliste gesammelt ein- oder ausblenden"
+      }
     },
     "deleteMemberAria": "{username} aus den Etagenmitgliedern entfernen",
     "targetMember": "Betroffenes Mitglied"

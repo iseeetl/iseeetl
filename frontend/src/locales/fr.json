@@ -1,4 +1,6 @@
 {
+  "フロア編集者はキックできません。": "Les éditeurs de l’étage ne peuvent pas être exclus.",
+  "フロアメンバーはキックできません。": "Les membres de l’étage ne peuvent pas être exclus.",
   "ログアウトしました": "Déconnexion réussie",
   "ログインしました": "Connexion réussie",
   "アイシータイムライン": "ISeeeTimeLine",
@@ -68,7 +70,6 @@
   "フロアへ移動する": "Aller à l'étage",
   "フロア一覧へ移動する": "Aller à la liste des étages",
   "フロアに参加しました。": "Vous avez rejoint le floor.",
-  "参加したフロアでは、ルームの作成、更新、削除ができます。": "Vous pouvez créer, modifier et supprimer des rooms dans ce floor.",
   "フロアメンバーへの参加に失敗しました": "Impossible de joindre un membre d'étage",
   "ルームメンバー参加完了": "Rejoindre le membre du salon terminé",
   "ルームへ移動する": "Déplacer vers la salle",
@@ -692,18 +693,20 @@
     "capabilities": {
       "allowed": {
         "browse": "Consulter l’étage et ses salles, y compris les éléments masqués",
-        "rooms": "Créer, modifier, supprimer et réorganiser les salles de l’étage",
-        "resources": "Gérer les tags et les textes rapides des salles",
-        "members": "Consulter les membres de l’étage et quitter soi-même l’étage",
-        "roomMembers": "Inviter et consulter les membres des salles",
-        "timeline": "Entrer dans les salles réservées aux membres et utiliser leurs fils"
+        "management": "Gérer les paramètres, membres et publications de cet étage et de ses salles, y compris modifier et supprimer l’étage.",
+        "timeline": "Entrer dans les salles réservées aux membres et utiliser leurs fils",
+        "floors": "Modifier, supprimer, afficher ou masquer cet étage",
+        "rooms": "Créer, modifier, supprimer, réordonner, afficher ou masquer des salles",
+        "resources": "Gérer les tags et les mots de l’étage et des salles",
+        "members": "Inviter et retirer des membres de l’étage et des salles",
+        "analysis": "Configurer l’analyse IA de l’étage et des salles",
+        "kicks": "Exclure des utilisateurs et lever les exclusions",
+        "othersContent": "Modifier ou supprimer les publications, réponses ou compléments d’autres personnes"
       },
       "denied": {
-        "floor": "Modifier ou supprimer l’étage lui-même",
-        "resources": "Gérer les tags de l’étage, ses textes rapides ou les paramètres d’analyse IA",
-        "members": "Inviter ou retirer des membres de l’étage"
-      },
-      "creatorNote": "Vous pouvez aussi retirer des membres des salles que vous avez créées."
+        "createFloor": "Créer des étages",
+        "bulkVisibility": "Afficher ou masquer des étages en lot depuis la liste des étages"
+      }
     },
     "deleteMemberAria": "Retirer {username} des membres de l’étage",
     "targetMember": "Membre cible"

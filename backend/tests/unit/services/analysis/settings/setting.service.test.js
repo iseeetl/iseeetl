@@ -34,7 +34,7 @@ const mockUser = { collection: { name: 'users' }, find: jest.fn(), findOne: jest
 const mockFindActiveFloor = jest.fn();
 const mockFindActiveRoom = jest.fn();
 const mockFindActiveUser = jest.fn();
-const mockIsAdminOrCreator = jest.fn();
+const mockCanManageFloor = jest.fn();
 const mockRequireAdminUser = jest.fn();
 const mockAssertNoActiveAIAnalysisReferences = jest.fn();
 const mockWithAIAnalysisIntegrityLock = jest.fn((task) => task());
@@ -53,7 +53,7 @@ jest.mock('../../../../../services/_shared/activeResource', () => ({
   findActiveUser: mockFindActiveUser,
 }));
 jest.mock('../../../../../services/_shared/floorAccess', () => ({
-  isAdminOrCreator: mockIsAdminOrCreator,
+  canManageFloor: mockCanManageFloor,
 }));
 jest.mock('../../../../../services/_shared/memberHelpers', () => ({
   requireAdminUser: mockRequireAdminUser,
@@ -133,10 +133,10 @@ beforeEach(() => {
   mockFindActiveUser.mockResolvedValue(admin);
   mockFindActiveFloor.mockResolvedValue({ _id: 'floor-1', user: 'editor-1' });
   mockFindActiveRoom.mockResolvedValue({ _id: 'room-1', floor: 'floor-1' });
-  mockIsAdminOrCreator.mockImplementation(
-    (role, ownerId, actorId) =>
+  mockCanManageFloor.mockImplementation(
+    ({ role, floor, uid }) =>
       role === ROLES.ADMINISTRATOR ||
-      (role === ROLES.EDITOR && String(ownerId) === String(actorId))
+      (role === ROLES.EDITOR && String(floor.user) === String(uid))
   );
   mockAssertNoActiveAIAnalysisReferences.mockResolvedValue();
   mockAIAnalysisSetting.countDocuments.mockResolvedValue(0);
@@ -378,11 +378,11 @@ describe('共通のAI解析設定', () => {
       )
     ).resolves.toEqual(users);
 
-    expect(mockIsAdminOrCreator).toHaveBeenCalledWith(
-      ROLES.EDITOR,
-      'editor-1',
-      'editor-1'
-    );
+    expect(mockCanManageFloor).toHaveBeenCalledWith({
+      role: ROLES.EDITOR,
+      floor: { _id: 'floor-1', user: 'editor-1' },
+      uid: 'editor-1',
+    });
     expect(mockUser.find).toHaveBeenCalledWith({
       delete_flg: false,
       username: { $regex: 'Result', $options: 'i' },
@@ -391,7 +391,7 @@ describe('共通のAI解析設定', () => {
     jest.clearAllMocks();
     mockFindActiveUser.mockResolvedValue(editor);
     mockFindActiveFloor.mockResolvedValue({ _id: 'floor-1', user: 'other-editor' });
-    mockIsAdminOrCreator.mockReturnValue(false);
+    mockCanManageFloor.mockReturnValue(false);
 
     await expect(
       settingService.searchScopedResultUsers(

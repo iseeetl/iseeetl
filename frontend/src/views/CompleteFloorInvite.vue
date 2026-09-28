@@ -78,7 +78,7 @@ export default {
           this.floor_id = res.data.floor._id;
           this.title = res.data.floor.title;
           this.message = `${this.title} ${this.$t('フロアに参加しました。')} `;
-          this.message += this.$t('参加したフロアでは、ルームの作成、更新、削除ができます。');
+          this.message += this.$t('floorMemberDialogs.capabilities.allowed.management');
         })
         .catch((err) => {
           this.sending = false;

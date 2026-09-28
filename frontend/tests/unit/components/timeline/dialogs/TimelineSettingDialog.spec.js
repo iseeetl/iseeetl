@@ -268,7 +268,7 @@ describe('タイムラインの表示設定', () => {
     expect(wrapper.emitted().close).to.have.lengthOf(1);
   });
 
-  it('管理者またはフロア作成者ならユーザキック設定を表示する', () => {
+  it.each(['FloorEditor', 'FloorMember'])('管理者または%sならユーザキック設定を表示する', (floorRole) => {
     const adminWrapper = createWrapper({
       store: {
         getters: {
@@ -302,7 +302,7 @@ describe('タイムラインの表示設定', () => {
           animationSpeed: 'normal',
           displayUserKickButton: true,
           userRole: 'User',
-          roomRole: 'FloorEditor',
+          roomRole: floorRole,
         },
         dispatch: () => {},
       },

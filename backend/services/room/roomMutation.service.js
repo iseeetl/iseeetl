@@ -8,7 +8,7 @@ const Room = require('../../models/Room');
 const translationService = require('../translation.service');
 const { validateRoomImage, removeReplacedRoomImage } = require('./roomImage.service');
 const { findActiveUser, findActiveFloor, findRoomWithFloor } = require('../_shared/activeResource');
-const { hasFloorAccess } = require('../_shared/floorAccess');
+const { canManageFloor } = require('../_shared/floorAccess');
 const { provisionRoomResources, rollbackRoomProvisioning } = require('./roomProvisioning.service');
 const {
   withAIAnalysisIntegrityLock,
@@ -35,12 +35,12 @@ exports.create = async (body, jwtPayload) => {
   const foundFloorMember = await FloorMember.findOne({ floor: floorId, user: decodedUserId }).lean();
 
   if (
-    !hasFloorAccess({
+    !(await canManageFloor({
       role: decodedUserRole,
       floor: foundFloor,
       uid: decodedUserId,
       floorMember: foundFloorMember,
-    })
+    }))
   ) {
     throw new AppError({ code: 'FORBIDDEN' });
   }
@@ -111,12 +111,12 @@ exports.update = async (body, jwtPayload, io) => {
   const foundFloorMember = await FloorMember.findOne({ floor: foundFloor._id, user: decodedUserId }).lean();
 
   if (
-    !hasFloorAccess({
+    !(await canManageFloor({
       role: decodedUserRole,
       floor: foundFloor,
       uid: decodedUserId,
       floorMember: foundFloorMember,
-    })
+    }))
   ) {
     throw new AppError({ code: 'FORBIDDEN' });
   }
@@ -180,12 +180,12 @@ exports.updateRoomDisplayHidden = async (body, jwtPayload) => {
   const foundFloorMember = await FloorMember.findOne({ floor: floorId, user: decodedUserId }).lean();
 
   if (
-    !hasFloorAccess({
+    !(await canManageFloor({
       role: decodedUserRole,
       floor: foundFloor,
       uid: decodedUserId,
       floorMember: foundFloorMember,
-    })
+    }))
   ) {
     throw new AppError({ code: 'FORBIDDEN' });
   }
@@ -218,12 +218,12 @@ exports.updateDisplayOrder = async (body, jwtPayload) => {
   const foundFloorMember = await FloorMember.findOne({ floor: floorId, user: decodedUserId }).lean();
 
   if (
-    !hasFloorAccess({
+    !(await canManageFloor({
       role: decodedUserRole,
       floor: foundFloor,
       uid: decodedUserId,
       floorMember: foundFloorMember,
-    })
+    }))
   ) {
     throw new AppError({ code: 'FORBIDDEN' });
   }
@@ -254,12 +254,12 @@ exports.delete = async (body, jwtPayload, io) => {
   const foundFloorMember = await FloorMember.findOne({ floor: foundFloor._id, user: decodedUserId }).lean();
 
   if (
-    !hasFloorAccess({
+    !(await canManageFloor({
       role: decodedUserRole,
       floor: foundFloor,
       uid: decodedUserId,
       floorMember: foundFloorMember,
-    })
+    }))
   ) {
     throw new AppError({ code: 'FORBIDDEN' });
   }

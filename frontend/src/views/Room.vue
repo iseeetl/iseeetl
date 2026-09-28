@@ -26,9 +26,9 @@
       </div>
 
       <div class="view-content">
-        <div class="view-action" v-if="isAdmin || isFloorEditor || isFloorMember">
+        <div class="view-action" v-if="canManageFloor">
           <UiButton
-            v-if="isAdmin || isFloorEditor || isFloorMember"
+            v-if="canManageFloor"
             appearance="filled"
             tone="success"
             data-testid="room-list-create-button"
@@ -38,7 +38,7 @@
           </UiButton>
 
           <UiButton
-            v-if="isAdmin || isFloorEditor || isFloorMember"
+            v-if="canManageFloor"
             appearance="filled"
             tone="success"
             data-testid="room-list-hide-all-button"
@@ -48,7 +48,7 @@
           </UiButton>
 
           <UiButton
-            v-if="isAdmin || isFloorEditor || isFloorMember"
+            v-if="canManageFloor"
             appearance="filled"
             tone="success"
             @click="showUpdateRoomDisplayConfirm(false)"
@@ -57,7 +57,7 @@
           </UiButton>
 
           <UiButton
-            v-if="isAdmin || isFloorEditor"
+            v-if="canManageFloor"
             appearance="filled"
             tone="success"
             data-testid="room-floor-tag-button"
@@ -67,7 +67,7 @@
           </UiButton>
 
           <UiButton
-            v-if="isAdmin || isFloorEditor"
+            v-if="canManageFloor"
             appearance="filled"
             tone="success"
             data-testid="room-floor-ai-analysis-settings-button"
@@ -77,7 +77,7 @@
           </UiButton>
 
           <UiButton
-            v-if="isAdmin || isFloorEditor"
+            v-if="canManageFloor"
             appearance="filled"
             tone="success"
             data-testid="room-floor-quicktext-button"
@@ -87,7 +87,7 @@
           </UiButton>
 
           <UiButton
-            v-if="isAdmin || isFloorEditor"
+            v-if="canManageFloor"
             appearance="filled"
             tone="success"
             data-testid="room-invite-floor-member-button"
@@ -97,7 +97,7 @@
           </UiButton>
 
           <UiButton
-            v-if="isAdmin || isFloorEditor || isFloorMember"
+            v-if="canManageFloor"
             appearance="filled"
             tone="success"
             data-testid="room-floor-member-list-button"
@@ -117,7 +117,7 @@
           </UiButton>
 
           <UiButton
-            v-if="isAdmin || isFloorEditor"
+            v-if="canManageFloor"
             appearance="filled"
             tone="success"
             data-testid="room-kicked-user-list-button"
@@ -140,12 +140,12 @@
           <li>
             <div class="room-wrapper">
               <UiTooltip
-                v-if="isAdmin || isFloorEditor || isFloorMember"
+                v-if="canManageFloor"
                 class="room-handle-tooltip"
                 :text="$t('ドラッグアンドドロップ')"
               >
                 <UiButton
-                  v-if="isAdmin || isFloorEditor || isFloorMember"
+                  v-if="canManageFloor"
                   :id="'drag_room_button_' + room._id"
                   class="small-button room-handle"
                   icon-only
@@ -243,9 +243,9 @@
                 </div>
               </router-link>
             </div>
-            <div class="room-action" v-if="canManageRooms || canListRoomMembers(room)">
+            <div class="room-action" v-if="canManageFloor || canListRoomMembers(room)">
               <UiButton
-                v-if="canManageRooms"
+                v-if="canManageFloor"
                 appearance="filled"
                 tone="danger"
                 :class="'delete-room-button-' + room._id"
@@ -255,7 +255,7 @@
               </UiButton>
 
               <UiButton
-                v-if="isAdmin || isFloorEditor || isFloorMember"
+                v-if="canManageFloor"
                 appearance="filled"
                 tone="success"
                 :class="'roomtag-button-' + room._id"
@@ -266,7 +266,7 @@
               </UiButton>
 
               <UiButton
-                v-if="isAdmin || isFloorEditor"
+                v-if="canManageFloor"
                 appearance="filled"
                 tone="success"
                 :data-testid="'room-ai-analysis-settings-button-' + room._id"
@@ -276,7 +276,7 @@
               </UiButton>
 
               <UiButton
-                v-if="isAdmin || isFloorEditor || isFloorMember"
+                v-if="canManageFloor"
                 appearance="filled"
                 tone="success"
                 :class="'roo-mt-button-' + room._id"
@@ -307,7 +307,7 @@
               </UiButton>
 
               <UiButton
-                v-if="canManageRooms"
+                v-if="canManageFloor"
                 appearance="filled"
                 tone="primary"
                 :class="'edit-room-button-' + room._id"
@@ -384,7 +384,7 @@
       :dialogVisible="floorMemberDialogVisible"
       :floorId="floorId || ''"
       :floorTitle="floorTitle || ''"
-      :propsRole="{ isAdmin: isAdmin, isFloorEditor: isFloorEditor }"
+      :propsRole="{ isAdmin, isFloorEditor, isFloorMember }"
       @delete="showDeleteFloorMemberDialog"
       @request-close="closeFloorMember"
     />
@@ -414,7 +414,7 @@
     />
 
     <ScopedAIAnalysisSettingDialog
-      v-if="isAdmin || isFloorEditor"
+      v-if="canManageFloor"
       :dialog-visible="floorAIAnalysisSettingDialogVisible"
       scope="floor"
       :floor-id="floorId"
@@ -423,7 +423,7 @@
     />
 
     <ScopedAIAnalysisSettingDialog
-      v-if="isAdmin || isFloorEditor"
+      v-if="canManageFloor"
       :dialog-visible="roomAIAnalysisSettingDialogVisible"
       scope="room"
       :floor-id="floorId"
@@ -438,7 +438,7 @@
       resource="floor"
       :resource-id="floorId"
       :target-name="floorTitle || ''"
-      :can-manage="isAdmin || isFloorEditor"
+      :can-manage="canManageFloor"
       @close="closeFloorQuickTextDialog"
     />
 
@@ -448,7 +448,7 @@
       resource="room"
       :resource-id="roomQuickTextDialogTarget._id"
       :target-name="roomQuickTextDialogTargetTitle"
-      :can-manage="canManageRooms"
+      :can-manage="canManageFloor"
       @close="closeRoomQuickTextDialog"
     />
 
@@ -561,16 +561,11 @@ export default {
     UiTooltip,
   },
   computed: {
-    canManageRooms() {
+    canManageFloor() {
       return this.isAdmin || this.isFloorEditor || this.isFloorMember;
     },
     canDeleteRoomMembers() {
-      if (this.isAdmin || this.isFloorEditor) return true;
-      if (!this.isFloorMember || !this.roomMemberDialogs.targetRoom) return false;
-
-      const roomCreator = this.roomMemberDialogs.targetRoom.user;
-      const roomCreatorId = typeof roomCreator === 'object' ? roomCreator?._id : roomCreator;
-      return Boolean(roomCreatorId && roomCreatorId === this.$store.getters.userId);
+      return this.canManageFloor;
     },
     roomMemberDialogTargetId() {
       return this.roomMemberDialogs.targetRoom?._id || '';
@@ -1031,11 +1026,11 @@ export default {
     },
 
     canInviteRoomMembers(room) {
-      return Boolean(room?.member_only && this.canManageRooms);
+      return Boolean(room?.member_only && this.canManageFloor);
     },
     canListRoomMembers(room) {
       return Boolean(
-        room?.member_only && (this.canManageRooms || room.current_user_is_room_member === true)
+        room?.member_only && (this.canManageFloor || room.current_user_is_room_member === true)
       );
     },
     showInviteRoomMemberDialog(room) {
@@ -1152,14 +1147,14 @@ export default {
     },
 
     showFloorAIAnalysisSettingDialog() {
-      if (!this.isAdmin && !this.isFloorEditor) return;
+      if (!this.canManageFloor) return;
       this.floorAIAnalysisSettingDialogVisible = true;
     },
     closeFloorAIAnalysisSettingDialog() {
       this.floorAIAnalysisSettingDialogVisible = false;
     },
     showRoomAIAnalysisSettingDialog(roomId) {
-      if ((!this.isAdmin && !this.isFloorEditor) || !roomId) return;
+      if (!this.canManageFloor || !roomId) return;
       const targetRoom = this.rooms.find((room) => room._id === roomId);
       this.aiAnalysisSettingRoomId = roomId;
       this.aiAnalysisSettingRoomTargetName = targetRoom ? this.getRoomTitle(targetRoom) : '';
@@ -1243,14 +1238,14 @@ export default {
     },
 
     showFloorQuickTextDialog() {
-      if ((!this.isAdmin && !this.isFloorEditor) || !this.floorId) return;
+      if (!this.canManageFloor || !this.floorId) return;
       this.floorQuickTextDialogVisible = true;
     },
     closeFloorQuickTextDialog() {
       this.floorQuickTextDialogVisible = false;
     },
     showRoomQuickTextDialog(room) {
-      if (!this.canManageRooms || !room?._id) return;
+      if (!this.canManageFloor || !room?._id) return;
       this.roomQuickTextDialogTarget = room;
       this.roomQuickTextDialogVisible = true;
     },

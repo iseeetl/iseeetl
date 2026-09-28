@@ -8,6 +8,8 @@
 
 ## 共通条件
 
+対象フロアでキック済みのフロアメンバーは、管理操作を利用できません。詳しい権限は[フロア単位の認可](../../roles-and-permissions.md#フロア単位の認可)を参照してください。
+
 ### Google Translateの有効条件
 
 - Google Translateが無効な場合、通常作成とインポートで新規作成する`RoomTag`の`translations`は空配列になる
