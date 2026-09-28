@@ -1,4 +1,7 @@
 {
+  "まだ投稿がありません。投稿されると、ここに表示されます。": "Det finns inga inlägg ännu. Nya inlägg visas här.",
+  "投稿がないときの案内文": "Meddelande när det saknas inlägg",
+  "空欄の場合は、標準の案内文を表示します。": "Lämna tomt för att visa standardmeddelandet.",
   "フロア編集者はキックできません。": "Våningsredaktörer kan inte uteslutas.",
   "フロアメンバーはキックできません。": "Våningsmedlemmar kan inte uteslutas.",
   "ログアウトしました": "Utloggad",

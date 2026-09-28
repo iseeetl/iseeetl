@@ -52,6 +52,19 @@ const RoomSchema = new mongoose.Schema({
     type: String,
     default: null,
   },
+  empty_message: {
+    type: String,
+    default: '',
+    maxlength: 200,
+    validate: (value) => value == null || !/[\r\n\u2028\u2029]/u.test(value),
+  },
+  empty_message_translations: {
+    type: [new mongoose.Schema({
+      lang: { type: String, required: true },
+      content: { type: String, required: true },
+    }, { _id: false })],
+    default: [],
+  },
   lang: {
     type: String,
     default: null,

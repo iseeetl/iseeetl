@@ -43,6 +43,7 @@ const setupWithMocks = () => {
   jest.doMock(roomPath, () => ({
     validateRoomTitle: jest.fn(() => pass()),
     validateRoomDescription: jest.fn(() => pass()),
+    validateRoomEmptyMessage: jest.fn(() => pass()),
     validateRoomSearch: jest.fn(() => pass()),
     validateGuestReactionOnly: jest.fn(() => pass()),
     validateMemberOnly: jest.fn(() => pass()),
@@ -178,6 +179,7 @@ describe('ルームのルーティング', () => {
     expect(baseValidate.validateMongoId).toHaveBeenCalledWith('floor_id');
     expect(roomValidate.validateRoomTitle).toHaveBeenCalledWith('title');
     expect(roomValidate.validateRoomDescription).toHaveBeenCalledWith('description');
+    expect(roomValidate.validateRoomEmptyMessage).toHaveBeenCalledWith('empty_message');
     expect(baseValidate.validateLang).toHaveBeenCalledWith('lang');
     expect(roomValidate.validateGuestReactionOnly).toHaveBeenCalledWith('guest_reaction_only');
     expect(roomValidate.validateMemberOnly).toHaveBeenCalledWith('member_only');
@@ -209,6 +211,7 @@ describe('ルームのルーティング', () => {
     expect(baseValidate.validateMongoId).toHaveBeenCalledWith('_id');
     expect(roomValidate.validateRoomTitle).toHaveBeenCalledWith('title');
     expect(roomValidate.validateRoomDescription).toHaveBeenCalledWith('description');
+    expect(roomValidate.validateRoomEmptyMessage).toHaveBeenCalledWith('empty_message');
     expect(baseValidate.validateLang).toHaveBeenCalledWith('lang');
     expect(mediaValidate.validateImageName).toHaveBeenCalledWith('image_name');
     expect(roomValidate.validateGuestReactionOnly).toHaveBeenCalledWith('guest_reaction_only');
@@ -345,6 +348,7 @@ describe('ルームのルーティング', () => {
     expect(baseValidate.validateMongoId).toHaveBeenCalledWith('_id');
     expect(roomValidate.validateRoomTitle).toHaveBeenCalledWith('title');
     expect(roomValidate.validateRoomDescription).toHaveBeenCalledWith('description');
+    expect(roomValidate.validateRoomEmptyMessage).toHaveBeenCalledWith('empty_message');
     expect(mediaValidate.validateImageName).toHaveBeenCalledWith('image_name');
     expect(roomValidate.validateGuestReactionOnly).toHaveBeenCalledWith('guest_reaction_only');
     expect(roomValidate.validateMemberOnly).toHaveBeenCalledWith('member_only');

@@ -129,6 +129,67 @@ describe('フロア・ルームの作成・取得・更新・削除と権限', (
     app = buildApp();
   });
 
+  describe('投稿がないときの案内文', () => {
+    test.each(['/room/update', '/room/management/update'])('作成・再取得・省略時の保持・空欄への更新ができる（%s）', async (updateRoute) => {
+      const admin = await User.create({ username: '案内文管理者', mail: 'empty-admin@example.invalid', lang: 'ja', role: 'Administrator' });
+      const floor = await Floor.create({ user: admin._id, title: '案内文フロア', lang: 'ja', target_langs: ['en'] });
+      const authorization = `Bearer ${buildToken(admin)}`;
+      const translations = require('../../../services/translation.service');
+      translations.translateContent.mockResolvedValueOnce([{ lang: 'en', content: 'Welcome' }]);
+      const created = await request(app).post('/room/create').set('Authorization', authorization)
+        .send(baseRoomPayload(String(floor._id), { empty_message: ' ようこそ ' }));
+      expect(created.status).toBe(200);
+      expect(created.body.empty_message).toBe('ようこそ');
+      expect(created.body.empty_message_translations).toEqual([{ lang: 'en', content: 'Welcome' }]);
+      const id = created.body._id;
+      const detail = await request(app).post('/room/detail').send({ _id: id });
+      expect(detail.status).toBe(200);
+      expect(detail.body.empty_message).toBe('ようこそ');
+      const update = baseRoomPayload(String(floor._id), { _id: id, image_name: null, delete_flg: false });
+      const kept = await request(app).post(updateRoute).set('Authorization', authorization).send(update);
+      expect(kept.status).toBe(200);
+      expect(kept.body.empty_message_translations).toEqual([{ lang: 'en', content: 'Welcome' }]);
+      mockIsGoogleTranslateEnabled.mockReturnValue(false);
+      const changed = await request(app).post(updateRoute).set('Authorization', authorization)
+        .send({ ...update, empty_message: '新しい案内' });
+      expect(changed.status).toBe(200);
+      expect(changed.body.empty_message).toBe('新しい案内');
+      expect(changed.body.empty_message_translations).toEqual([]);
+      for (const empty_message of ['前\n後', 'あ'.repeat(201), 1]) {
+        const invalid = await request(app).post(updateRoute).set('Authorization', authorization).send({ ...update, empty_message });
+        expect(invalid.status).toBe(400);
+        expect((await Room.findById(id)).empty_message).toBe('新しい案内');
+      }
+      const cleared = await request(app).post(updateRoute).set('Authorization', authorization).send({ ...update, empty_message: '  ' });
+      expect(cleared.status).toBe(200);
+      expect(cleared.body.empty_message).toBe('');
+      expect((await Room.findById(id)).empty_message_translations).toHaveLength(0);
+    });
+
+    test('旧ルームと未設定の新規ルームを取得でき、フロアメンバーだけが案内文を編集できる', async () => {
+      const owner = await User.create({ username: '編集者', mail: 'empty-owner@example.invalid', role: 'Editor' });
+      const member = await User.create({ username: 'メンバー', mail: 'empty-member@example.invalid', role: 'Author' });
+      const outsider = await User.create({ username: '一般ユーザ', mail: 'empty-outsider@example.invalid', role: 'Author' });
+      const floor = await Floor.create({ user: owner._id, title: 'フロア', lang: 'ja' });
+      const created = await request(app).post('/room/create').set('Authorization', `Bearer ${buildToken(owner)}`)
+        .send(baseRoomPayload(String(floor._id)));
+      expect(created.status).toBe(200);
+      expect(created.body.empty_message).toBe('');
+      const id = created.body._id;
+      await Room.collection.updateOne({ _id: (await Room.findById(id))._id }, { $unset: { empty_message: '', empty_message_translations: '' } });
+      const legacy = await request(app).post('/room/detail').send({ _id: id });
+      expect(legacy.status).toBe(200);
+      expect(legacy.body.empty_message).toBe('');
+      await FloorMember.create({ floor: floor._id, user: member._id });
+      const payload = baseRoomPayload(String(floor._id), { _id: id, image_name: null, empty_message: 'メンバーの案内' });
+      const denied = await request(app).post('/room/update').set('Authorization', `Bearer ${buildToken(outsider)}`).send(payload);
+      expect(denied.status).toBe(403);
+      const updated = await request(app).post('/room/update').set('Authorization', `Bearer ${buildToken(member)}`).send(payload);
+      expect(updated.status).toBe(200);
+      expect((await Room.findById(id)).empty_message).toBe('メンバーの案内');
+    });
+  });
+
   test('フロアは管理者が作成でき、一般ユーザは作成できない', async () => {
     const admin = await User.create({
       username: 'Admin',

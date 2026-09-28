@@ -100,6 +100,7 @@ export const checkRoomAndRoles = async (ctx, { lifecycleGeneration = null } = {}
 
   ctx.room.title = ctx.$store.getters.roomTitle;
   ctx.room.description = ctx.getTranslatedDescription(room);
+  ctx.room.emptyMessageSource = room;
   ctx.room.creator = room.user?.username || '';
   ctx.room.creatorUser = room.user || null;
   ctx.room.createdAt = room.created_at;

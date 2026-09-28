@@ -10,6 +10,12 @@ const validateRoomDescription = (fieldName) => {
     .custom((value) => value === null || (typeof value === 'string' && value.length <= 200));
 };
 
+const validateRoomEmptyMessage = (fieldName) => body(fieldName)
+  .optional()
+  .custom((value) => value === null || (
+    typeof value === 'string' && value.length <= 200 && !/[\r\n\u2028\u2029]/u.test(value)
+  ));
+
 const validateRoomSearch = (fieldName) => {
   return body(fieldName)
     .exists()
@@ -47,6 +53,7 @@ const validateRoomDisplayOrder = (fieldName) => {
 module.exports = {
   validateRoomTitle,
   validateRoomDescription,
+  validateRoomEmptyMessage,
   validateRoomSearch,
   validateGuestReactionOnly,
   validateMemberOnly,

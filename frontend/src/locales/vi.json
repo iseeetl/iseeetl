@@ -1,4 +1,7 @@
 {
+  "まだ投稿がありません。投稿されると、ここに表示されます。": "Chưa có bài đăng nào. Bài đăng mới sẽ xuất hiện tại đây.",
+  "投稿がないときの案内文": "Thông báo khi chưa có bài đăng",
+  "空欄の場合は、標準の案内文を表示します。": "Để trống để hiển thị thông báo mặc định.",
   "フロア編集者はキックできません。": "Không thể loại bỏ người chỉnh sửa tầng.",
   "フロアメンバーはキックできません。": "Không thể loại bỏ thành viên tầng.",
   "ログアウトしました": "Đã đăng xuất",

@@ -1,4 +1,7 @@
 {
+  "まだ投稿がありません。投稿されると、ここに表示されます。": "No posts yet. New posts will appear here.",
+  "投稿がないときの案内文": "Message when there are no posts",
+  "空欄の場合は、標準の案内文を表示します。": "Leave blank to show the default message.",
   "フロア編集者はキックできません。": "Floor editors cannot be kicked.",
   "フロアメンバーはキックできません。": "Floor members cannot be kicked.",
   "ログアウトしました": "Logged out",

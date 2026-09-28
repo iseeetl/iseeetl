@@ -282,6 +282,7 @@ export const bindSocketHandlers = (socket, ctx, deps = {}) => {
         });
       }
 
+      ctx.refreshTimelineEmptyState?.();
       ctx.initialFetchAllColumns();
 
       ctx.applyStoredTimelineSettings();
@@ -319,6 +320,7 @@ export const bindSocketHandlers = (socket, ctx, deps = {}) => {
       }
     })
     .on('POST_CREATE', (post) => {
+      ctx.markTimelineHasPosts?.();
       playAudioIfMatch({
         postTags: post.room_tags,
         roomTags: ctx.room.tags,
@@ -339,7 +341,10 @@ export const bindSocketHandlers = (socket, ctx, deps = {}) => {
       ctx.insertNewToFiltersHead(post);
     })
     .on('POST_UPDATE', (post) => ctx.reconcilePostInFilters(post))
-    .on('POST_DELETE', (post) => ctx.removeFromFilters(post._id))
+    .on('POST_DELETE', (post) => {
+      ctx.removeFromFilters(post._id);
+      ctx.refreshTimelineEmptyState?.();
+    })
     .on('SUPPLEMENT_CREATE', (post) => {
       const supplement = post.supplementaries[post.supplementaries.length - 1];
 

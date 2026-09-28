@@ -103,6 +103,14 @@
       </div>
 
       <div class="timeline-content" :data-column-index="index" :aria-busy="filter._sending ? 'true' : 'false'">
+        <div
+          v-if="showEmptyMessage && filter._loaded && !filter._sending"
+          class="timeline-empty-message"
+          role="status"
+          data-testid="timeline-empty-message"
+        >
+          <p dir="auto">{{ emptyMessage }}</p>
+        </div>
         <!-- 指定された投稿を先頭に固定して表示する。 -->
         <div v-if="isConditionless && focusPost" :key="focusPost._id + '_wrapper'" class="focus-post-wrapper">
           <!-- 返信は新しい順に表示する。 -->
@@ -458,6 +466,8 @@ export default {
     UiTooltip,
   },
   props: {
+    emptyMessage: { type: String, default: '' },
+    showEmptyMessage: { type: Boolean, default: false },
     index: {
       type: Number,
       required: true,
@@ -832,6 +842,23 @@ export default {
   z-index: 3;
   width: 50%;
   border-bottom: 4px solid rgb(0, 159, 168);
+}
+.timeline-empty-message {
+  min-height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 32px 24px 96px;
+  box-sizing: border-box;
+  color: #e6e6e6;
+  text-align: center;
+  font-size: 1rem;
+  line-height: 1.8;
+}
+.timeline-empty-message p {
+  max-width: 32em;
+  margin: 0;
+  overflow-wrap: anywhere;
 }
 .timeline-content {
   height: calc(100% - 48px); /* カラムの高さからタイトルの高さを差し引く。 */

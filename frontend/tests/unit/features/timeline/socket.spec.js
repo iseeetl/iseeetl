@@ -55,6 +55,27 @@ describe('タイムラインのSocketイベント処理', () => {
     };
   };
 
+  it('接続と投稿削除で空の状態を確認し、新規投稿で案内を隠す', () => {
+    const socket = createSocket();
+    const ctx = {
+      infra: {}, room: { tags: [] }, dialogs: { sound: { tags: [] } }, timeline: { filters: [] }, ui: {},
+      $refs: {}, $store: { getters: { roomId: 'room', filters: {} }, dispatch: vi.fn() },
+      $t: (key) => key,
+      refreshTimelineEmptyState: vi.fn(), markTimelineHasPosts: vi.fn(),
+      initialFetchAllColumns: vi.fn(), applyStoredTimelineSettings: vi.fn(),
+      insertNewToFiltersHead: vi.fn(), removeFromFilters: vi.fn(),
+    };
+    const cleanup = bindSocketHandlers(socket, ctx);
+    socket.handlers.connect();
+    expect(ctx.refreshTimelineEmptyState).toHaveBeenCalledTimes(1);
+    socket.handlers.POST_CREATE({ _id: 'post', room_tags: [], content: '投稿', lang: 'ja' });
+    expect(ctx.markTimelineHasPosts).toHaveBeenCalledOnce();
+    socket.handlers.POST_DELETE({ _id: 'post' });
+    expect(ctx.removeFromFilters).toHaveBeenCalledWith('post');
+    expect(ctx.refreshTimelineEmptyState).toHaveBeenCalledTimes(2);
+    cleanup();
+  });
+
   it('bindSocketHandlers はハンドラ登録を行う', () => {
     const socket = createSocket();
 

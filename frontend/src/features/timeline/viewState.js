@@ -22,6 +22,7 @@ const createUiState = (windowObject) => ({
 const createRoomState = () => ({
   title: null,
   description: null,
+  emptyMessageSource: null,
   creator: null,
   creatorUser: null,
   createdAt: null,
@@ -42,6 +43,8 @@ const createRoomState = () => ({
 
 const createTimelineState = () => ({
   filters: [],
+  isEmpty: null,
+  emptyStateRequest: 0,
   fontFamily: '',
   fontSize: '',
   targetLangs: null,
