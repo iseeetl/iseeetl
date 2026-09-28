@@ -1,3 +1,4 @@
+jest.mock('../../../models/KickedUser', () => ({ findOne: jest.fn().mockResolvedValue(null) }));
 const path = require('path');
 
 // 実際のファイル操作やメディア変換を行わないよう、対象モジュールの読込前に依存先をモックする。

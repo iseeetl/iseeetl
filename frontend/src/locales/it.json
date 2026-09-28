@@ -1,4 +1,6 @@
 {
+  "フロア編集者はキックできません。": "Non è possibile espellere gli editor del piano.",
+  "フロアメンバーはキックできません。": "Non è possibile espellere i membri del piano.",
   "ログアウトしました": "Disconnessione effettuata",
   "ログインしました": "Accesso effettuato",
   "アイシータイムライン": "ISeeeTimeLine",
@@ -68,7 +70,6 @@
   "フロアへ移動する": "Vai al piano",
   "フロア一覧へ移動する": "Vai alla lista dei piani",
   "フロアに参加しました。": "Hai aderito al floor.",
-  "参加したフロアでは、ルームの作成、更新、削除ができます。": "Puoi creare, aggiornare ed eliminare rooms in questo floor.",
   "フロアメンバーへの参加に失敗しました": "Impossibile entrare a far parte di un membro del piano",
   "ルームメンバー参加完了": "Iscrizione membro della stanza completata",
   "ルームへ移動する": "Sposta nella stanza",
@@ -692,18 +693,20 @@
     "capabilities": {
       "allowed": {
         "browse": "Visualizzare il piano e le sue stanze, inclusi quelli nascosti",
-        "rooms": "Creare, modificare, eliminare e riordinare le stanze del piano",
-        "resources": "Gestire tag e testi rapidi delle stanze",
-        "members": "Visualizzare i membri del piano e abbandonare il piano autonomamente",
-        "roomMembers": "Invitare e visualizzare i membri delle stanze",
-        "timeline": "Accedere alle stanze riservate ai membri e usare le loro timeline"
+        "management": "Gestire impostazioni, membri e post del piano e delle sue stanze, inclusa la modifica e l’eliminazione del piano.",
+        "timeline": "Accedere alle stanze riservate ai membri e usare le loro timeline",
+        "floors": "Modificare, eliminare, mostrare o nascondere questo piano",
+        "rooms": "Creare, modificare, eliminare, riordinare, mostrare o nascondere stanze",
+        "resources": "Gestire tag e parole del piano e delle stanze",
+        "members": "Invitare e rimuovere membri del piano e delle stanze",
+        "analysis": "Configurare l’analisi IA del piano e delle stanze",
+        "kicks": "Espellere utenti e revocare le espulsioni",
+        "othersContent": "Modificare o eliminare post, risposte o informazioni aggiuntive di altre persone"
       },
       "denied": {
-        "floor": "Modificare o eliminare il piano stesso",
-        "resources": "Gestire tag del piano, testi rapidi del piano o impostazioni di analisi IA",
-        "members": "Invitare o rimuovere membri del piano"
-      },
-      "creatorNote": "Puoi anche rimuovere membri dalle stanze che hai creato."
+        "createFloor": "Creare piani",
+        "bulkVisibility": "Mostrare o nascondere piani in blocco dall’elenco dei piani"
+      }
     },
     "deleteMemberAria": "Rimuovi {username} dai membri del piano",
     "targetMember": "Membro di destinazione"

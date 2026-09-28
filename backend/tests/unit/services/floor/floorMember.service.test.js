@@ -1,3 +1,4 @@
+jest.mock('../../../../models/KickedUser', () => ({ findOne: jest.fn().mockResolvedValue(null) }));
 const crypto = require('crypto');
 
 jest.mock('../../../../models/User', () => ({ findOne: jest.fn() }));
@@ -180,7 +181,8 @@ describe('floorMemberのサービス', () => {
       );
     });
 
-    test('権限なし → 401', async () => {
+    test('未所属のユーザは削除できない', async () => {
+      FloorMember.findOne.mockResolvedValue(null);
       await expect(floorMemberService.delete(body, userJwt)).rejects.toBeInstanceOf(AppError);
     });
 

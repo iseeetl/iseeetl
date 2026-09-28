@@ -240,7 +240,7 @@ describe('AI解析設定APIの結合動作', () => {
       process.env.SUPPORT_USER_ID = ctx.resultUser._id.toString();
       const unauthenticated = await request(app).post(endpoint).send(payload(ctx));
       expect(unauthenticated.status).toBe(401);
-      for (const actor of [ctx.otherEditor, ctx.author, ctx.floorMember, ctx.roomMember]) {
+      for (const actor of [ctx.otherEditor, ctx.author, ctx.roomMember, ...(scope === 'common' ? [ctx.floorMember] : [])]) {
         const response = await request(app).post(endpoint).set(auth(actor)).send(payload(ctx));
         expect(response.status).toBe(403);
         expect(response.body).not.toHaveProperty('username');
@@ -654,7 +654,7 @@ describe('AI解析設定APIの結合動作', () => {
       deleted_at: new Date(),
     });
 
-    for (const actor of [ctx.author, ctx.otherEditor, ctx.floorMember, ctx.roomMember]) {
+    for (const actor of [ctx.author, ctx.otherEditor, ctx.roomMember]) {
       const floorList = await request(app)
         .post('/api/flooraianalysissetting')
         .set(auth(actor))

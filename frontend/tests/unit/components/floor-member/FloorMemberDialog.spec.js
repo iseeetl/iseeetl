@@ -118,6 +118,18 @@ describe('フロアメンバーの一覧', () => {
     expect(wrapper.vm.loadState).to.equal('ready');
   });
 
+  it.each([
+    [{ isAdmin: true }, true],
+    [{ isFloorEditor: true }, true],
+    [{ isFloorMember: true }, true],
+    [{}, false],
+  ])('フロアの管理権限に応じてメンバー削除を許可する（%j）', async (role, expected) => {
+    const wrapper = createWrapper();
+    await wrapper.setData({ role });
+    expect(wrapper.vm.canDeleteMember()).to.equal(expected);
+    wrapper.unmount();
+  });
+
   it('対象フロア・取得状態・一覧・削除操作の読み上げ名を共通ダイアログへ渡す', () => {
     const wrapper = createWrapper({
       mocks: {

@@ -95,6 +95,17 @@ const createWrapper = (overrides = {}) =>
   });
 
 describe('返信の表示と操作', () => {
+  it.each([
+    ['FloorEditor', true],
+    ['FloorMember', true],
+    ['RoomMember', false],
+    ['User', false],
+  ])('%sのキックボタン表示をフロア権限に合わせる', (roomRole, expected) => {
+    const wrapper = createWrapper({ store: createStoreMock({ getters: { roomRole } }) });
+    expect(wrapper.find('.kick-button').exists()).to.equal(expected);
+    wrapper.unmount();
+  });
+
   it('返信音声を親投稿のルームに紐づくダウンロード操作付きプレイヤーへ渡す', () => {
     const wrapper = createWrapper({
       props: {

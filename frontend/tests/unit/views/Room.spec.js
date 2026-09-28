@@ -306,7 +306,7 @@ describe('ルーム一覧画面', () => {
     expect(wrapper.vm.isRoomMember).to.equal(true);
   });
 
-  it('管理者とフロア作成者だけにフロア・ルームのAI解析設定ボタンを表示する', async () => {
+  it('管理者・フロア編集者・フロアメンバーにフロア・ルームのAI解析設定を表示する', async () => {
     const View = buildViewWithoutLifecycle(Room);
     const wrapper = shallowMount(View, createMountOptions());
     await wrapper.setData({ rooms: [buildRoomFixture('room-1')] });
@@ -320,8 +320,8 @@ describe('ルーム一覧画面', () => {
     expect(wrapper.find('[data-testid="room-ai-analysis-settings-button-room-1"]').exists()).to.equal(true);
 
     await wrapper.setData({ isFloorEditor: false, isFloorMember: true });
-    expect(wrapper.find('[data-testid="room-floor-ai-analysis-settings-button"]').exists()).to.equal(false);
-    expect(wrapper.find('[data-testid="room-ai-analysis-settings-button-room-1"]').exists()).to.equal(false);
+    expect(wrapper.find('[data-testid="room-floor-ai-analysis-settings-button"]').exists()).to.equal(true);
+    expect(wrapper.find('[data-testid="room-ai-analysis-settings-button-room-1"]').exists()).to.equal(true);
     expect(wrapper.find('[data-testid="room-tag-button-room-1"]').exists()).to.equal(true);
 
     await wrapper.setData({ isFloorMember: false, isRoomMember: true });
@@ -366,6 +366,7 @@ describe('ルーム一覧画面', () => {
     expect(wrapper.find('.room-action').findAll('ui-button-stub').map((button) => button.text())).to.deep.equal([
       '削除',
       'ルームタグ',
+      'aiAnalysisSettings.roomButton',
       'ルーム単語',
       '編集',
     ]);
@@ -520,7 +521,7 @@ describe('ルーム一覧画面', () => {
     expect(wrapper.vm.roomMemberDialogs.listVisible).to.equal(false);
   });
 
-  it('フロアメンバーによるルームメンバーの削除は、そのルームの作成者だけに許可する', async () => {
+  it('フロアメンバーはルーム作成者に関係なくルームメンバーを削除できる', async () => {
     const View = buildViewWithoutLifecycle(Room);
     const wrapper = shallowMount(View, createMountOptions());
     const ownRoom = { ...buildRoomFixture('own-room'), member_only: true };
@@ -538,7 +539,7 @@ describe('ルーム一覧画面', () => {
     listDialog.vm.$emit('request-close');
     await wrapper.vm.$nextTick();
     await wrapper.find('[data-testid="room-member-list-button-other-room"]').trigger('click');
-    expect(listDialog.props('canDeleteMembers')).to.equal(false);
+    expect(listDialog.props('canDeleteMembers')).to.equal(true);
   });
 
   it('メンバー削除成功後は対象ルームを維持して一覧を再表示する', async () => {
@@ -903,7 +904,7 @@ describe('ルーム一覧画面', () => {
     expect(wrapper.vm.roomQuickTextDialogTarget).to.equal(null);
 
     await wrapper.setData({ isRoomMember: false, isFloorMember: true });
-    expect(wrapper.find('[data-testid="room-floor-quicktext-button"]').exists()).to.equal(false);
+    expect(wrapper.find('[data-testid="room-floor-quicktext-button"]').exists()).to.equal(true);
     expect(wrapper.find('[data-testid="room-quicktext-button-room-1"]').exists()).to.equal(true);
     await wrapper.get('[data-testid="room-quicktext-button-room-1"]').trigger('click');
     expect(wrapper.findComponent(ResourceQuickTextDialogStub).props()).to.include({

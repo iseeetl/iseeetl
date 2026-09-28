@@ -37,6 +37,17 @@ const createWrapper = (overrides = {}) =>
   });
 
 describe('流れる返信の表示', () => {
+  it.each([
+    ['FloorEditor', true],
+    ['FloorMember', true],
+    ['RoomMember', false],
+    ['User', false],
+  ])('%sのキックボタン表示をフロア権限に合わせる', (roomRole, expected) => {
+    const wrapper = createWrapper({ store: { getters: { userRole: 'Author', roomRole, displayUserKickButton: true } } });
+    expect(wrapper.vm.canShowKickButton).to.equal(expected);
+    wrapper.unmount();
+  });
+
   it('流す返信の本文をキーボードで操作できるボタンとして表示する', () => {
     const wrapper = createWrapper({ props: { animatingItemsColumn: { 'reply-1': true } } });
     const content = wrapper.get('button.animation-content');

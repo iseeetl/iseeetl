@@ -1,4 +1,6 @@
 {
+  "フロア編集者はキックできません。": "Floor editors cannot be kicked.",
+  "フロアメンバーはキックできません。": "Floor members cannot be kicked.",
   "ログアウトしました": "Logged out",
   "ログインしました": "Logged in",
   "アイシータイムライン": "ISeeeTimeLine",
@@ -68,7 +70,6 @@
   "フロアへ移動する": "Go to floor",
   "フロア一覧へ移動する": "Go to floor list",
   "フロアに参加しました。": "You joined the floor.",
-  "参加したフロアでは、ルームの作成、更新、削除ができます。": "You can create, update, and delete rooms in this floor.",
   "フロアメンバーへの参加に失敗しました": "Unable to join the floor.",
   "ルームメンバー参加完了": "Room Member Join Complete",
   "ルームへ移動する": "Move to Room",
@@ -692,18 +693,20 @@
     "capabilities": {
       "allowed": {
         "browse": "View the floor and its rooms, including hidden ones",
-        "rooms": "Create, edit, delete, and reorder rooms in the floor",
-        "resources": "Manage room tags and quick text",
-        "members": "View floor members and leave the floor yourself",
-        "roomMembers": "Invite and view room members",
-        "timeline": "Enter members-only rooms and use their timelines"
+        "management": "Manage settings, members and posts in this floor and its rooms, including editing and deleting the floor.",
+        "timeline": "Enter members-only rooms and use their timelines",
+        "floors": "Edit, delete, show or hide this floor",
+        "rooms": "Create, edit, delete, reorder, show or hide rooms",
+        "resources": "Manage floor and room tags and words",
+        "members": "Invite and remove floor and room members",
+        "analysis": "Configure AI analysis for the floor and its rooms",
+        "kicks": "Kick users and lift kicks",
+        "othersContent": "Edit or delete other people's posts, replies, or supplements"
       },
       "denied": {
-        "floor": "Edit or delete the floor itself",
-        "resources": "Manage floor tags, floor quick text, or AI analysis settings",
-        "members": "Invite or remove floor members"
-      },
-      "creatorNote": "You can also remove members from rooms you created."
+        "createFloor": "Create floors",
+        "bulkVisibility": "Show or hide floors in bulk from the floor list"
+      }
     },
     "deleteMemberAria": "Remove {username} from floor members.",
     "targetMember": "Target member"

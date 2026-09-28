@@ -1,7 +1,7 @@
 const mockFindActiveUser = jest.fn();
 const mockFindActiveFloor = jest.fn();
 const mockFindRoomWithFloor = jest.fn();
-const mockHasFloorAccess = jest.fn();
+const mockCanManageFloor = jest.fn();
 const mockProvisionRoomResources = jest.fn();
 const mockRollbackRoomProvisioning = jest.fn();
 const mockIsGoogleTranslateEnabled = jest.fn(() => true);
@@ -20,7 +20,7 @@ jest.mock('../../../../services/_shared/activeResource', () => ({
   findRoomWithFloor: mockFindRoomWithFloor,
 }));
 jest.mock('../../../../services/_shared/floorAccess', () => ({
-  hasFloorAccess: mockHasFloorAccess,
+  canManageFloor: mockCanManageFloor,
 }));
 jest.mock('../../../../config/featureFlags', () => ({
   isGoogleTranslateEnabled: mockIsGoogleTranslateEnabled,
@@ -41,7 +41,7 @@ describe('ルーム作成失敗時の後処理', () => {
     mockIsGoogleTranslateEnabled.mockReturnValue(true);
     mockFindActiveUser.mockResolvedValue({ _id: 'user-1', username: 'owner' });
     mockFindActiveFloor.mockResolvedValue({ _id: 'floor-1', user: 'user-1', target_langs: ['en'] });
-    mockHasFloorAccess.mockReturnValue(true);
+    mockCanManageFloor.mockReturnValue(true);
     FloorMember.findOne.mockReturnValue({ lean: jest.fn().mockResolvedValue(null) });
     translationService.translateTitleAndDescription.mockResolvedValue([]);
     mockRollbackRoomProvisioning.mockResolvedValue();

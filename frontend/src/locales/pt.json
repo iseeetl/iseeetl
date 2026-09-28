@@ -1,4 +1,6 @@
 {
+  "フロア編集者はキックできません。": "Não é possível expulsar os editores do andar.",
+  "フロアメンバーはキックできません。": "Não é possível expulsar os membros do andar.",
   "ログアウトしました": "Sessão encerrada",
   "ログインしました": "Sessão iniciada",
   "アイシータイムライン": "ISeeeTimeLine",
@@ -68,7 +70,6 @@
   "フロアへ移動する": "Ir para o chão",
   "フロア一覧へ移動する": "Ir para a lista de andares",
   "フロアに参加しました。": "Você entrou no floor.",
-  "参加したフロアでは、ルームの作成、更新、削除ができます。": "Você pode criar, atualizar e excluir rooms neste floor.",
   "フロアメンバーへの参加に失敗しました": "Falha ao ingressar em um membro do piso",
   "ルームメンバー参加完了": "Participação de membro da sala concluída",
   "ルームへ移動する": "Mover para a Sala",
@@ -692,18 +693,20 @@
     "capabilities": {
       "allowed": {
         "browse": "Ver o andar e suas salas, incluindo os ocultos",
-        "rooms": "Criar, editar, excluir e reordenar salas do andar",
-        "resources": "Gerenciar tags e textos rápidos das salas",
-        "members": "Ver os membros do andar e sair do andar por conta própria",
-        "roomMembers": "Convidar e ver membros das salas",
-        "timeline": "Entrar em salas exclusivas para membros e usar suas linhas do tempo"
+        "management": "Gerenciar configurações, membros e publicações do andar e de suas salas, incluindo editar e excluir o andar.",
+        "timeline": "Entrar em salas exclusivas para membros e usar suas linhas do tempo",
+        "floors": "Editar, excluir, mostrar ou ocultar este andar",
+        "rooms": "Criar, editar, excluir, reordenar, mostrar ou ocultar salas",
+        "resources": "Gerenciar tags e palavras do andar e das salas",
+        "members": "Convidar e remover membros do andar e das salas",
+        "analysis": "Configurar a análise de IA do andar e das salas",
+        "kicks": "Expulsar usuários e revogar expulsões",
+        "othersContent": "Editar ou excluir publicações, respostas ou informações adicionais de outras pessoas"
       },
       "denied": {
-        "floor": "Editar ou excluir o próprio andar",
-        "resources": "Gerenciar tags do andar, textos rápidos do andar ou configurações de análise de IA",
-        "members": "Convidar ou remover membros do andar"
-      },
-      "creatorNote": "Você também pode remover membros das salas que criou."
+        "createFloor": "Criar andares",
+        "bulkVisibility": "Mostrar ou ocultar andares em lote na lista de andares"
+      }
     },
     "deleteMemberAria": "Remover {username} dos membros do piso",
     "targetMember": "Membro de destino"

@@ -1,4 +1,6 @@
 const ROLES = require('../../constants/roles');
+const FloorMember = require('../../models/FloorMember');
+const KickedUser = require('../../models/KickedUser');
 
 function isAdminOrCreator(userRole, resourceOwnerId, currentUserId) {
   const isAdministrator = userRole === ROLES.ADMINISTRATOR;
@@ -13,4 +15,15 @@ function hasFloorAccess({ role, floor, uid, floorMember = null }) {
   return !!floorMember;
 }
 
-module.exports = { hasFloorAccess, isAdminOrCreator };
+async function canManageFloor({ role, floor, uid, floorMember }) {
+  if (isAdminOrCreator(role, floor?.user, uid)) return true;
+  if (!floor?._id || !uid) return false;
+  const membership = floorMember === undefined
+    ? await FloorMember.findOne({ floor: floor._id, user: uid })
+    : floorMember;
+  if (!membership) return false;
+  // キック記録が残っている間は、所属していても管理操作を許可しない。
+  return !(await KickedUser.findOne({ floor: floor._id, user: uid }));
+}
+
+module.exports = { hasFloorAccess, isAdminOrCreator, canManageFloor };

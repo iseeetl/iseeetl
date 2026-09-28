@@ -351,7 +351,7 @@ export default {
     canManageFloor(floor) {
       if (!this.userIsLogin) return false;
       if (this.userRole === 'Administrator') return true;
-      return this.userRole === 'Editor' && floor.user && floor.user._id === this.userId;
+      return floor.can_manage === true;
     },
 
     refreshFirstPage() {

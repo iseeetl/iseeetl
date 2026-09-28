@@ -173,4 +173,18 @@ describe('ユーザのキック', () => {
 
     expect(dispatchCalls).to.include('doLogout');
   });
+  it.each([
+    ['CANT_KICK_FLOOR_EDITOR', 'フロア編集者はキックできません。'],
+    ['CANT_KICK_FLOOR_MEMBER', 'フロアメンバーはキックできません。'],
+  ])('%sの拒否理由を表示して確認画面を維持する', async (code, reason) => {
+    kickedUserApi.create = () => Promise.reject({ response: { status: 400, data: { error: { code } } } });
+    const messages = [];
+    const wrapper = createWrapper({ mocks: { $store: { dispatch: (_action, payload) => messages.push(payload) } } });
+    wrapper.vm.onPressDoneButton();
+    await flushPromises();
+    expect(messages.some((payload) => payload.message?.includes(reason))).to.equal(true);
+    expect(wrapper.vm.visible).to.equal(true);
+    expect(wrapper.vm.sending).to.equal(false);
+  });
+
 });

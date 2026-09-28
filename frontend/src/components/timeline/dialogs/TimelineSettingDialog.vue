@@ -65,7 +65,7 @@
           <span>{{ $t('「アクションボタン」を表示する') }}</span>
         </label>
         <label
-          v-if="$store.getters.userRole === 'Administrator' || $store.getters.roomRole === 'FloorEditor'"
+          v-if="canManageFloor"
           class="setting-choice"
           for="display_user_kick_button"
         >
@@ -111,6 +111,7 @@
 </template>
 
 <script>
+import { canManageFloor } from '@/utils/floorPermissions';
 import BaseEditDialog from '@/components/common/BaseEditDialog.vue';
 import ConfirmDialog from '@/components/common/ConfirmDialog.vue';
 
@@ -123,6 +124,11 @@ export default {
   },
   props: {
     dialogVisible: Boolean,
+  },
+  computed: {
+    canManageFloor() {
+      return canManageFloor(this.$store.getters.userRole, this.$store.getters.roomRole);
+    },
   },
   data() {
     return {

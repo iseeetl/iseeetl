@@ -1,3 +1,7 @@
+jest.mock('../../../../models/KickedUser', () => ({
+  findOne: jest.fn().mockResolvedValue(null),
+  find: jest.fn(() => ({ distinct: jest.fn().mockResolvedValue([]) })),
+}));
 jest.mock('fs', () => ({
   promises: {
     mkdir: jest.fn().mockResolvedValue(true),

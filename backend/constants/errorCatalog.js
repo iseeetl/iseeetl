@@ -50,6 +50,8 @@ const ERROR_CATALOG = {
 
   // キック
   ALREADY_KICKED: { status: 400, message: Messages.ALREADY_KICKED },
+  CANT_KICK_FLOOR_EDITOR: { status: 400, message: Messages.CANT_KICK_FLOOR_EDITOR },
+  CANT_KICK_FLOOR_MEMBER: { status: 400, message: Messages.CANT_KICK_FLOOR_MEMBER },
   CANT_KICK: { status: 400, message: Messages.CANT_KICK },
 
   // ファイルのアップロード

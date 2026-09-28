@@ -1,3 +1,5 @@
+jest.mock('../../../../models/KickedUser', () => ({ findOne: jest.fn().mockResolvedValue(null) }));
+jest.mock('../../../../models/FloorMember', () => ({ findOne: jest.fn().mockResolvedValue(null) }));
 jest.mock('../../../../services/translation.service', () => ({
   translateQuickTextGroup: jest.fn(),
   translateQuickTextItem: jest.fn(),

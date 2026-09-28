@@ -79,6 +79,7 @@
 </template>
 
 <script>
+import { canManageFloor } from '@/utils/floorPermissions';
 import UiButton from '@/components/ui/UiButton.vue';
 import UiIcon from '@/components/ui/UiIcon.vue';
 import UiTooltip from '@/components/ui/UiTooltip.vue';
@@ -144,10 +145,10 @@ export default {
     },
     canShowKickButton() {
       const { userRole, roomRole, displayUserKickButton } = this.$store.getters;
-      const isAdminOrFloorEditor = userRole === 'Administrator' || roomRole === 'FloorEditor';
+      const canManage = canManageFloor(userRole, roomRole);
       const hasValidUser = this.reply.user !== undefined && this.reply.user !== null;
       const isNotAnimating = !this.animatingItemsColumn[this.reply._id];
-      return displayUserKickButton && isAdminOrFloorEditor && hasValidUser && isNotAnimating;
+      return displayUserKickButton && canManage && hasValidUser && isNotAnimating;
     },
   },
   watch: {

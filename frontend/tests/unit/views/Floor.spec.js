@@ -202,7 +202,7 @@ describe('フロア一覧画面', () => {
     expect(wrapper.vm.normalizePageParam('1.5')).to.equal(1);
   });
 
-  it('フロアの管理操作は管理者または作成者本人のフロア編集ユーザだけに許可する', () => {
+  it('フロア一覧の管理可否に従い、所属フロアだけ編集・削除を許可する', () => {
     const floor = { user: { _id: 'u1' } };
     const administrator = createWrapper({
       store: { getters: { userRole: 'Administrator', userIsLogin: true, userId: 'admin' } },
@@ -215,7 +215,8 @@ describe('フロア一覧画面', () => {
     });
 
     expect(administrator.vm.canManageFloor(floor)).to.equal(true);
-    expect(editor.vm.canManageFloor(floor)).to.equal(true);
+    expect(editor.vm.canManageFloor({ ...floor, can_manage: true })).to.equal(true);
+    expect(author.vm.canManageFloor({ ...floor, can_manage: true })).to.equal(true);
     expect(author.vm.canManageFloor(floor)).to.equal(false);
   });
 

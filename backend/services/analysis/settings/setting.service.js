@@ -11,7 +11,7 @@ const {
   withAIAnalysisIntegrityLock,
 } = require('./referenceIntegrity');
 const { findActiveFloor, findActiveRoom, findActiveUser } = require('../../_shared/activeResource');
-const { isAdminOrCreator } = require('../../_shared/floorAccess');
+const { canManageFloor } = require('../../_shared/floorAccess');
 const { requireAdminUser } = require('../../_shared/memberHelpers');
 
 const AIAnalysisSetting = require('../../../models/AIAnalysisSetting');
@@ -256,7 +256,7 @@ const authorizeFloor = async (floorId, jwtPayload) => {
     findActiveUser(jwtPayload.user_id),
     findActiveFloor(floorId),
   ]);
-  if (!isAdminOrCreator(actor.role, floor.user, actor._id)) {
+  if (!(await canManageFloor({ role: actor.role, floor, uid: actor._id }))) {
     throw new AppError({ code: 'FORBIDDEN' });
   }
   return { actor, floor };

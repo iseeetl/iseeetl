@@ -1,4 +1,6 @@
 {
+  "フロア編集者はキックできません。": "No se puede expulsar a los editores del piso.",
+  "フロアメンバーはキックできません。": "No se puede expulsar a los miembros del piso.",
   "ログアウトしました": "Sesión cerrada",
   "ログインしました": "Sesión iniciada",
   "アイシータイムライン": "ISeeeTimeLine",
@@ -68,7 +70,6 @@
   "フロアへ移動する": "ir al piso",
   "フロア一覧へ移動する": "Ir a la lista de pisos",
   "フロアに参加しました。": "Te has unido al floor.",
-  "参加したフロアでは、ルームの作成、更新、削除ができます。": "Puedes crear, actualizar y eliminar rooms en este floor.",
   "フロアメンバーへの参加に失敗しました": "No se pudo unir a un miembro del piso",
   "ルームメンバー参加完了": "Miembro de la sala Unirse completo",
   "ルームへ移動する": "Mover a la habitación",
@@ -692,18 +693,20 @@
     "capabilities": {
       "allowed": {
         "browse": "Ver el piso y sus salas, incluidos los ocultos",
-        "rooms": "Crear, editar, eliminar y reordenar salas del piso",
-        "resources": "Gestionar etiquetas y textos rápidos de las salas",
-        "members": "Ver los miembros del piso y abandonar el piso por cuenta propia",
-        "roomMembers": "Invitar y ver a los miembros de las salas",
-        "timeline": "Entrar en salas solo para miembros y usar sus líneas de tiempo"
+        "management": "Administrar ajustes, miembros y publicaciones del piso y sus salas, incluida la edición y eliminación del piso.",
+        "timeline": "Entrar en salas solo para miembros y usar sus líneas de tiempo",
+        "floors": "Editar, eliminar, mostrar u ocultar este piso",
+        "rooms": "Crear, editar, eliminar, reordenar, mostrar u ocultar salas",
+        "resources": "Administrar etiquetas y palabras del piso y las salas",
+        "members": "Invitar y eliminar miembros del piso y las salas",
+        "analysis": "Configurar el análisis de IA del piso y las salas",
+        "kicks": "Expulsar usuarios y levantar expulsiones",
+        "othersContent": "Editar o eliminar publicaciones, respuestas o información adicional de otras personas"
       },
       "denied": {
-        "floor": "Editar o eliminar el propio piso",
-        "resources": "Gestionar etiquetas del piso, textos rápidos del piso o ajustes de análisis de IA",
-        "members": "Invitar o eliminar miembros del piso"
-      },
-      "creatorNote": "También puede eliminar miembros de las salas que haya creado."
+        "createFloor": "Crear pisos",
+        "bulkVisibility": "Mostrar u ocultar pisos en bloque desde la lista de pisos"
+      }
     },
     "deleteMemberAria": "Eliminar a {username} de los miembros del piso",
     "targetMember": "Miembro de destino"

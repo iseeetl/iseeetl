@@ -1,3 +1,4 @@
+jest.mock('../../../models/FloorMember', () => ({ findOne: jest.fn().mockResolvedValue(null) }));
 jest.mock(
   '../../../utils/appError',
   () =>

@@ -8,6 +8,7 @@ const User = require('../../../models/User');
 const Floor = require('../../../models/Floor');
 const Room = require('../../../models/Room');
 const KickedUser = require('../../../models/KickedUser');
+const FloorMember = require('../../../models/FloorMember');
 
 describe('キック管理API', () => {
   const ORIGINAL_ENV = {
@@ -118,7 +119,7 @@ describe('キック管理API', () => {
     expect(remaining).toBeNull();
   });
 
-  test('フロア作成者以外はキックを登録できない', async () => {
+  test('未所属の一般ユーザはキックを登録できない', async () => {
     const owner = await createUser({ role: 'Editor' });
     const outsider = await createUser({ role: 'Author' });
     const target = await createUser({ role: 'Author' });
@@ -181,4 +182,77 @@ describe('キック管理API', () => {
     await expect(KickedUser.findOne({ user: kickedTarget._id })).resolves.not.toBeNull();
     await expect(KickedUser.findOne({ user: newTarget._id })).resolves.toBeNull();
   });
+  test.each(['Administrator', 'Editor', 'FloorMember'])('%sでもフロア編集者とフロアメンバーをキックできず、理由を区別する', async (actorRole) => {
+    const owner = await createUser({ role: 'Editor' });
+    const member = await createUser({ role: 'Author' });
+    const floor = await createFloor(owner);
+    const room = await createRoom(owner, floor);
+    await FloorMember.create({ floor: floor._id, user: member._id });
+    const actor = actorRole === 'Editor' ? owner : await createUser({ role: actorRole === 'Administrator' ? 'Administrator' : 'Author' });
+    if (actorRole === 'FloorMember') await FloorMember.create({ floor: floor._id, user: actor._id });
+    const emit = jest.fn();
+    const disconnectSockets = jest.fn();
+    const app = buildApp({ io: { to: jest.fn(() => ({ emit })), in: jest.fn(() => ({ disconnectSockets })) } });
+    for (const [target, code, message] of [
+      [owner, 'CANT_KICK_FLOOR_EDITOR', 'フロア編集者はキックできません。'],
+      [member, 'CANT_KICK_FLOOR_MEMBER', 'フロアメンバーはキックできません。'],
+    ]) {
+      const response = await request(app).post('/kickedUser/create')
+        .set('Authorization', `Bearer ${buildToken(actor)}`)
+        .send({ user_id: String(target._id), room_id: String(room._id) });
+      expect(response.status).toBe(400);
+      expect(response.body.error).toMatchObject({ code, message });
+    }
+    expect(await KickedUser.countDocuments({})).toBe(0);
+    expect(emit).not.toHaveBeenCalled();
+    expect(disconnectSockets).not.toHaveBeenCalled();
+  });
+
+  test('フロアメンバーは通常ユーザをキック・一覧取得・解除できるが、他フロアでは操作できない', async () => {
+    const owner = await createUser({ role: 'Editor' });
+    const member = await createUser({ role: 'Author' });
+    const target = await createUser({ role: 'Author' });
+    const floor = await createFloor(owner);
+    const otherFloor = await createFloor(owner);
+    const room = await createRoom(owner, floor);
+    const otherRoom = await createRoom(owner, otherFloor);
+    await FloorMember.create({ floor: floor._id, user: member._id });
+    await FloorMember.create({ floor: otherFloor._id, user: target._id });
+    const app = buildApp({ io: undefined });
+    const auth = { Authorization: `Bearer ${buildToken(member)}` };
+    expect((await request(app).post('/kickedUser/create').set(auth)
+      .send({ user_id: String(target._id), room_id: String(otherRoom._id) })).status).toBe(401);
+    expect((await request(app).post('/kickedUser/create').set(auth)
+      .send({ user_id: String(target._id), room_id: String(room._id) })).status).toBe(200);
+    const list = await request(app).post('/kickedUser').set(auth).send({ floor_id: String(floor._id) });
+    expect(list.status).toBe(200);
+    expect(list.body).toHaveLength(1);
+    expect((await request(app).post('/kickedUser/delete').set(auth)
+      .send({ user_id: String(target._id), floor_id: String(floor._id) })).status).toBe(200);
+    expect(await KickedUser.countDocuments({})).toBe(0);
+  });
+
+  test('既存のキック記録があるメンバーは自分で解除できず、管理者の解除後に管理権限が戻る', async () => {
+    const owner = await createUser({ role: 'Editor' });
+    const member = await createUser({ role: 'Author' });
+    const admin = await createUser({ role: 'Administrator' });
+    const floor = await createFloor(owner);
+    const room = await createRoom(owner, floor);
+    await FloorMember.create({ floor: floor._id, user: member._id });
+    await KickedUser.create({ floor: floor._id, room: room._id, user: member._id, kicked_by: owner._id });
+    const app = buildApp({ io: undefined });
+    const body = { floor_id: String(floor._id), user_id: String(member._id) };
+    const auth = { Authorization: `Bearer ${buildToken(member)}` };
+    const denied = await request(app).post('/kickedUser/delete').set(auth).send(body);
+    expect(denied.status).toBe(401);
+    expect(denied.body.error.code).toBe('INVALID_PERMISSION');
+    expect(await KickedUser.countDocuments({ user: member._id })).toBe(1);
+    expect((await request(app).post('/kickedUser/delete')
+      .set('Authorization', `Bearer ${buildToken(admin)}`).send(body)).status).toBe(200);
+    const list = await request(app).post('/kickedUser').set(auth).send({ floor_id: String(floor._id) });
+    expect(list.status).toBe(200);
+    expect(list.body).toEqual([]);
+    expect(await FloorMember.countDocuments({ floor: floor._id, user: member._id })).toBe(1);
+  });
+
 });

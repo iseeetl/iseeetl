@@ -3,7 +3,7 @@ const AppError = require('../../utils/appError');
 const FloorInvite = require('../../models/FloorInvite');
 const FloorMember = require('../../models/FloorMember');
 const { findActiveFloor } = require('../_shared/activeResource');
-const { hasFloorAccess, isAdminOrCreator } = require('../_shared/floorAccess');
+const { canManageFloor } = require('../_shared/floorAccess');
 const { buildInviteTokenExpiry, createInviteToken } = require('../_shared/inviteToken');
 const { findUserOrThrow, requireAdminUser, buildMemberManagementOptions } = require('../_shared/memberHelpers');
 const { revalidateFloorUserSockets } = require('../../socket/accessControl');
@@ -23,7 +23,7 @@ exports.list = async (body, jwtPayload) => {
 
   const foundFloorMember = await FloorMember.findOne({ floor: floorId, user: decodedUserId });
 
-  if (!hasFloorAccess({ role: decodedUserRole, floor: foundFloor, uid: decodedUserId, floorMember: foundFloorMember })) {
+  if (!(await canManageFloor({ role: decodedUserRole, floor: foundFloor, uid: decodedUserId, floorMember: foundFloorMember }))) {
     throw new AppError({ code: 'FORBIDDEN' });
   }
 
@@ -43,8 +43,7 @@ exports.invite = async (body, jwtPayload) => {
 
   const foundFloor = await findFloorForMember(floorId);
 
-  // サイト管理者、またはフロアを作成したフロア編集者だけに許可する。
-  if (!isAdminOrCreator(decodedUserRole, foundFloor.user.toString(), decodedUserId)) {
+  if (!(await canManageFloor({ role: decodedUserRole, floor: foundFloor, uid: decodedUserId }))) {
     throw new AppError({ code: 'FORBIDDEN' });
   }
 
@@ -108,8 +107,7 @@ exports.delete = async (body, jwtPayload, io) => {
 
   const foundFloor = await findFloorForMember(floorId);
 
-  // サイト管理者、またはフロアを作成したフロア編集者だけに許可する。
-  if (!isAdminOrCreator(decodedUserRole, foundFloor.user.toString(), decodedUserId)) {
+  if (!(await canManageFloor({ role: decodedUserRole, floor: foundFloor, uid: decodedUserId }))) {
     throw new AppError({ code: 'FORBIDDEN' });
   }
 

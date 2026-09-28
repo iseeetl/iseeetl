@@ -4,7 +4,7 @@ const FloorMember = require('../../models/FloorMember');
 const RoomInvite = require('../../models/RoomInvite');
 const RoomMember = require('../../models/RoomMember');
 const { findRoomWithFloor } = require('../_shared/activeResource');
-const { hasFloorAccess, isAdminOrCreator } = require('../_shared/floorAccess');
+const { hasFloorAccess, canManageFloor } = require('../_shared/floorAccess');
 const { buildInviteTokenExpiry, createInviteToken } = require('../_shared/inviteToken');
 const {
   findUserOrThrow,
@@ -23,16 +23,6 @@ function ensureRoomAndFloor(roomId) {
 function canViewRoomMembers(role, floor, uid, floorMember, roomMember) {
   if (hasFloorAccess({ role, floor, uid, floorMember })) return true;
   return roomMember != null;
-}
-
-function canInviteToRoom(role, floor, uid, floorMember) {
-  return hasFloorAccess({ role, floor, uid, floorMember });
-}
-
-function canRemoveRoomMember(role, floor, room, uid) {
-  if (isAdminOrCreator(role, floor && floor.user, uid)) return true;
-  if (room && room.user && room.user.toString() === uid) return true;
-  return false;
 }
 
 exports.list = async (body, jwtPayload) => {
@@ -73,7 +63,7 @@ exports.invite = async (body, jwtPayload) => {
 
   const foundFloorMember = await FloorMember.findOne({ floor: foundFloor._id, user: decodedUserId });
 
-  if (!canInviteToRoom(decodedUserRole, foundFloor, decodedUserId, foundFloorMember)) {
+  if (!(await canManageFloor({ role: decodedUserRole, floor: foundFloor, uid: decodedUserId, floorMember: foundFloorMember }))) {
     throw new AppError({ code: 'FORBIDDEN' });
   }
 
@@ -139,10 +129,9 @@ exports.delete = async (body, jwtPayload, io) => {
   const foundRoomMember = await RoomMember.findOne({ _id: id });
   if (!foundRoomMember) throw new AppError({ code: 'NOT_FOUND' });
 
-  const { room: foundRoom, floor: foundFloor } = await ensureRoomAndFloor(foundRoomMember.room.toString());
+  const { floor: foundFloor } = await ensureRoomAndFloor(foundRoomMember.room.toString());
 
-  // サイト管理者、フロアを作成したフロア編集者、ルーム作成者のいずれかに許可する。
-  if (!canRemoveRoomMember(decodedUserRole, foundFloor, foundRoom, decodedUserId)) {
+  if (!(await canManageFloor({ role: decodedUserRole, floor: foundFloor, uid: decodedUserId }))) {
     throw new AppError({ code: 'FORBIDDEN' });
   }
 

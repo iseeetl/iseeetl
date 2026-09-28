@@ -2,8 +2,9 @@ const ROLES = require('../constants/roles');
 const AppError = require('../utils/appError');
 
 const KickedUser = require('../models/KickedUser');
+const FloorMember = require('../models/FloorMember');
 const { findActiveUser, findActiveFloor, findRoomWithFloor } = require('./_shared/activeResource');
-const { isAdminOrCreator } = require('./_shared/floorAccess');
+const { canManageFloor } = require('./_shared/floorAccess');
 const { buildFloorUserAccessRoom } = require('../socket/accessRooms');
 const { notifyAndDisconnect } = require('../socket/notifyAndDisconnect');
 
@@ -16,7 +17,7 @@ exports.getKickedUserList = async (body, jwtPayload) => {
 
   const foundFloor = await findActiveFloor(floorId, { error: { code: 'INVALID_PARAMS' } });
 
-  if (!isAdminOrCreator(decodedUserRole, foundFloor.user, decodedUserId)) {
+  if (!(await canManageFloor({ role: decodedUserRole, floor: foundFloor, uid: decodedUserId }))) {
     throw new AppError({ code: 'INVALID_PERMISSION' });
   }
 
@@ -70,10 +71,7 @@ exports.createKickedUser = async (body, jwtPayload, io) => {
     floorError: { code: 'INVALID_PARAMS' },
   });
 
-  const alreadyKickedUser = await KickedUser.findOne({ user: userId, floor: foundFloor._id });
-  if (alreadyKickedUser) throw new AppError({ code: 'ALREADY_KICKED' });
-
-  if (!isAdminOrCreator(decodedUserRole, foundFloor.user, decodedUserId)) {
+  if (!(await canManageFloor({ role: decodedUserRole, floor: foundFloor, uid: decodedUserId }))) {
     throw new AppError({ code: 'INVALID_PERMISSION' });
   }
 
@@ -81,8 +79,14 @@ exports.createKickedUser = async (body, jwtPayload, io) => {
     throw new AppError({ code: 'CANT_KICK' });
   }
   if (targetUser.role === ROLES.EDITOR && foundFloor.user.toString() === targetUser._id.toString()) {
-    throw new AppError({ code: 'CANT_KICK' });
+    throw new AppError({ code: 'CANT_KICK_FLOOR_EDITOR' });
   }
+  if (await FloorMember.findOne({ floor: foundFloor._id, user: targetUser._id })) {
+    throw new AppError({ code: 'CANT_KICK_FLOOR_MEMBER' });
+  }
+
+  const alreadyKickedUser = await KickedUser.findOne({ user: userId, floor: foundFloor._id });
+  if (alreadyKickedUser) throw new AppError({ code: 'ALREADY_KICKED' });
 
   const newKickedUser = {
     user: userId,
@@ -125,7 +129,7 @@ exports.deleteKickedUser = async (body, jwtPayload) => {
 
   const foundFloor = await findActiveFloor(floorId, { error: { code: 'INVALID_PARAMS' } });
 
-  if (!isAdminOrCreator(decodedUserRole, foundFloor.user, decodedUserId)) {
+  if (!(await canManageFloor({ role: decodedUserRole, floor: foundFloor, uid: decodedUserId }))) {
     throw new AppError({ code: 'INVALID_PERMISSION' });
   }
 
