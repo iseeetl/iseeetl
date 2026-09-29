@@ -289,7 +289,7 @@ const selectTagInPostDialog = (browser, tagName, onSelected, attempt = 0) => {
           checkboxCount: 0,
         };
       }
-      const labels = Array.from(dialog.querySelectorAll('.tag-group .checkbox-label')).filter(
+      const labels = Array.from(dialog.querySelectorAll('.tag-group label.tag-option')).filter(
         (candidate) => isVisible(candidate) && candidate.textContent && candidate.textContent.trim() === name
       );
       if (labels.length !== 1) {

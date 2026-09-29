@@ -88,11 +88,11 @@ module.exports = {
         return;
       }
 
-      browser.setValue('#image-file', PROFILE_ICON_PATH).waitForElementVisible('.avatar-preview-wrapper img', 20000);
+      browser.sendKeys('#image-file', PROFILE_ICON_PATH).waitForElementVisible('.avatar-preview-wrapper img', 20000);
       clickExactProfileSave(browser, {
         expectedControls: [
           { selector: '#username', property: 'nonEmptyValue', value: true },
-          { selector: '#image-file', property: 'filesLength', value: 1 },
+          { selector: '#image-file', property: 'filesLength', value: 1, requireVisible: false },
         ],
         label: 'プロフィール画像のアップロード',
       });
@@ -111,7 +111,7 @@ module.exports = {
         clickExactProfileSave(browser, {
           expectedControls: [
             { selector: '#username', property: 'nonEmptyValue', value: true },
-            { selector: '#image-file', property: 'filesLength', value: 0 },
+            { selector: '#image-file', property: 'filesLength', value: 0, requireVisible: false },
           ],
           label: 'プロフィール画像の削除',
         });

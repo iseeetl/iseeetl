@@ -690,7 +690,7 @@ const toggleTagByNameInDialog = (browser, tagName, expectedChecked, label) => {
       }
       const dialog = dialogs[0];
       dialog.querySelectorAll(`[${payload.marker}]`).forEach((node) => node.removeAttribute(payload.marker));
-      const labels = Array.from(dialog.querySelectorAll('.checkbox-label'));
+      const labels = Array.from(dialog.querySelectorAll('label.tag-option'));
       const matchingLabels = labels.filter(
         (node) =>
           node.textContent &&

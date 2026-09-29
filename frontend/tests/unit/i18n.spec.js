@@ -312,6 +312,13 @@ const collectHardcodedVueTemplateText = () => {
         }
         if (node.type === NodeTypes.ELEMENT) {
           node.props.forEach((prop) => {
+            if (node.tag === 'BackButton' && prop.type === NodeTypes.ATTRIBUTE && prop.name === 'label') {
+              LANGUAGES.forEach(({ value: locale }) => {
+                expect(getMessage(localeMessages[locale], prop.value?.content || ''), `${locale}: BackButton.label`)
+                  .to.be.a('string').and.not.equal('');
+              });
+              return;
+            }
             if (
               prop.type === NodeTypes.ATTRIBUTE &&
               USER_VISIBLE_STATIC_ATTRIBUTES.has(prop.name) &&

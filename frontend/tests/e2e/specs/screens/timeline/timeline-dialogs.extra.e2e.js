@@ -353,7 +353,7 @@ const toggleEditTagByName = (browser, tagName) => {
       );
       if (dialogs.length !== 1) return { toggled: false, reason: `dialog-count:${dialogs.length}` };
       dialogs[0].querySelectorAll(`[${payload.marker}]`).forEach((node) => node.removeAttribute(payload.marker));
-      const labels = Array.from(dialogs[0].querySelectorAll('.checkbox-label')).filter(
+      const labels = Array.from(dialogs[0].querySelectorAll('label.tag-option')).filter(
         (node) =>
           node.textContent &&
           node.textContent.trim() === payload.tagName &&

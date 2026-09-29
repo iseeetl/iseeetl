@@ -1,9 +1,11 @@
 import { mount } from '@vue/test-utils';
 import { createMemoryHistory, createRouter } from 'vue-router';
 import BackButton from '@/components/common/BackButton.vue';
+import { nextTick } from 'vue';
+import { createApplicationI18n, localeMessages } from '@/i18n.js';
 
 const wrappers = [];
-const factory = async (props = {}, initial = '/privacy') => {
+const factory = async (props = {}, initial = '/privacy', i18n = null) => {
   const router = createRouter({
     history: createMemoryHistory(),
     routes: [
@@ -17,8 +19,8 @@ const factory = async (props = {}, initial = '/privacy') => {
   const wrapper = mount(BackButton, {
     props,
     global: {
-      plugins: [router],
-      mocks: { $t: (key) => key },
+      plugins: [router, ...(i18n ? [i18n] : [])],
+      mocks: i18n ? {} : { $t: (key) => key },
       stubs: {
         UiButton: { template: '<button><slot /></button>' },
         UiTooltip: { props: ['text'], template: '<span :title="text"><slot /></span>' },
@@ -33,6 +35,19 @@ const factory = async (props = {}, initial = '/privacy') => {
 afterEach(() => wrappers.splice(0).forEach((wrapper) => wrapper.unmount()));
 
 describe('画面で指定した戻り先への移動', () => {
+  it.each(['フロア一覧へ戻る', 'ログインページへ戻る'])('「%s」のラベルと案内を表示言語に合わせて切り替える', async (label) => {
+    const i18n = createApplicationI18n({ locale: 'ja' });
+    const { wrapper } = await factory({ label }, '/privacy', i18n);
+    expect(wrapper.get('button').attributes('aria-label')).toBe(localeMessages.ja[label]);
+    expect(wrapper.get('span').attributes('title')).toBe(localeMessages.ja[label]);
+
+    i18n.global.locale.value = 'en';
+    await nextTick();
+    expect(wrapper.get('button').attributes('aria-label')).toBe(localeMessages.en[label]);
+    expect(wrapper.get('span').attributes('title')).toBe(localeMessages.en[label]);
+    expect(wrapper.get('button').attributes('aria-label')).not.toBe(label);
+  });
+
   it('直接開いた画面にも戻るボタンを表示し、フロア一覧へ移動する', async () => {
     const { wrapper, router } = await factory();
     expect(wrapper.get('button').attributes('aria-label')).toBe('フロア一覧へ戻る');

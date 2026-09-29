@@ -479,14 +479,17 @@ const selectTagByNameInDialog = (browser, tagName) => {
     function (name) {
       const dialog = document.querySelector('[data-testid="dialog-edit-tag"]');
       if (!dialog) return { clicked: false, reason: 'dialog-not-found' };
-      const labels = Array.from(dialog.querySelectorAll('.checkbox-label'));
-      const label = labels.find((node) => node.textContent && node.textContent.trim() === name);
-      if (!label) return { clicked: false, reason: 'label-not-found' };
+      const labels = Array.from(dialog.querySelectorAll('label.tag-option'));
+      const matches = labels.filter((node) => node.getClientRects().length && node.textContent.trim() === name);
+      if (matches.length !== 1) return { clicked: false, reason: `label-count:${matches.length}` };
+      const label = matches[0];
       const id = label.getAttribute('for');
       const checkbox = id
         ? Array.from(dialog.querySelectorAll('input[type="checkbox"]')).find((node) => node.id === id)
         : null;
-      if (!checkbox) return { clicked: false, reason: 'checkbox-not-found' };
+      if (!checkbox || checkbox.disabled || !checkbox.value || checkbox.checked) {
+        return { clicked: false, reason: 'checkbox-unavailable' };
+      }
       checkbox.click();
       return { clicked: true, checked: checkbox.checked };
     },

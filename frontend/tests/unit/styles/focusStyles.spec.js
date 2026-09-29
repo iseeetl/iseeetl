@@ -63,13 +63,17 @@ describe('共通のフォーカス表示', () => {
     expect(focusBlock[1]).to.include('outline-offset: 2px;');
   });
 
-  it('outline宣言をtokens.cssの共通blockだけに限定する', () => {
+  it('共通のフォーカス枠と流れる本文用の内側の枠を定義する', () => {
     const declarations = collectStyleSources(SRC_ROOT).reduce(
       (result, filePath) => result.concat(findOutlineDeclarations(filePath)),
       []
     );
 
     expect(declarations).to.deep.equal([
+      ...['AnimationPostItem.vue', 'AnimationReplyItem.vue'].flatMap((file) => [
+        { file: path.join('components', 'timeline', 'items', file), property: 'outline', value: '2px solid currentColor' },
+        { file: path.join('components', 'timeline', 'items', file), property: 'outline-offset', value: '-2px' },
+      ]),
       {
         file: path.join('styles', 'tokens.css'),
         property: 'outline',
@@ -102,19 +106,26 @@ describe('共通のフォーカス表示', () => {
   it('フォーカスした投稿内の操作では背景に対して3:1以上のコントラストの枠を表示する', () => {
     const tokensSource = readSource(TOKENS_PATH);
     const timelineSource = readSource(TIMELINE_COLUMN_PATH);
-    const focusColor = tokensSource.match(/--ui-color-focus:\s*#([0-9a-f]{6})/i);
+    const commonFocusColor = tokensSource.match(/--ui-color-focus:\s*#([0-9a-f]{6})/i);
     const columnBlock = timelineSource.match(/\.column\s*\{([^}]*)\}/);
     const focusWrapperBlock = timelineSource.match(/\.focus-post-wrapper\s*\{([^}]*)\}/);
+    const focusColor = focusWrapperBlock?.[1].match(/--ui-color-focus:\s*#([0-9a-f]{6})/i);
+    const overlay = focusWrapperBlock?.[1].match(/background-color:\s*rgba\(\s*(\d+),\s*(\d+),\s*(\d+),\s*([\d.]+)\s*\)/);
     const columnColor = columnBlock?.[1].match(/background-color:\s*rgb\(\s*(\d+),\s*(\d+),\s*(\d+)\s*\)/);
 
     expect(focusColor).to.not.equal(null);
     expect(columnBlock).to.not.equal(null);
     expect(focusWrapperBlock).to.not.equal(null);
     expect(columnColor).to.not.equal(null);
-    expect(focusWrapperBlock[1]).to.not.match(/\bbackground(?:-color)?\s*:/);
+    expect(commonFocusColor).to.not.equal(null);
+    expect(overlay).to.not.equal(null);
 
     const focusRgb = focusColor[1].match(/.{2}/g).map((value) => parseInt(value, 16));
     const columnRgb = columnColor.slice(1).map(Number);
-    expect(contrastRatio(focusRgb, columnRgb)).to.be.at.least(3);
+    const commonFocusRgb = commonFocusColor[1].match(/.{2}/g).map((value) => parseInt(value, 16));
+    const alpha = Number(overlay[4]);
+    const effectiveBackground = columnRgb.map((channel, index) => Number(overlay[index + 1]) * alpha + channel * (1 - alpha));
+    expect(contrastRatio(commonFocusRgb, columnRgb)).to.be.at.least(3);
+    expect(contrastRatio(focusRgb, effectiveBackground)).to.be.at.least(3);
   });
 });

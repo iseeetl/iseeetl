@@ -101,7 +101,7 @@ const runAdminUserOperation = (browser, payload, label, onReady) => {
             });
           }
 
-          return requestJson('/api/user/management/update', {
+          return requestJson('/api/user/management/delete-state', {
             method: 'POST',
             headers: {
               authorization: `Bearer ${token}`,
@@ -109,9 +109,6 @@ const runAdminUserOperation = (browser, payload, label, onReady) => {
             },
             body: JSON.stringify({
               _id: request.user._id,
-              username: request.user.username,
-              mail: request.user.mail,
-              role: request.user.role,
               delete_flg: request.deleteFlg,
             }),
           }).then(function (updateResult) {
