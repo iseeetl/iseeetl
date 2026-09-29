@@ -1,3 +1,5 @@
+const { MAX_TITLE_LENGTH, LINE_BREAK } = require('../../utils/supplementTitle');
+const { ALLOWED_LANGUAGES } = require('../../constants/languages');
 const mongoose = require('mongoose');
 const {
   ANALYSIS_KINDS,
@@ -33,6 +35,14 @@ const buildCommonAIAnalysisSettingFields = () => ({
     set: normalizePrompt,
     validate: promptIsValid,
   },
+  result_title: {
+    type: String,
+    default: null,
+    trim: true,
+    maxlength: MAX_TITLE_LENGTH,
+    validate: (value) => value == null || !LINE_BREAK.test(value),
+  },
+  result_title_lang: { type: String, enum: [...ALLOWED_LANGUAGES, null], default: null },
   result_user: {
     type: Schema.Types.ObjectId,
     ref: 'User',

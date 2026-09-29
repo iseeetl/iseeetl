@@ -2,6 +2,19 @@ const { mapPostRequest, mapTimelineRequest } = require('../../../validates/timel
 const params = { room_id: '1'.repeat(24), post_id: '2'.repeat(24) };
 
 describe('投稿データの入力検証', () => {
+  test.each(['postSupplement', 'replySupplement'])('%sだけに任意タイトルを受け付け、長さ・改行・言語を検証する', (kind) => {
+    const scope = { ...params, reply_id: '3'.repeat(24), supplement_id: '4'.repeat(24) };
+    const request = (body) => mapTimelineRequest(scope, body, 'update', kind);
+    expect(request({ title: ' あ '.trim().repeat(50), title_lang: 'ja' })).toMatchObject({ title: 'あ'.repeat(50), title_lang: 'ja' });
+    expect(request({ title: '   ' })).toHaveProperty('title', null);
+    expect(request({})).not.toHaveProperty('title');
+    for (const body of [{ title: 'あ'.repeat(51) }, { title: 'a\nb' }, { title: 'a\rb' }, { title: 'a\u2028b' }, { title: 1 }, { title_lang: 'bad' }, { title_translations: [] }]) {
+      expect(() => request(body)).toThrow();
+    }
+    expect(() => mapPostRequest(params, { title: '見出し' }, 'update')).toThrow();
+    expect(() => mapTimelineRequest(scope, { title: '見出し' }, 'update', 'reply')).toThrow();
+  });
+
   test('子対象は親IDをパスから取得し、付加情報のタグ・通知入力を拒否する', () => {
     const scope = { ...params, reply_id: '3'.repeat(24), supplement_id: '4'.repeat(24) };
     expect(mapTimelineRequest(scope, { content: 'text', lang: 'en' }, 'create', 'replySupplement'))

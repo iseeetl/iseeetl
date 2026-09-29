@@ -79,6 +79,8 @@ const buildSettingPayload = ({
   payload.analysis_kind = form.analysisKind;
   payload.additional_prompt = normalizeAdditionalPrompt(form.additionalPrompt);
   payload.result_user = form.resultUserId;
+  payload.result_title = form.resultTitle?.trim() || null;
+  payload.result_title_lang = payload.result_title ? form.resultTitleLang : null;
   if (form._id) {
     payload.revision = form.revision;
   }

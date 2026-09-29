@@ -164,7 +164,29 @@ const translateReplySupplementIfNeeded = ({
     io,
   });
 
+// 翻訳中にタイトルが変更・削除された場合は、古い結果を保存しない。
+const translateSupplementTitleIfNeeded = ({ chatId, replyId, supplementId, title, titleLang, targetLangs, userId, io }) => {
+  const match = { _id: supplementId, delete_flg: false, title, title_lang: titleLang };
+  const query = replyId
+    ? { _id: chatId, delete_flg: false, replies: { $elemMatch: {
+      _id: replyId, delete_flg: false, supplementaries: { $elemMatch: match },
+    } } }
+    : { _id: chatId, delete_flg: false, supplementaries: { $elemMatch: match } };
+  const targetPath = replyId ? 'replies.$[reply].supplementaries.$[supplement]' : 'supplementaries.$[supplement]';
+  const arrayFilters = [Object.fromEntries(Object.entries(match).map(([key, value]) => [`supplement.${key}`, value]))];
+  if (replyId) arrayFilters.push({ 'reply._id': replyId, 'reply.delete_flg': false });
+  return translateAndEmit({
+    chatId, content: title, targetLangs, io,
+    translate: () => translationService.translateContent(userId, title, titleLang, targetLangs),
+    update: (translations) => Chat.findOneAndUpdate(query,
+      { $set: { [`${targetPath}.title_translations`]: translations } },
+      { arrayFilters, new: true, runValidators: true }),
+    event: replyId ? 'REPLY_SUPPLEMENT_UPDATE' : 'SUPPLEMENT_UPDATE',
+  });
+};
+
 module.exports = {
+  translateSupplementTitleIfNeeded,
   translateGuestMainContentIfNeeded,
   translateGuestReplyIfNeeded,
   translateMainContentIfNeeded,

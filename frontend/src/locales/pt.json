@@ -1,4 +1,11 @@
 {
+  "supplementTitle": {
+    "label": "Título",
+    "settingLabel": "Título das informações adicionais",
+    "hint": "Opcional, até 50 caracteres. Se estiver vazio, será mostrado o título padrão com o nome do usuário.",
+    "invalid": "Digite um título de até 50 caracteres, sem quebras de linha.",
+    "displayHeadings": "Mostrar títulos de publicações, respostas e informações adicionais"
+  },
   "まだ投稿がありません。投稿されると、ここに表示されます。": "Ainda não há publicações. As novas publicações aparecerão aqui.",
   "投稿がないときの案内文": "Mensagem quando não há publicações",
   "空欄の場合は、標準の案内文を表示します。": "Deixe em branco para mostrar a mensagem padrão.",
@@ -438,7 +445,6 @@
   "タイムライン設定": "Configurações da linha do tempo",
   "読み上げ速度": "Velocidade de leitura",
   "項目の表示": "Itens de exibição",
-  "「◯◯の投稿」、「◯◯の返信」、「◯◯の付加情報」を表示する": "Exibir 'Postagem de ◯◯', 'Resposta de ◯◯' e 'Informações adicionais de ◯◯'",
   "「日付」を表示する": "Exibir 'Data'",
   "「タグ」を表示する": "Exibir 'Tag'",
   "「付加情報」を表示する": "Exibir 'Informações adicionais'",

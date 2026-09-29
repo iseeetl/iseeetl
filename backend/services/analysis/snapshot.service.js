@@ -123,6 +123,8 @@ const buildAnalysisSnapshot = async ({ chatId, sourceType, replyId = null, setti
     settingRevision: setting.revision,
     kind: setting.analysis_kind,
     prompt: setting.additional_prompt || '',
+    resultTitle: setting.result_title || null,
+    resultTitleLang: setting.result_title_lang || null,
     resultUserId: normalizeId(resultUser),
     triggerTag: {
       _id: normalizeId(tag),

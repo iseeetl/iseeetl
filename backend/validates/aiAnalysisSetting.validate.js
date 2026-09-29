@@ -1,3 +1,5 @@
+const { normalizeTitle } = require('../utils/supplementTitle');
+const { ALLOWED_LANGUAGES } = require('../constants/languages');
 const { body } = require('express-validator');
 const {
   ANALYSIS_KINDS,
@@ -58,7 +60,16 @@ const validateResultUserSearch = (fieldName = 'search') =>
     .customSanitizer((value) => value.trim())
     .isLength({ max: 100 });
 
+const validateResultTitle = () => [
+  body('result_title').optional({ nullable: true }).custom((value) => {
+    normalizeTitle(value);
+    return true;
+  }),
+  body('result_title_lang').optional({ nullable: true }).isIn(ALLOWED_LANGUAGES),
+];
+
 module.exports = {
+  validateResultTitle,
   validateAIAnalysisSearch,
   validateAdditionalPrompt,
   validateAllowedBodyFields,

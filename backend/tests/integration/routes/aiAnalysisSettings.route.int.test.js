@@ -187,6 +187,28 @@ const createCommonSetting = async (app, ctx, overrides = {}) =>
 
 describe('AI解析設定APIの結合動作', () => {
   const app = buildApp();
+  test.each([
+    ['共通', '/api/aianalysissetting/management', commonPayload, 'admin'],
+    ['フロア', '/api/flooraianalysissetting', floorPayload, 'editor'],
+    ['ルーム', '/api/roomaianalysissetting', roomPayload, 'editor'],
+  ])('%s設定はタイトルを保存し、省略更新で保持し、空欄で解除する', async (_label, route, payload, actor) => {
+    const ctx = await seedContext();
+    const send = (operation, body) => request(app).post(`${route}/${operation}`).set(auth(ctx[actor])).send(body);
+    for (const value of ['あ'.repeat(51), '改行\n見出し']) {
+      const invalid = await send('create', payload(ctx, { result_title: value, result_title_lang: 'ja' }));
+      expect(invalid.status).toBe(400);
+    }
+    const created = await send('create', payload(ctx, { result_title: 'あ'.repeat(50), result_title_lang: 'ja' }));
+    expect(created.status).toBe(200);
+    expect(created.body).toMatchObject({ result_title: 'あ'.repeat(50), result_title_lang: 'ja' });
+    const updated = await send('update', payload(ctx, { _id: created.body._id, revision: created.body.revision }));
+    expect(updated.status).toBe(200);
+    expect(updated.body.result_title).toBe('あ'.repeat(50));
+    const cleared = await send('update', payload(ctx, { _id: created.body._id, revision: updated.body.revision, result_title: '' }));
+    expect(cleared.status).toBe(200);
+    expect(cleared.body).toMatchObject({ result_title: null, result_title_lang: null });
+  });
+
 
   beforeEach(() => {
     delete process.env.SUPPORT_USER_ID;
@@ -326,6 +348,8 @@ describe('AI解析設定APIの結合動作', () => {
       },
       analysis_kind: 'vision',
       additional_prompt: `${normalizedPrompt} ${privatePromptToken}`,
+      result_title: null,
+      result_title_lang: null,
       result_user: {
         _id: ctx.resultUser._id.toString(),
         username: ctx.resultUser.username,

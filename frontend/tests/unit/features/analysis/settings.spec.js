@@ -80,6 +80,8 @@ describe('AI解析設定の入力と送信データ', () => {
       analysis_kind: 'vision',
       additional_prompt: 'prompt',
       result_user: 'user-1',
+      result_title: null,
+      result_title_lang: null,
     });
   });
 
@@ -103,6 +105,8 @@ describe('AI解析設定の入力と送信データ', () => {
       analysis_kind: 'speech',
       additional_prompt: '',
       result_user: 'user-2',
+      result_title: null,
+      result_title_lang: null,
     });
   });
 
@@ -124,6 +128,8 @@ describe('AI解析設定の入力と送信データ', () => {
       analysis_kind: 'video',
       additional_prompt: 'before',
       result_user: 'user-1',
+      result_title: null,
+      result_title_lang: null,
       revision: 3,
     });
   });

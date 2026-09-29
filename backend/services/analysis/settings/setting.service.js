@@ -1,3 +1,4 @@
+const { titleFields } = require('../../../utils/supplementTitle');
 const AppError = require('../../../utils/appError');
 const {
   MAX_ACTIVE_SETTINGS_PER_SCOPE,
@@ -22,6 +23,10 @@ const FloorTag = require('../../../models/FloorTag');
 const RoomTag = require('../../../models/RoomTag');
 const User = require('../../../models/User');
 const { normalizeEnvValue } = require('../../../config/env');
+
+const settingTitleFields = (body, current) => titleFields(body, current, {
+  titleKey: 'result_title', langKey: 'result_title_lang',
+});
 
 const POPULATE = Object.freeze({
   common: [
@@ -89,6 +94,8 @@ const serializeSetting = (setting, type, { includeReferenceDeleteFlg = false } =
     tag: publicTag(value[tagField], { includeDeleteFlg: includeReferenceDeleteFlg }),
     analysis_kind: value.analysis_kind,
     additional_prompt: value.additional_prompt,
+    result_title: value.result_title ?? null,
+    result_title_lang: value.result_title_lang ?? null,
     result_user: publicUser(value.result_user, { includeDeleteFlg: includeReferenceDeleteFlg }),
     revision: value.revision,
   };
@@ -193,6 +200,8 @@ const buildCommonPaginatePipeline = ({ page, search, limit = 10 }) => {
         },
         analysis_kind: 1,
         additional_prompt: 1,
+        result_title: 1,
+        result_title_lang: 1,
         result_user: {
           _id: '$result_user._id',
           username: '$result_user.username',
@@ -309,6 +318,7 @@ const createCommon = async (body, jwtPayload) => {
           category_tag: tag._id,
           analysis_kind: body.analysis_kind,
           additional_prompt: body.additional_prompt,
+          ...settingTitleFields(body),
           result_user: resultUser._id,
           revision: 1,
           user: actor._id,
@@ -352,6 +362,7 @@ const updateCommon = async (body, jwtPayload) => {
               category_tag: tag._id,
               analysis_kind: body.analysis_kind,
               additional_prompt: body.additional_prompt,
+              ...settingTitleFields(body, current),
               result_user: resultUser._id,
               updated_by: actor._id,
               updated_at: new Date(),
@@ -435,6 +446,7 @@ const createFloor = async (body, jwtPayload) => {
           floor_tag: tag._id,
           analysis_kind: body.analysis_kind,
           additional_prompt: body.additional_prompt,
+          ...settingTitleFields(body),
           result_user: resultUser._id,
           source_master_setting: null,
           source_master_revision: null,
@@ -476,6 +488,7 @@ const createRoom = async (body, jwtPayload) => {
           room_tag: tag._id,
           analysis_kind: body.analysis_kind,
           additional_prompt: body.additional_prompt,
+          ...settingTitleFields(body),
           result_user: resultUser._id,
           source_floor_setting: null,
           source_floor_revision: null,
@@ -556,6 +569,7 @@ const updateScoped = async (type, body, jwtPayload) => {
               [tagField]: tag._id,
               analysis_kind: body.analysis_kind,
               additional_prompt: body.additional_prompt,
+              ...settingTitleFields(body, current),
               result_user: resultUser._id,
               updated_by: context.actor._id,
               updated_at: new Date(),

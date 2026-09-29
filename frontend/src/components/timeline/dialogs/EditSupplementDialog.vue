@@ -30,6 +30,19 @@
 
       <div class="edit-input-field">
         <UiField
+          v-slot="{ controlAttrs }"
+          control-id="supplement_title"
+          :label="$t('supplementTitle.label')"
+          :description="$t('supplementTitle.hint')"
+          :invalid="v$.title.$dirty && v$.title.$invalid"
+          :error="v$.title.$dirty && v$.title.$invalid ? $t('supplementTitle.invalid') : ''"
+        >
+          <input v-bind="controlAttrs" v-model="title" type="text" dir="auto" maxlength="50"
+            :disabled="sending || recording || transcribing" />
+        </UiField>
+      </div>
+      <div class="edit-input-field">
+        <UiField
           class="timeline-comment-field"
           control-id="supplement_content"
           :label="$t('コメント')"
@@ -243,9 +256,10 @@
 </template>
 
 <script>
+import { isValidSupplementTitle, supplementTitleLanguage } from '@/features/timeline/supplementTitle';
 import { useId } from 'vue';
 import chatApi from '@/api/chat';
-import { buildPostCreate, buildPostPatch } from '@/api/postPayload';
+import { buildSupplementCreate, buildSupplementPatch } from '@/api/postPayload';
 import uploadApi from '@/api/upload';
 import { appendApiErrorMessage } from '@/api/apiClient';
 import { discardUnattachedTimelineMedia } from '@/features/timeline/mediaCleanup';
@@ -320,6 +334,7 @@ export default {
     roomQuickTextItemsByGroup: { type: Object, default: () => ({}) },
   },
   validations: {
+    title: { validTitle: isValidSupplementTitle },
     content: {
       required,
       maxLength: maxLength(400),
@@ -378,6 +393,7 @@ export default {
       postIdLocal: null,
       replyIdLocal: null,
       supplementId: null,
+      title: '',
       content: null,
       contentSelectionStart: null,
       contentSelectionEnd: null,
@@ -434,6 +450,7 @@ export default {
       this.replyIdLocal = this.replyId;
       if (this.supplementValue) {
         this.supplementId = this.supplementValue._id;
+        this.title = this.supplementValue.title || '';
         this.content = this.supplementValue.content;
         this.imageName = this.supplementValue.image_name;
         this.imageThumbnailName = this.supplementValue.image_thumbnail_name;
@@ -833,6 +850,8 @@ export default {
       let data = {
         room_id: this.$store.getters.roomId,
         post_id: this.postIdLocal,
+        title: this.title?.trim() || null,
+        title_lang: supplementTitleLanguage(this.title, this.mutationBaseline?.title, this.mutationBaseline?.title_lang, this.lang),
         content: this.content,
         lang: this.supplementId ? (this.mutationBaseline?.lang || this.supplementValue?.lang || this.$i18n.locale) : this.$i18n.locale,
         image_name: this.imageName,
@@ -846,7 +865,7 @@ export default {
         audio_title: this.audioTitle,
         audio_description: this.audioDescription,
       };
-      const payload = this.supplementId === null ? buildPostCreate(data) : buildPostPatch(data, this.mutationBaseline || this.supplementValue || {});
+      const payload = this.supplementId === null ? buildSupplementCreate(data) : buildSupplementPatch(data, this.mutationBaseline || this.supplementValue || {});
       data = { room_id: data.room_id, post_id: data.post_id, ...payload };
       if (this.replyIdLocal) data.reply_id = this.replyIdLocal;
       let request;
@@ -1011,6 +1030,7 @@ export default {
       this.postIdLocal = null;
       this.replyIdLocal = null;
       this.supplementId = null;
+      this.title = '';
       this.content = null;
       this.keyup = [];
 
@@ -1046,7 +1066,7 @@ export default {
       const isContentEmpty = !this.content || this.content.length === 0;
 
       // 入力や添付がある新規の付加情報では、状態を初期化する前に破棄を確認する。
-      if (isNewSupplement && (!isContentEmpty || hasMedia)) {
+      if (isNewSupplement && (!isContentEmpty || this.title.trim() || hasMedia)) {
         this.showConfirm();
         return;
       }

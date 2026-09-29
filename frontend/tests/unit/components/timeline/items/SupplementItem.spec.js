@@ -84,6 +84,20 @@ const createWrapper = (overrides = {}) =>
   });
 
 describe('付加情報の表示と操作', () => {
+  it.each([null, 'reply-1'])('返信IDが%sでも任意タイトル・翻訳・従来見出しを表示し、ユーザの絞り込みを維持する', async (replyId) => {
+    const wrapper = createWrapper({ props: { replyId } });
+    const base = wrapper.props('supplement');
+    expect(wrapper.get('.user-name-button').text()).toBe('{name}の付加情報');
+    await wrapper.setProps({ supplement: { ...base, title: 'Special offers', title_lang: 'en', title_translations: [{ lang: 'ja', content: 'お買い得メモ！' }] } });
+    expect(wrapper.get('.user-name-button').text()).toBe('お買い得メモ！');
+    await wrapper.get('.user-name-button').trigger('click');
+    expect(wrapper.emitted('onSuccessCreateFilter')).toHaveLength(1);
+    await wrapper.setProps({ supplement: { ...base, title: '<b>Special offers</b>', title_lang: 'en', title_translations: [] } });
+    expect(wrapper.get('.user-name-button').text()).toBe('<b>Special offers</b>');
+    expect(wrapper.get('.user-name-button').find('b').exists()).toBe(false);
+    wrapper.unmount();
+  });
+
   it.each([
     ['FloorEditor', true],
     ['FloorMember', true],

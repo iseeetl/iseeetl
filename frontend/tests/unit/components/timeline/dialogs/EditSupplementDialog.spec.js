@@ -73,6 +73,31 @@ const createWrapper = (overrides = {}) =>
   });
 
 describe('付加情報の作成・編集', () => {
+  it.each([[null, 'updateSupplement'], ['reply-1', 'updateReplySupplement']])('返信IDが%sでもタイトルだけを変更・解除でき、本文は送信しない', async (replyId, method) => {
+    const original = chatApi[method];
+    const calls = [];
+    chatApi[method] = (body) => { calls.push(body); return Promise.resolve({ data: {} }); };
+    const wrapper = createWrapper({ props: { replyId, supplementValue: {
+      _id: 'supplement', content: '本文', lang: 'en', title: 'Original', title_lang: 'en',
+    } } });
+    try {
+      wrapper.vm.openedDialog();
+      await wrapper.get('#supplement_title').setValue('お買い得メモ！');
+      await wrapper.vm.editSupplement();
+      expect(calls[0]).toMatchObject({ title: 'お買い得メモ！', title_lang: 'ja' });
+      expect(calls[0]).not.toHaveProperty('content');
+      await wrapper.get('#supplement_title').setValue('');
+      await wrapper.vm.editSupplement();
+      expect(calls[1]).toMatchObject({ title: null, title_lang: null });
+      wrapper.vm.title = 'あ'.repeat(51);
+      expect(await wrapper.vm.v$.$validate()).toBe(false);
+      wrapper.vm.title = 'あ'.repeat(50);
+      expect(await wrapper.vm.v$.$validate()).toBe(true);
+      wrapper.vm.title = '改行\nタイトル';
+      expect(await wrapper.vm.v$.$validate()).toBe(false);
+    } finally { chatApi[method] = original; wrapper.unmount(); }
+  });
+
   it.each([[null, 'updateSupplement'], ['reply', 'updateReplySupplement']])('親返信IDが%sの場合も、本文だけの編集では保存言語・添付を再送しない', async (replyId, method) => {
     const original = chatApi[method];
     const calls = [];

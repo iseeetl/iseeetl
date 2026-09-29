@@ -3,6 +3,7 @@ const AppError = require('../../../utils/appError');
 const { isGoogleTranslateEnabled } = require('../../../config/featureFlags');
 const { findChatOrThrow } = require('./reactionHelpers');
 const { ensureChatBelongsToRoom, toIdString } = require('./roomConsistency');
+const { titleFields, titleChanged } = require('../../../utils/supplementTitle');
 
 async function findChatInRoomOrThrow({ postId, room, notFoundCode = 'INVALID_PARAMS' }) {
   let chat;
@@ -48,6 +49,8 @@ function canEditSupplement({ role, floor, floorMember, supplementUser, userId })
 
 function buildSupplementPayload({
   userId,
+  title = null,
+  titleLang = null,
   replacedContent,
   lang,
   imageName,
@@ -63,6 +66,8 @@ function buildSupplementPayload({
 }) {
   return {
     user: userId,
+    title,
+    title_lang: titleLang,
     content: replacedContent,
     lang,
     image_name: imageName,
@@ -80,6 +85,8 @@ function buildSupplementPayload({
 
 function buildUpdatedSupplementPayload({
   supplement,
+  title = supplement.title ?? null,
+  titleLang = supplement.title_lang ?? null,
   replacedContent,
   lang,
   imageName,
@@ -95,6 +102,8 @@ function buildUpdatedSupplementPayload({
 }) {
   const updatedSupplement = {
     ...supplement.toObject(),
+    title,
+    title_lang: titleLang,
     updated_at: Date.now(),
     content: replacedContent,
     lang,
@@ -115,22 +124,28 @@ function buildUpdatedSupplementPayload({
   ) {
     updatedSupplement.translations = [];
   }
+  if (titleChanged(supplement, updatedSupplement)) updatedSupplement.title_translations = [];
   return updatedSupplement;
 }
 
-const supplementFieldsFromBody = (body = {}) => ({
-  lang: body.lang,
-  imageName: body.image_name,
-  imageThumbnailName: body.image_thumbnail_name,
-  imageCaption: body.image_caption,
-  videoName: body.video_name,
-  videoThumbnailName: body.video_thumbnail_name,
-  videoSubtitleOriginalname: body.video_subtitle_originalname,
-  videoSubtitleName: body.video_subtitle_name,
-  audioName: body.audio_name,
-  audioTitle: body.audio_title,
-  audioDescription: body.audio_description,
-});
+const supplementFieldsFromBody = (body = {}) => {
+  const title = titleFields(body, {}, { fallbackLang: body.lang });
+  return {
+    title: title.title,
+    titleLang: title.title_lang,
+    lang: body.lang,
+    imageName: body.image_name,
+    imageThumbnailName: body.image_thumbnail_name,
+    imageCaption: body.image_caption,
+    videoName: body.video_name,
+    videoThumbnailName: body.video_thumbnail_name,
+    videoSubtitleOriginalname: body.video_subtitle_originalname,
+    videoSubtitleName: body.video_subtitle_name,
+    audioName: body.audio_name,
+    audioTitle: body.audio_title,
+    audioDescription: body.audio_description,
+  };
+};
 
 const buildSupplementPayloadFromBody = ({ body, userId, replacedContent }) =>
   buildSupplementPayload({ userId, replacedContent, ...supplementFieldsFromBody(body) });

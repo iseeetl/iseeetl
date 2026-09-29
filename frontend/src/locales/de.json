@@ -1,4 +1,11 @@
 {
+  "supplementTitle": {
+    "label": "Titel",
+    "settingLabel": "Titel der Zusatzinformation",
+    "hint": "Optional, bis zu 50 Zeichen. Ohne Eingabe wird die Standardüberschrift mit dem Benutzernamen angezeigt.",
+    "invalid": "Geben Sie einen Titel mit höchstens 50 Zeichen ohne Zeilenumbrüche ein.",
+    "displayHeadings": "Überschriften von Beiträgen, Antworten und Zusatzinformationen anzeigen"
+  },
   "まだ投稿がありません。投稿されると、ここに表示されます。": "Noch keine Beiträge. Neue Beiträge werden hier angezeigt.",
   "投稿がないときの案内文": "Hinweis bei fehlenden Beiträgen",
   "空欄の場合は、標準の案内文を表示します。": "Leer lassen, um den Standardhinweis anzuzeigen.",
@@ -438,7 +445,6 @@
   "タイムライン設定": "Zeitleisteneinstellungen",
   "読み上げ速度": "Vorlesegeschwindigkeit",
   "項目の表示": "Anzeigenelemente",
-  "「◯◯の投稿」、「◯◯の返信」、「◯◯の付加情報」を表示する": "„Beitrag von ◯◯“, „Antwort von ◯◯“ und „Zusätzliche Informationen von ◯◯“ anzeigen",
   "「日付」を表示する": "„Datum“ anzeigen",
   "「タグ」を表示する": "„Tag“ anzeigen",
   "「付加情報」を表示する": "„Zusätzliche Informationen“ anzeigen",

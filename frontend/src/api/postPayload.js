@@ -18,8 +18,8 @@ const mediaState = (value = {}) => Object.fromEntries(Object.entries(groups).map
 const equal = (a, b) => JSON.stringify(a) === JSON.stringify(b);
 const scalar = (value, key) => key === 'room_tags' ? [...(value[key] || [])].sort() : value[key] ?? null;
 
-export function buildPostCreate(value) {
-  const body = Object.fromEntries(scalarFields
+function buildCreate(value, fields) {
+  const body = Object.fromEntries(fields
     .filter((key) => value[key] != null && (key !== 'room_tags' || value[key].length))
     .map((key) => [key, value[key]]));
   const media = Object.fromEntries(Object.entries(mediaState(value)).filter(([, group]) => group !== null));
@@ -27,8 +27,8 @@ export function buildPostCreate(value) {
   return body;
 }
 
-export function buildPostPatch(value, initial) {
-  const body = Object.fromEntries(scalarFields
+function buildPatch(value, initial, fields) {
+  const body = Object.fromEntries(fields
     .filter((key) => !equal(scalar(value, key), scalar(initial, key)))
     .map((key) => [key, value[key] ?? null]));
   const before = mediaState(initial);
@@ -43,3 +43,9 @@ export function buildPostPatch(value, initial) {
   if (Object.keys(media).length) body.media = media;
   return body;
 }
+
+export const buildPostCreate = (value) => buildCreate(value, scalarFields);
+export const buildPostPatch = (value, initial) => buildPatch(value, initial, scalarFields);
+const supplementFields = ['content', 'lang', 'title', 'title_lang'];
+export const buildSupplementCreate = (value) => buildCreate(value, supplementFields);
+export const buildSupplementPatch = (value, initial) => buildPatch(value, initial, supplementFields);

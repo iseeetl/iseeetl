@@ -16,6 +16,8 @@ const TIMELINE_MUTABLE_FIELDS = [
 ];
 
 const SUPPLEMENT_MUTABLE_FIELDS = [
+  'title',
+  'title_lang',
   'content',
   'lang',
   'image_name',
@@ -47,7 +49,7 @@ const TIMELINE_MEDIA_FIELDS = TIMELINE_MUTABLE_FIELDS.filter((field) =>
   field.startsWith('image_') || field.startsWith('video_') || field.startsWith('audio_')
 );
 
-const SUPPLEMENT_DERIVED_FIELDS = new Set(['translations']);
+const SUPPLEMENT_DERIVED_FIELDS = new Set(['translations', 'title', 'title_lang', 'title_translations']);
 
 const hasOwn = (value, key) => Object.prototype.hasOwnProperty.call(value, key);
 
@@ -96,6 +98,10 @@ function buildSupplementMutation({ current, patch, updated, targetPath, derivedF
 
   const snapshotFields = new Set(requestedFields);
   if (requestedFields.includes('content')) snapshotFields.add('lang');
+  if (requestedFields.some((field) => field === 'title' || field === 'title_lang')) {
+    snapshotFields.add('title');
+    snapshotFields.add('title_lang');
+  }
   if (requestedFields.some((field) => SUPPLEMENT_MEDIA_FIELDS.includes(field))) {
     for (const field of SUPPLEMENT_MEDIA_VALIDATION_FIELDS) snapshotFields.add(field);
   }

@@ -250,7 +250,7 @@ const waitForCommonDialog = (browser, attempt = 0) => {
   );
 };
 
-const submitCommonSettingForm = (browser, { tagName, analysisKind, prompt }) => {
+const submitCommonSettingForm = (browser, { tagName, analysisKind, prompt, title = `${prompt}の見出し` }) => {
   waitForCommonDialog(browser);
   browser.execute(
     function () {
@@ -283,12 +283,13 @@ const submitCommonSettingForm = (browser, { tagName, analysisKind, prompt }) => 
       const tag = document.querySelector('#ai-analysis-setting-tag');
       const kind = document.querySelector('#ai-analysis-setting-kind');
       const prompt = document.querySelector('#ai-analysis-setting-prompt');
+      const title = document.querySelector('#ai-analysis-setting-result-title');
       const resultUsers = Array.from(
         document.querySelectorAll(
           '.ai-analysis-setting-fields__result-user-list input[type="radio"]'
         )
       );
-      if (!tag || !kind || !prompt || resultUsers.length === 0) {
+      if (!tag || !kind || !prompt || !title || resultUsers.length === 0) {
         return { ok: false, reason: 'controls-missing' };
       }
       const tagOption = Array.from(tag.options).find(
@@ -304,6 +305,8 @@ const submitCommonSettingForm = (browser, { tagName, analysisKind, prompt }) => 
       kind.value = payload.analysisKind;
       kind.dispatchEvent(new Event('input', { bubbles: true }));
       kind.dispatchEvent(new Event('change', { bubbles: true }));
+      title.value = payload.title;
+      title.dispatchEvent(new Event('input', { bubbles: true }));
       prompt.value = payload.prompt;
       prompt.dispatchEvent(new Event('input', { bubbles: true }));
       const resultUser = resultUsers.find((input) => input.checked) || resultUsers[0];
@@ -312,7 +315,7 @@ const submitCommonSettingForm = (browser, { tagName, analysisKind, prompt }) => 
       resultUser.dispatchEvent(new Event('change', { bubbles: true }));
       return { ok: resultUser.checked && !!resultUser.value };
     },
-    [{ tagName, analysisKind, prompt }],
+    [{ tagName, analysisKind, prompt, title }],
     (result) => {
       browser.assert.ok(!!(result && result.value && result.value.ok), '共通設定のフォームに値を設定しました。');
     }
@@ -324,6 +327,7 @@ const submitCommonSettingForm = (browser, { tagName, analysisKind, prompt }) => 
     expectedControls: [
       { selector: '#ai-analysis-setting-kind', property: 'value', value: analysisKind },
       { selector: '#ai-analysis-setting-prompt', property: 'value', value: prompt },
+      { selector: '#ai-analysis-setting-result-title', property: 'value', value: title },
       {
         selector: '.ai-analysis-setting-fields__result-user-list input[type="radio"]:checked',
         property: 'checked',
@@ -576,6 +580,9 @@ const updateScopedSettingPrompt = (
   const kindSelector = `#scoped-ai-analysis-settings-${scope}-kind`;
   const promptSelector = `#scoped-ai-analysis-settings-${scope}-prompt`;
   browser.waitForElementVisible(formViewSelector, 10000);
+  const titleSelector = `#scoped-ai-analysis-settings-${scope}-result-title`;
+  browser.assert.valueContains(titleSelector, 'の見出し', '上位設定からコピーしたタイトルを表示します。');
+  browser.clearValue(titleSelector).setValue(titleSelector, `${prompt}の見出し`);
   browser.execute(
     function (payload) {
       const root = document.querySelector(payload.rootSelector);
@@ -608,6 +615,7 @@ const updateScopedSettingPrompt = (
     submitSelector: '.setting-form-actions button:last-child',
     expectedControls: [
       { selector: kindSelector, property: 'value', value: analysisKind },
+      { selector: titleSelector, value: `${prompt}の見出し` },
       { selector: promptSelector, property: 'value', value: prompt },
     ],
     label: `${scope}のAI設定のプロンプト更新`,

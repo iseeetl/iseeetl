@@ -1,5 +1,6 @@
 const AppError = require('../utils/appError');
 const { ALLOWED_LANGUAGES } = require('../constants/languages');
+const { normalizeTitle } = require('../utils/supplementTitle');
 
 const invalid = () => { throw new AppError({ code: 'INVALID_PARAMS' }); };
 const own = (value, key) => Object.prototype.hasOwnProperty.call(value, key);
@@ -59,10 +60,15 @@ function mapTimelineRequest(params, body, operation, kind = 'post') {
   if (kind === 'replySupplement') scope.reply_id = id(params.reply_id);
   if (operation !== 'create') scope._id = id(params[kind === 'post' ? 'post_id' : kind === 'reply' ? 'reply_id' : 'supplement_id']);
   const supplement = kind === 'postSupplement' || kind === 'replySupplement';
-  const fields = ['content', 'lang', 'media', ...(!supplement ? ['room_tags', 'animation'] : []), ...(kind === 'reply' ? ['notify_all'] : [])];
+  const fields = ['content', 'lang', 'media', ...(supplement ? ['title', 'title_lang'] : ['room_tags', 'animation']), ...(kind === 'reply' ? ['notify_all'] : [])];
   object(body, operation === 'delete' ? [] : fields);
   if (operation === 'delete') return scope;
   const data = {};
+  if (supplement && own(body, 'title')) data.title = normalizeTitle(body.title);
+  if (supplement && own(body, 'title_lang')) {
+    if (body.title_lang !== null && !ALLOWED_LANGUAGES.includes(body.title_lang)) invalid();
+    data.title_lang = body.title_lang;
+  }
   if (own(body, 'content')) {
     data.content = nullableString(body.content, 400);
     if (data.content !== null && !data.content.trim()) invalid();

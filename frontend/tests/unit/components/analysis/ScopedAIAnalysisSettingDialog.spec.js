@@ -594,6 +594,9 @@ describe('フロア・ルームのAI解析設定ダイアログ', () => {
       tagId: 'tag-2',
       analysisKind: 'speech',
       additionalPrompt: 'next prompt',
+      resultTitle: '',
+      initialResultTitle: '',
+      resultTitleLang: null,
       resultUserId: 'user-2',
     });
     expect(wrapper.vm.resultUserSearch).to.equal('Alice');
@@ -765,6 +768,8 @@ describe('フロア・ルームのAI解析設定ダイアログ', () => {
           analysis_kind: 'vision',
           additional_prompt: '',
           result_user: 'result-user-1',
+          result_title: null,
+          result_title_lang: null,
         },
       ]);
     });
@@ -908,6 +913,8 @@ describe('フロア・ルームのAI解析設定ダイアログ', () => {
         analysis_kind: 'vision',
         additional_prompt: 'prompt',
         result_user: 'new-user',
+        result_title: null,
+        result_title_lang: null,
         revision: 2,
       },
     ]);
@@ -1068,6 +1075,8 @@ describe('フロア・ルームのAI解析設定ダイアログ', () => {
       analysis_kind: 'conversation',
       additional_prompt: '',
       result_user: 'user-2',
+      result_title: null,
+      result_title_lang: null,
     });
   });
 
@@ -1075,6 +1084,8 @@ describe('フロア・ルームのAI解析設定ダイアログ', () => {
     const updateCalls = [];
     const setting = settingFixture({
       scope: 'room',
+      result_title: 'Analysis notes',
+      result_title_lang: 'en',
       room: 'room-1',
       tag: { _id: 'room-tag-1', name: 'Room Tag' },
     });
@@ -1100,6 +1111,8 @@ describe('フロア・ルームのAI解析設定ダイアログ', () => {
         analysis_kind: 'vision',
         additional_prompt: 'prompt',
         result_user: 'user-1',
+        result_title: 'Analysis notes',
+        result_title_lang: 'en',
         revision: 2,
       },
     ]);

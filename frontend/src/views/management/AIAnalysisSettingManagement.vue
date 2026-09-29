@@ -161,6 +161,8 @@
           :tag-value="form.tagId"
           :kind-value="form.analysisKind"
           :prompt-value="form.additionalPrompt"
+          :title-value="form.resultTitle"
+          :title-error="formSubmitted && !titleValid ? $t('supplementTitle.invalid') : ''"
           :result-user-value="form.resultUserId"
           :search-value="resultUserSearch"
           :tags="categoryTags"
@@ -181,6 +183,7 @@
           @update:tag-value="form.tagId = $event"
           @update:kind-value="form.analysisKind = $event"
           @update:prompt-value="form.additionalPrompt = $event"
+          @update:title-value="form.resultTitle = $event"
           @update:result-user-value="form.resultUserId = $event"
           @update:search-value="resultUserSearch = $event"
           @search="searchResultUsers"
@@ -221,6 +224,7 @@
 </template>
 
 <script>
+import { isValidSupplementTitle, supplementTitleLanguage } from '@/features/timeline/supplementTitle';
 import aiAnalysisSettingsApi from '@/api/aiAnalysisSettings';
 import AIAnalysisSettingFormFields from '@/components/analysis/AIAnalysisSettingFormFields.vue';
 import BaseEditDialog from '@/components/common/BaseEditDialog.vue';
@@ -246,6 +250,9 @@ const emptyForm = () => ({
   tagId: '',
   analysisKind: '',
   additionalPrompt: '',
+  resultTitle: '',
+  initialResultTitle: '',
+  resultTitleLang: null,
   resultUserId: '',
   revision: null,
 });
@@ -296,6 +303,9 @@ export default {
     };
   },
   computed: {
+    titleValid() {
+      return isValidSupplementTitle(this.form.resultTitle);
+    },
     formActionLabel() {
       return this.form._id ? this.$t('aiAnalysisSettings.save') : this.$t('作成');
     },
@@ -433,6 +443,9 @@ export default {
         tagId: setting.tag?._id || '',
         analysisKind: setting.analysis_kind || '',
         additionalPrompt: setting.additional_prompt || '',
+        resultTitle: setting.result_title || '',
+        initialResultTitle: setting.result_title || '',
+        resultTitleLang: setting.result_title_lang || null,
         resultUserId: setting.result_user?._id || '',
         revision: setting.revision,
       };
@@ -486,6 +499,7 @@ export default {
         tagId: form.tagId,
         analysisKind: form.analysisKind,
         additionalPrompt: form.additionalPrompt,
+        resultTitle: form.resultTitle,
         resultUserId: form.resultUserId,
       });
     },
@@ -573,7 +587,7 @@ export default {
     async submitSetting() {
       if (this.sending || this.resultUsersLoading) return;
       this.formSubmitted = true;
-      if (!this.form.tagId || !this.kindValid || !this.promptValidation.valid || !this.form.resultUserId) {
+      if (!this.form.tagId || !this.kindValid || !this.promptValidation.valid || !this.titleValid || !this.form.resultUserId) {
         this.focusFirstFormError();
         return;
       }
@@ -582,6 +596,7 @@ export default {
       const normalizedForm = {
         ...this.form,
         additionalPrompt: this.promptValidation.value,
+        resultTitleLang: supplementTitleLanguage(this.form.resultTitle, this.form.initialResultTitle, this.form.resultTitleLang, this.$i18n.locale),
       };
       const payload = buildSettingPayload({ scope: 'common', form: normalizedForm });
       try {
@@ -606,6 +621,7 @@ export default {
         if (!this.form.tagId) return this.$refs.formFields?.focusTag();
         if (!this.kindValid) return this.$refs.formFields?.focusKind();
         if (!this.promptValidation.valid) return this.$refs.formFields?.focusPrompt();
+        if (!this.titleValid) return this.$refs.formFields?.focusTitle();
         if (!this.form.resultUserId) return this.$refs.formFields?.focusResultUserSearch();
       });
     },

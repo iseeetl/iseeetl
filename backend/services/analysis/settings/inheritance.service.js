@@ -70,6 +70,8 @@ const buildSettingDocuments = ({
       [childTagField]: childTag._id,
       analysis_kind: parent.analysis_kind,
       additional_prompt: parent.additional_prompt,
+      result_title: parent.result_title ?? null,
+      result_title_lang: parent.result_title_lang ?? null,
       result_user: parent.result_user,
       [lineageSettingField]: parent._id,
       [lineageRevisionField]: parent.revision,

@@ -108,6 +108,8 @@ const commonPopulated = (overrides = {}) => ({
   },
   analysis_kind: 'vision',
   additional_prompt: '',
+  result_title: null,
+  result_title_lang: null,
   result_user: {
     _id: 'result-user-1',
     username: 'result-user',
@@ -157,6 +159,8 @@ describe('AI解析設定の応答データ生成', () => {
       },
       analysis_kind: 'vision',
       additional_prompt: '',
+      result_title: null,
+      result_title_lang: null,
       result_user: {
         _id: 'result-user-1',
         username: 'result-user',
@@ -418,6 +422,8 @@ describe('共通のAI解析設定', () => {
         category_tag: 'category-1',
         analysis_kind: 'vision',
         additional_prompt: 'describe briefly',
+        result_title: null,
+        result_title_lang: null,
         result_user: 'result-user-1',
       },
       jwt
@@ -429,6 +435,8 @@ describe('共通のAI解析設定', () => {
       category_tag: 'category-1',
       analysis_kind: 'vision',
       additional_prompt: 'describe briefly',
+      result_title: null,
+      result_title_lang: null,
       result_user: 'result-user-1',
       revision: 1,
       user: 'admin-1',
@@ -450,6 +458,8 @@ describe('共通のAI解析設定', () => {
           category_tag: 'category-1',
           analysis_kind: 'vision',
           additional_prompt: '',
+          result_title: null,
+          result_title_lang: null,
           result_user: 'result-user-1',
         },
         jwt
@@ -477,6 +487,8 @@ describe('共通のAI解析設定', () => {
           category_tag: 'category-2',
           analysis_kind: 'speech',
           additional_prompt: '',
+          result_title: null,
+          result_title_lang: null,
           result_user: 'result-user-2',
           revision: 9,
         },
@@ -509,6 +521,8 @@ describe('共通のAI解析設定', () => {
           category_tag: 'category-1',
           analysis_kind: 'vision',
           additional_prompt: '',
+          result_title: null,
+          result_title_lang: null,
           result_user: 'result-user-1',
           revision: Number.MAX_SAFE_INTEGER,
         },
@@ -620,6 +634,8 @@ describe('フロアとルームのAI解析設定', () => {
         floor_tag: 'floor-tag-1',
         analysis_kind: 'vision',
         additional_prompt: '',
+        result_title: null,
+        result_title_lang: null,
         result_user: 'selected-user-1',
       },
       jwt
@@ -659,6 +675,8 @@ describe('フロアとルームのAI解析設定', () => {
           floor_tag: 'floor-tag-1',
           analysis_kind: 'vision',
           additional_prompt: '',
+          result_title: null,
+          result_title_lang: null,
         },
         jwt
       )
@@ -689,6 +707,8 @@ describe('フロアとルームのAI解析設定', () => {
           floor_tag: 'floor-tag-1',
           analysis_kind: 'vision',
           additional_prompt: '',
+          result_title: null,
+          result_title_lang: null,
           result_user: 'selected-user-1',
         },
         jwt
@@ -712,6 +732,8 @@ describe('フロアとルームのAI解析設定', () => {
           floor_tag: 'floor-tag-1',
           analysis_kind: 'vision',
           additional_prompt: '',
+          result_title: null,
+          result_title_lang: null,
           result_user: 'deleted-user',
         },
         jwt
@@ -731,6 +753,8 @@ describe('フロアとルームのAI解析設定', () => {
           floor_tag: 'floor-tag-1',
           analysis_kind: 'vision',
           additional_prompt: '',
+          result_title: null,
+          result_title_lang: null,
         },
         jwt
       )
@@ -759,6 +783,8 @@ describe('フロアとルームのAI解析設定', () => {
         floor_tag: 'floor-tag-1',
         analysis_kind: 'vision',
         additional_prompt: 'admin prompt',
+        result_title: null,
+        result_title_lang: null,
         result_user: 'admin-selected-user',
       },
       jwt
@@ -804,6 +830,8 @@ describe('フロアとルームのAI解析設定', () => {
         room_tag: 'room-tag-1',
         analysis_kind: 'vision',
         additional_prompt: '',
+        result_title: null,
+        result_title_lang: null,
         result_user: 'selected-user-1',
       },
       jwt
@@ -833,6 +861,8 @@ describe('フロアとルームのAI解析設定', () => {
           room_tag: 'room-tag-1',
           analysis_kind: 'vision',
           additional_prompt: '',
+          result_title: null,
+          result_title_lang: null,
         },
         jwt
       )
@@ -848,6 +878,8 @@ describe('フロアとルームのAI解析設定', () => {
       floor_tag: 'floor-tag-1',
       analysis_kind: 'vision',
       additional_prompt: '',
+      result_title: null,
+      result_title_lang: null,
       result_user: 'inherited-user-1',
       source_master_setting: 'master-setting-1',
       source_master_revision: 6,
@@ -888,6 +920,8 @@ describe('フロアとルームのAI解析設定', () => {
         floor_tag: 'floor-tag-2',
         analysis_kind: 'audioScene',
         additional_prompt: 'updated',
+        result_title: null,
+        result_title_lang: null,
         result_user: 'selected-user-2',
         revision: 4,
       },
@@ -930,6 +964,8 @@ describe('フロアとルームのAI解析設定', () => {
       floor_tag: 'floor-tag-1',
       analysis_kind: 'vision',
       additional_prompt: '',
+      result_title: null,
+      result_title_lang: null,
       result_user: 'result-user-1',
       source_master_setting: null,
       source_master_revision: null,
@@ -947,6 +983,8 @@ describe('フロアとルームのAI解析設定', () => {
           floor_tag: 'floor-tag-1',
           analysis_kind: 'vision',
           additional_prompt: '',
+          result_title: null,
+          result_title_lang: null,
           result_user: 'result-user-1',
           revision: Number.MAX_SAFE_INTEGER,
         },

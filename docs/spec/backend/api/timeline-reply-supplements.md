@@ -24,7 +24,7 @@
 - OneSignalが有効で返信者本人以外が作成した場合は、返信者のプッシュ設定と返信通知設定に応じて通知を試行する。無効な場合は通知だけを省略する
 - OneSignalが有効な場合は`PushFilter`に一致する他ユーザへプッシュ通知を試行し、無効な場合は通知だけを省略する
 - Socket.IOの`REPLY_SUPPLEMENT_CREATE`を対象ルームへ送信し、`Chat`と作成した付加情報を通知
-- Google Translateが有効な場合は応答処理とは別に本文翻訳を試行し、結果が作成された場合は`REPLY_SUPPLEMENT_UPDATE`を送信する
+- Google Translateが有効な場合は応答処理とは別に本文と設定済みタイトルの翻訳をそれぞれの原文言語で試行し、結果が作成された場合は`REPLY_SUPPLEMENT_UPDATE`を送信する
 
 ### PATCH /api/rooms/:room_id/timeline/posts/:post_id/replies/:reply_id/supplements/:supplement_id
 
@@ -32,8 +32,9 @@
 
 #### データ更新・通知
 
-- 付加情報の本文、言語、メディア項目、`updated_at`を更新
+- 付加情報の本文、言語、タイトル、タイトル言語、メディア項目、`updated_at`を更新
 - Google Translateが有効で本文または原文言語（`lang`）が変わった場合は既存の翻訳を空配列へ戻す。無効な場合は保存済みの翻訳を保持する
+- タイトルまたはタイトル言語が変わった場合は`title_translations`を空にし、Google Translateが有効なら再翻訳する。本文と同じ対象言語候補からタイトルの原文言語を除く。翻訳中に原文が変わった場合や削除された場合は結果を反映しない。翻訳に失敗しても原文を保持する
 - 変更前と異なる画像・動画・字幕・音声ファイルを削除
 - Socket.IOの`REPLY_SUPPLEMENT_UPDATE`を対象ルームへ送信
 - Google Translateが有効で本文または原文言語（`lang`）が変わった場合は、応答処理とは別に翻訳を試行する

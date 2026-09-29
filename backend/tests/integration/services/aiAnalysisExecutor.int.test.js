@@ -82,6 +82,24 @@ const sourceSupplements = async ({ postId, replyId = null }) => {
 };
 
 describe('設定に基づくAI解析の結合動作（外部サービスはモック）', () => {
+  test.each([false, true])('返信=%sでも設定のタイトルを反映し、再解析時だけ最新設定で置き換える', async (withReply) => {
+    const ctx = await setup({ withReply });
+    await RoomAIAnalysisSetting.updateOne({ _id: ctx.settings[0]._id }, { $set: { result_title: '解析メモ', result_title_lang: 'ja' } });
+    const executor = createAnalysisExecutor({ executionEnabled: () => true, prepareInput, analyze: async () => 'result' });
+    const args = { chatId: ctx.post._id, sourceType: withReply ? 'reply' : 'post', replyId: withReply ? ctx.replyId : null, io: createIo().io, mediaPath: '/mocked' };
+    await executor.runSourceAnalyses(args);
+    const get = () => sourceSupplements({ postId: ctx.post._id, replyId: withReply ? ctx.replyId : null });
+    expect((await get())[0]).toMatchObject({ title: '解析メモ', title_lang: 'ja' });
+    await RoomAIAnalysisSetting.updateOne({ _id: ctx.settings[0]._id }, { $set: { result_title: '次の解析メモ' }, $inc: { revision: 1 } });
+    expect((await get())[0].title).toBe('解析メモ');
+    const sourcePath = withReply ? 'replies.0' : '';
+    const path = sourcePath ? `${sourcePath}.supplementaries.0` : 'supplementaries.0';
+    await Chat.updateOne({ _id: ctx.post._id }, { $set: { [`${path}.title`]: '手動の見出し' } });
+    await executor.runSourceAnalyses(args);
+    expect((await get())[0].title).toBe('次の解析メモ');
+    expect(await get()).toHaveLength(1);
+  });
+
   test.each(['正常', '配信先例外', '通知例外'])('%sでも5種類の解析を順番に保存し、保存済みの結果を成功として返す', async (stage) => {
     const kinds = ['vision', 'audioScene', 'speech', 'video', 'conversation'];
     const context = await setup({ kinds });
