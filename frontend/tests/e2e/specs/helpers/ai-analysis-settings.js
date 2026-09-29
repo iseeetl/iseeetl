@@ -464,26 +464,32 @@ const selectAlternateScopedResultUser = (
                     )
                   )
                 : [];
+              const selected = radios.filter((radio) => radio.checked);
+              const previousUserId = selected.length === 1 ? selected[0].value : '';
               const alternate = radios.find((radio) => {
                 const label = radio.closest('label');
                 return (
+                  previousUserId &&
+                  radio.value !== previousUserId &&
                   !radio.disabled &&
                   label &&
-                  label.textContent.trim() &&
-                  label.textContent.trim() !== payload.expectedResultUser
+                  label.querySelector('.ai-analysis-setting-fields__user-name')?.textContent.trim()
                 );
               });
               if (!search || search.disabled || !alternate) {
                 return {
                   ready: false,
                   searchDisabled: search ? !!search.disabled : null,
-                  choices: radios.map((radio) => radio.closest('label')?.textContent.trim() || ''),
+                  choiceCount: radios.length,
+                  selectedCount: selected.length,
                 };
               }
               alternate.click();
               return {
                 ready: alternate.checked,
-                resultUser: alternate.closest('label')?.textContent.trim() || '',
+                previousUserId,
+                resultUserId: alternate.value,
+                resultUser: alternate.closest('label')?.querySelector('.ai-analysis-setting-fields__user-name')?.textContent.trim() || '',
               };
             },
             [{ rootSelector, scope, expectedResultUser }],
@@ -494,7 +500,7 @@ const selectAlternateScopedResultUser = (
                   : { ready: false };
               if (selection.ready && selection.resultUser) {
                 browser.assert.ok(
-                  selection.resultUser !== expectedResultUser,
+                  !!selection.resultUserId && selection.resultUserId !== selection.previousUserId,
                   `フロア編集ユーザが${scope}の結果投稿ユーザを別のユーザへ変更しました。`
                 );
                 if (onReady) onReady(true, selection.resultUser);

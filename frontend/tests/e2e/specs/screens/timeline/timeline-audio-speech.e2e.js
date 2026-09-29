@@ -67,11 +67,11 @@ const resolveUniqueTagCheckboxByName = (
       const dialog = anchors[0].closest('[role="dialog"]');
       if (!dialog || !isVisible(dialog)) return { ok: false, reason: 'dialog-not-visible' };
 
-      const matches = Array.from(dialog.querySelectorAll('.checkbox-group')).filter((group) => {
+      const matches = Array.from(dialog.querySelectorAll('label.tag-option')).filter((group) => {
         const checkbox = group.querySelector(
           `input[type="checkbox"][data-testid^="${payload.checkboxTestIdPrefix}"]`
         );
-        const tagLabel = group.querySelector('label');
+        const tagLabel = group;
         return (
           isVisible(group) &&
           isVisible(checkbox) &&
@@ -91,8 +91,8 @@ const resolveUniqueTagCheckboxByName = (
         return { ok: false, reason: `checkbox-count:${checkboxes.length}` };
       }
       const checkbox = checkboxes[0];
-      const tagLabel = group.querySelector('label');
-      const tagId = String(checkbox.dataset.tagId || '');
+      const tagLabel = group;
+      const tagId = String(checkbox.value || '');
       const exactTestId = `${payload.checkboxTestIdPrefix}${tagId}`;
       const ok =
         !!tagId &&
@@ -436,7 +436,7 @@ module.exports = {
         .waitForElementVisible('[data-testid="dialog-edit-post"]', 10000);
       ensurePostTagSelectorExpanded(browser);
       const postTagCheckbox = `[data-testid="tag-selector-checkbox-${selectedTagId}"]`;
-      const postTagLabel = `${postTagCheckbox} + label`;
+      const postTagLabel = `${postTagCheckbox} + span`;
       browser.waitForElementVisible(postTagCheckbox, 10000);
       clickSingleVisibleAfterExactControls(browser, {
         anchorSelector: '#edit_post_dialog_title',
@@ -709,7 +709,7 @@ module.exports = {
               }
               selectedTagId = resolvedTag.tagId;
               const soundTagCheckbox = `[data-testid="sound-tag-checkbox-${selectedTagId}"]`;
-              const soundTagLabel = `${soundTagCheckbox} + label`;
+              const soundTagLabel = `${soundTagCheckbox} + span`;
               clickSingleVisibleAfterExactControls(browser, {
                 anchorSelector: '#sound_tag_dialog_title',
                 submitSelector: soundTagCheckbox,

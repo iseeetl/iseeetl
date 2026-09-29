@@ -8,8 +8,7 @@ const openCategoryTagManagement = (browser) => {
   const url = `${base.replace(/\/$/, '')}/management/categorytag`;
   navigateToApp(browser, url)
     .waitForElementPresent('#csvupload', 10000)
-    .waitForElementVisible('[data-testid="management-categorytag-export"]', 10000)
-    .waitForElementVisible('table.management-table', 10000);
+    .waitForElementVisible('[data-testid="management-categorytag-export"]:not(:disabled)', 10000);
 };
 
 const installCsvDownloadSpy = (browser, onReady) => {

@@ -206,14 +206,18 @@ const selectTagByName = (browser, tagName, label) => {
   browser.execute(
     function (expectedName) {
       const dialog = document.querySelector('[data-testid="dialog-edit-post"]');
-      const groups = dialog ? Array.from(dialog.querySelectorAll('.checkbox-group')) : [];
+      const groups = dialog ? Array.from(dialog.querySelectorAll('label.tag-option')) : [];
       const matches = groups.filter((group) => {
-        const tagLabel = group.querySelector('label.checkbox-label');
-        return tagLabel && tagLabel.textContent && tagLabel.textContent.trim() === expectedName;
+        const tagLabel = group;
+        return tagLabel.getClientRects().length && tagLabel.textContent.trim() === expectedName;
       });
       if (matches.length !== 1) return { selected: false, matchCount: matches.length };
       const checkbox = matches[0].querySelector('input[type="checkbox"]');
-      if (!checkbox) return { selected: false, matchCount: matches.length };
+      if (!checkbox || checkbox.disabled || !checkbox.value ||
+          checkbox.getAttribute('data-testid') !== `tag-selector-checkbox-${checkbox.value}` ||
+          matches[0].htmlFor !== checkbox.id) {
+        return { selected: false, matchCount: matches.length };
+      }
       if (!checkbox.checked) checkbox.click();
       return { selected: checkbox.checked, matchCount: matches.length };
     },

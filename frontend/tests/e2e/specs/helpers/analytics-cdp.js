@@ -355,6 +355,7 @@ const captureDataLayerState = function (expectations) {
     password_reset_request: '/user/sendresetpasswordlink',
     password_reset_form: '/user/resetpassword',
     setting: '/setting',
+    profile: '/profile',
     change_password: '/changepassword',
     terms: '/terms',
     privacy: '/privacy',

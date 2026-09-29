@@ -89,7 +89,7 @@ const setEyeFriendlyMode = (browser, enabled) => {
 };
 
 const verifyIconPreviewCycle = (browser) => {
-  browser.setValue('#image-file', SAMPLE_ICON_PATH);
+  browser.sendKeys('#image-file', SAMPLE_ICON_PATH);
   browser.waitForElementVisible('.avatar-preview-wrapper img', 10000);
   browser.click('.avatar-preview-wrapper .avatar-remove-button');
   browser.waitForElementNotPresent('.avatar-preview-wrapper img', 10000);

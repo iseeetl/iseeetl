@@ -902,6 +902,7 @@ export default {
 }
 
 .focus-post-wrapper {
+  --ui-color-focus: #8ab4ff;
   background-color: rgba(255, 255, 255, 0.1);
   box-shadow: inset 4px 0 0 0 #0074d9;
 }

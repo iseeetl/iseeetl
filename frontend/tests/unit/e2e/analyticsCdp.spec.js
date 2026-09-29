@@ -692,6 +692,22 @@ describe('アクセス解析E2EのdataLayer送信内容と順序', () => {
     expect(browser.assert.ok).toHaveBeenCalledTimes(2);
   });
 
+  it.each([
+    ['http://localhost:3100/profile', true],
+    ['http://localhost:3100/profile?user=sample', false],
+    ['http://localhost:3100/profile#sample', false],
+    ['https://example.invalid/profile', false],
+  ])('プロフィール計測URLの安全性を検証する: %s', (pageLocation, accepted) => {
+    const profilePage = { page_group: 'profile', page_title: 'profile', page_location: pageLocation };
+    window.dataLayer = [
+      config({ visitor_type: 'guest' }, profilePage),
+      pageView('guest', profilePage),
+    ];
+    const summary = captureDataLayerState({ allowAdditionalEvents: true });
+    expect(summary.ready).to.equal(accepted);
+    expect(summary.irrecoverable).to.equal(!accepted);
+  });
+
   it('初回ゲストのpage_viewは計測ID・識別情報・件数・値をすべて検証する', () => {
     window.dataLayer = [
       ['js', new Date('2026-01-01T00:00:00Z')],

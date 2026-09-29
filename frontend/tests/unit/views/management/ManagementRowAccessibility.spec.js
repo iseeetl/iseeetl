@@ -125,6 +125,7 @@ describe('管理一覧の行操作アクセシビリティ', () => {
     },
     {
       name: '共通タグ管理',
+      physicalDelete: true,
       view: CategoryTagManagement,
       item: {
         _id: 'category-tag-1',
@@ -142,6 +143,7 @@ describe('管理一覧の行操作アクセシビリティ', () => {
     },
     {
       name: 'フロアタグ管理',
+      physicalDelete: true,
       view: FloorTagManagement,
       item: {
         _id: 'floor-tag-1',
@@ -327,7 +329,7 @@ describe('管理一覧の行操作アクセシビリティ', () => {
     });
   });
 
-  cases.filter(({ item }) => Object.hasOwn(item, 'delete_flg')).forEach((testCase) => {
+  cases.filter(({ item, physicalDelete }) => !physicalDelete && Object.hasOwn(item, 'delete_flg')).forEach((testCase) => {
     it(testCase.name + 'は削除済み行へ共通の中立背景を適用する', () => {
       const deletedItem = { ...testCase.item, delete_flg: true };
       const wrapper = mountViewWithItems(testCase.view, [deletedItem]);
