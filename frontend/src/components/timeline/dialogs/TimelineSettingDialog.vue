@@ -46,7 +46,7 @@
       <div class="setting-checkbox-list">
         <label class="setting-choice" for="display_name">
           <input type="checkbox" id="display_name" v-model="displayName" />
-          <span>{{ $t('「◯◯の投稿」、「◯◯の返信」、「◯◯の付加情報」を表示する') }}</span>
+          <span>{{ $t('supplementTitle.displayHeadings') }}</span>
         </label>
         <label class="setting-choice" for="display_date">
           <input type="checkbox" id="display_date" v-model="displayDate" />

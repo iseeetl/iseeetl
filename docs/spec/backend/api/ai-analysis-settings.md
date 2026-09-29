@@ -16,8 +16,12 @@
 | --- | --- |
 | `analysis_kind` | `vision`、`audioScene`、`speech`、`video`、`conversation` |
 | `additional_prompt` | 必須の文字列。最大2000文字・8000バイト以内。`speech`は224バイト以内。[数え方](../../ai-analysis.md#文字数容量の数え方)を参照 |
+| `result_title` | 任意のタイトル。前後空白を除いて50文字以内・改行不可。空文字・空白のみ・`null`で解除。更新時の省略は現在値を保持 |
+| `result_title_lang` | タイトルの対応言語コード。タイトルを新規設定するときは必須。更新時の省略は現在値を保持。タイトル解除時は`null` |
 | `result_user` | 有効なユーザのObjectId。共通設定では`Administrator`、フロア／ルーム設定では`Administrator`、対象フロアを作成した`Editor`、または対象フロアのメンバーが送信する必須項目 |
 | `revision` | 更新・削除対象の現在の`revision`。1以上の安全な整数。競合防止に使う |
+
+作成・更新の`result_title`・`result_title_lang`は任意項目で、未設定の応答は`null`です。タイトルを新規設定して言語が未指定の場合は400です。
 
 各エンドポイントは許可していない項目を400 `INVALID_PARAMS`として拒否します。フロア／ルーム設定の作成・更新では、許可されたロールの違いにかかわらず`result_user`を必要とします。
 
@@ -25,7 +29,7 @@
 
 設定オブジェクトは次を返します。
 
-- `_id`、`scope`、`analysis_kind`、`additional_prompt`、`revision`。設定自身の`delete_flg`は返さない
+- `_id`、`scope`、`analysis_kind`、`additional_prompt`、`result_title`、`result_title_lang`、`revision`。設定自身の`delete_flg`は返さない
 - `tag`: `_id`、`name`、`lang`、`translations[].lang`／`name`
 - `result_user`: `_id`、`username`、`image_name`
 - フロア設定は`floor`、ルーム設定は`floor`と`room`
@@ -87,11 +91,11 @@
 
 #### POST /api/aianalysissetting/management/create
 
-ボディは`category_tag`、`analysis_kind`、`additional_prompt`、`result_user`です。有効な`CategoryTag`とユーザを必要とし、作成時revisionは1です。同じタグ・解析種別の有効設定、適用範囲上限超過は409です。
+ボディは`category_tag`、`analysis_kind`、`additional_prompt`、`result_title`、`result_title_lang`、`result_user`です。有効な`CategoryTag`とユーザを必要とし、作成時revisionは1です。同じタグ・解析種別の有効設定、適用範囲上限超過は409です。
 
 #### POST /api/aianalysissetting/management/update
 
-ボディは`_id`、`category_tag`、`analysis_kind`、`additional_prompt`、`result_user`、`revision`です。有効な設定の内容を更新し、リビジョンを1増やします。revision不一致、有効な設定の重複は409です。存在しない設定、旧版で論理削除された設定は404です。`delete_flg`は受け付けません。
+ボディは`_id`、`category_tag`、`analysis_kind`、`additional_prompt`、`result_title`、`result_title_lang`、`result_user`、`revision`です。有効な設定の内容を更新し、リビジョンを1増やします。revision不一致、有効な設定の重複は409です。存在しない設定、旧版で論理削除された設定は404です。`delete_flg`は受け付けません。
 
 #### POST /api/aianalysissetting/management/delete
 
@@ -113,11 +117,11 @@
 
 #### POST /api/flooraianalysissetting/create
 
-ボディは`floor_id`、`floor_tag`、`analysis_kind`、`additional_prompt`、`result_user`です。有効な`FloorTag`と結果ユーザを必要とし、親タグ・親設定は参照しません。手動で作成した設定のコピー元の来歴はnullです。
+ボディは`floor_id`、`floor_tag`、`analysis_kind`、`additional_prompt`、`result_title`、`result_title_lang`、`result_user`です。有効な`FloorTag`と結果ユーザを必要とし、親タグ・親設定は参照しません。手動で作成した設定のコピー元の来歴はnullです。
 
 #### POST /api/flooraianalysissetting/update
 
-ボディは`_id`、`floor_id`、`floor_tag`、`analysis_kind`、`additional_prompt`、`result_user`、`revision`です。`Administrator`、対象フロアを作成した`Editor`、対象フロアのメンバーは結果ユーザを変更できます。revision不一致または有効な設定の重複は409です。
+ボディは`_id`、`floor_id`、`floor_tag`、`analysis_kind`、`additional_prompt`、`result_title`、`result_title_lang`、`result_user`、`revision`です。`Administrator`、対象フロアを作成した`Editor`、対象フロアのメンバーは結果ユーザを変更できます。revision不一致または有効な設定の重複は409です。
 
 #### POST /api/flooraianalysissetting/delete
 
@@ -141,11 +145,11 @@
 
 #### POST /api/roomaianalysissetting/create
 
-ボディは`floor_id`、`room_id`、`room_tag`、`analysis_kind`、`additional_prompt`、`result_user`です。有効な`RoomTag`と結果ユーザを必要とし、親タグ・親設定は参照しません。手動で作成した設定のコピー元の来歴はnullです。
+ボディは`floor_id`、`room_id`、`room_tag`、`analysis_kind`、`additional_prompt`、`result_title`、`result_title_lang`、`result_user`です。有効な`RoomTag`と結果ユーザを必要とし、親タグ・親設定は参照しません。手動で作成した設定のコピー元の来歴はnullです。
 
 #### POST /api/roomaianalysissetting/update
 
-ボディは`_id`、`floor_id`、`room_id`、`room_tag`、`analysis_kind`、`additional_prompt`、`result_user`、`revision`です。`Administrator`、対象フロアを作成した`Editor`、対象フロアのメンバーは結果ユーザを変更できます。
+ボディは`_id`、`floor_id`、`room_id`、`room_tag`、`analysis_kind`、`additional_prompt`、`result_title`、`result_title_lang`、`result_user`、`revision`です。`Administrator`、対象フロアを作成した`Editor`、対象フロアのメンバーは結果ユーザを変更できます。
 
 #### POST /api/roomaianalysissetting/delete
 

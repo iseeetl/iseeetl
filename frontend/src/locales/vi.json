@@ -1,4 +1,11 @@
 {
+  "supplementTitle": {
+    "label": "Tiêu đề",
+    "settingLabel": "Tiêu đề thông tin bổ sung",
+    "hint": "Không bắt buộc, tối đa 50 ký tự. Nếu để trống, tiêu đề mặc định có tên người dùng sẽ được hiển thị.",
+    "invalid": "Nhập tiêu đề tối đa 50 ký tự, không xuống dòng.",
+    "displayHeadings": "Hiển thị tiêu đề bài đăng, trả lời và thông tin bổ sung"
+  },
   "まだ投稿がありません。投稿されると、ここに表示されます。": "Chưa có bài đăng nào. Bài đăng mới sẽ xuất hiện tại đây.",
   "投稿がないときの案内文": "Thông báo khi chưa có bài đăng",
   "空欄の場合は、標準の案内文を表示します。": "Để trống để hiển thị thông báo mặc định.",
@@ -438,7 +445,6 @@
   "タイムライン設定": "Cài đặt dòng thời gian",
   "読み上げ速度": "Tốc độ đọc",
   "項目の表示": "Mục hiển thị",
-  "「◯◯の投稿」、「◯◯の返信」、「◯◯の付加情報」を表示する": "Hiển thị 'Bài đăng của ◯◯', 'Phản hồi của ◯◯' và 'Thông tin bổ sung của ◯◯'",
   "「日付」を表示する": "Hiển thị 'Ngày'",
   "「タグ」を表示する": "Hiển thị 'Thẻ'",
   "「付加情報」を表示する": "Hiển thị 'Thông tin bổ sung'",

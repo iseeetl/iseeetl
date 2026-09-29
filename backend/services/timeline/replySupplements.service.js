@@ -1,3 +1,5 @@
+const { titleFields, titleChanged } = require('../../utils/supplementTitle');
+const { scheduleSupplementTitleTranslation } = require('./shared/supplementTitleTranslation');
 const { publishSocketEvent } = require('../../socket/publication');
 const { assertResourceContent, isUnchangedResource } = require('./shared/resourceMutation');
 const { SUPPLEMENT_MUTABLE_FIELDS } = require('./shared/partialMutation');
@@ -141,6 +143,10 @@ exports.createReplySupplement = async (body, jwtPayload, io, { errors, requireCo
       });
   }
 
+  scheduleSupplementTitleTranslation({
+    chatId: result._id, replyId, supplement: createdSupplement, body, context, io,
+  });
+
   return result;
 };
 
@@ -163,7 +169,10 @@ exports.updateReplySupplement = async (body, jwtPayload, io, { errors, requireCo
     supplementId: id,
     code: errors?.post?.code || 'INVALID_PARAMS',
   });
-  const effectiveSupplement = mergeTimelinePatch(supplement, body);
+  const effectiveSupplement = {
+    ...mergeTimelinePatch(supplement, body, SUPPLEMENT_MUTABLE_FIELDS),
+    ...titleFields(body, supplement, { fallbackLang: supplement.lang }),
+  };
   if (requireContentOrMedia) assertResourceContent(effectiveSupplement);
   const contentProvided = hasDefinedOwn(body, 'content');
   const targetLangs = resolveMutationTargetLangs({
@@ -208,10 +217,10 @@ exports.updateReplySupplement = async (body, jwtPayload, io, { errors, requireCo
     patch: body,
     updated: updateSupp,
     targetPath: 'replies.$[reply].supplementaries.$[supplement]',
-    derivedFields:
-      translationEnabled && translationSourceChanged
-        ? ['translations']
-        : [],
+    derivedFields: [
+      ...(translationEnabled && translationSourceChanged ? ['translations'] : []),
+      ...(titleChanged(supplement, updateSupp) ? ['title', 'title_lang', 'title_translations'] : []),
+    ],
   });
 
   const result = await persistSupplementMutation({
@@ -274,6 +283,10 @@ exports.updateReplySupplement = async (body, jwtPayload, io, { errors, requireCo
         defer: false,
       });
   }
+
+  scheduleSupplementTitleTranslation({
+    chatId: result._id, replyId, supplement: updateSupp, previous: supplement, body, context, io,
+  });
 
   return result;
 };

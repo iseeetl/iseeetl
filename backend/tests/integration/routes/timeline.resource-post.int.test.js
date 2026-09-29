@@ -40,6 +40,57 @@ describe('v1と共通処理を使う投稿API', () => {
   });
   afterAll(async () => { restoreEnv(previousEnv); await removeDirSafe(runtime); });
 
+  test.each([false, true])('返信の付加情報=%sでもタイトルの保存・翻訳・解除とv1更新の互換性を確認する', async (isReply) => {
+    const post = await Chat.create({ floor: floor._id, room: room._id, user: owner._id, content: '本文', lang: 'ja',
+      replies: [{ user: owner._id, content: '返信', lang: 'ja' }] });
+    const prefix = `${base}/${post._id}${isReply ? `/replies/${post.replies[0]._id}` : ''}/supplements`;
+    const created = await send('post', prefix, { content: '付加情報', lang: 'ja', title: 'お買い得メモ！', title_lang: 'ja' });
+    expect(created.status).toBe(201);
+    expect(created.body).toMatchObject({ title: 'お買い得メモ！', title_lang: 'ja' });
+    const id = created.body._id;
+    const path = isReply ? 'replies.0.supplementaries.0' : 'supplementaries.0';
+    const stored = async () => {
+      const saved = await Chat.findById(post._id).lean();
+      return isReply ? saved.replies[0].supplementaries[0] : saved.supplementaries[0];
+    };
+    const translation = require('../../../services/translation.service');
+    const translator = jest.spyOn(translation, 'translateContent').mockResolvedValue([{ user: owner._id, lang: 'en', content: 'Special offers' }]);
+    try {
+      const translate = () => require('../../../services/timeline/timelineTranslation.service').translateSupplementTitleIfNeeded({
+        chatId: post._id, replyId: isReply ? post.replies[0]._id : null, supplementId: id, title: 'お買い得メモ！', titleLang: 'ja',
+        targetLangs: ['en'], userId: owner._id, io,
+      });
+      await translate();
+      expect((await stored()).title_translations[0].content).toBe('Special offers');
+      const actor = await createUser();
+      expect((await send('patch', `${prefix}/${id}`, { title: '変更' }, actor)).status).toBe(403);
+      const token = createJwtToken({ user_id: String(owner._id), user_role: 'developer' }, process.env.JWT_DEV_SECRET);
+      const v1Body = { room_id: String(room._id), post_id: String(post._id), supplement_id: id, content: '本文だけ更新',
+        ...(isReply ? { reply_id: String(post.replies[0]._id) } : {}) };
+      const v1Path = isReply ? '/api/v1/reply/supplement/update' : '/api/v1/post/supplement/update';
+      expect((await request(app).post(v1Path).set('Authorization', `Bearer ${token}`).send(v1Body)).status).toBe(200);
+      expect((await stored()).title).toBe('お買い得メモ！');
+      expect((await stored()).title_translations).toHaveLength(1);
+      const changed = await request(app).post(v1Path).set('Authorization', `Bearer ${token}`).send({ ...v1Body, title: '新しい見出し', title_lang: 'ja' });
+      expect(changed.status).toBe(200);
+      expect((await stored()).title).toBe('新しい見出し');
+      expect((await stored()).title_translations).toHaveLength(0);
+      emit.mockClear();
+      await translate();
+      expect((await stored()).title_translations).toHaveLength(0);
+      expect(emit).not.toHaveBeenCalled();
+      for (const title of ['あ'.repeat(51), '改行\n見出し']) {
+        expect((await send('patch', `${prefix}/${id}`, { title })).status).toBe(400);
+      }
+      expect((await send('patch', `${prefix}/${id}`, { title: 'あ'.repeat(50) })).status).toBe(200);
+      expect((await send('patch', `${prefix}/${id}`, { title: '' })).status).toBe(200);
+      expect(await stored()).toMatchObject({ title: null, title_lang: null, title_translations: [] });
+      await Chat.updateOne({ _id: post._id }, { $unset: { [`${path}.title`]: '', [`${path}.title_lang`]: '', [`${path}.title_translations`]: '' } });
+      expect((await send('patch', `${prefix}/${id}`, { content: '旧データの本文更新' })).status).toBe(200);
+      expect((await stored()).title ?? null).toBeNull();
+    } finally { translator.mockRestore(); }
+  });
+
   test.each([
     { label: '返信', kind: 'reply', collection: 'replies', event: 'REPLY', v1Path: '/api/v1/reply/update', v1Id: 'reply_id' },
     { label: '投稿付加情報', kind: 'postSupplement', collection: 'supplements', event: 'SUPPLEMENT', v1Path: '/api/v1/post/supplement/update', v1Id: 'supplement_id' },

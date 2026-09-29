@@ -43,8 +43,8 @@
     <div class="container">
       <div class="name-created">
         <div class="name" v-if="$store.getters.displayName">
-          <button type="button" class="user-name-button" dir="auto" @click.stop="onClickUserBySupplement(supplement)">
-            {{ $t('{name}の付加情報', { name: resolveUserDisplayName(supplement.user) }) }}
+          <button type="button" class="user-name-button" dir="auto" :aria-label="`${supplementHeading} (${$t('{name}で絞り込み', { name: getUsernameOrGuestname(supplement) })})`" @click.stop="onClickUserBySupplement(supplement)">
+            {{ supplementHeading }}
           </button>
         </div>
         <div class="created" v-if="$store.getters.displayDate">
@@ -166,6 +166,7 @@
 </template>
 
 <script>
+import { getSupplementTitle } from '@/features/timeline/supplementTitle';
 import { canManageFloor } from '@/utils/floorPermissions';
 import DateUtil from '@/utils/dateUtil.js';
 import TimelineUtil from '@/features/timeline/timelineUtil.js';
@@ -219,6 +220,9 @@ export default {
     };
   },
   computed: {
+    supplementHeading() {
+      return getSupplementTitle(this.supplement, this.$i18n.locale) || this.$t('{name}の付加情報', { name: this.resolveUserDisplayName(this.supplement.user) });
+    },
     canManageFloor() {
       return canManageFloor(this.$store.getters.userRole, this.$store.getters.roomRole);
     },
@@ -375,6 +379,8 @@ export default {
   align-items: center;
 }
 .name {
+  min-width: 0;
+  overflow-wrap: anywhere;
 }
 .user-name-button,
 .user-link-button {

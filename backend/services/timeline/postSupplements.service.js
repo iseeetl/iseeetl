@@ -1,3 +1,5 @@
+const { titleFields, titleChanged } = require('../../utils/supplementTitle');
+const { scheduleSupplementTitleTranslation } = require('./shared/supplementTitleTranslation');
 const { publishSocketEvent } = require('../../socket/publication');
 const { assertResourceContent, isUnchangedResource } = require('./shared/resourceMutation');
 const { SUPPLEMENT_MUTABLE_FIELDS } = require('./shared/partialMutation');
@@ -123,6 +125,10 @@ exports.create = async (body, jwtPayload, io, { errors, requireContentOrMedia = 
     );
   }
 
+  scheduleSupplementTitleTranslation({
+    chatId: result._id, supplement: createdSupplement, body, context, io,
+  });
+
   return result;
 };
 
@@ -145,7 +151,10 @@ exports.update = async (body, jwtPayload, io, { errors, requireContentOrMedia = 
     code: errors?.post?.code || 'NOT_FOUND',
     excludeDeleted: true,
   });
-  const effectiveBody = mergeTimelinePatch(supplement, body);
+  const effectiveBody = {
+    ...mergeTimelinePatch(supplement, body, SUPPLEMENT_MUTABLE_FIELDS),
+    ...titleFields(body, supplement, { fallbackLang: supplement.lang }),
+  };
   const contentProvided = hasDefinedOwn(body, 'content');
   const content = effectiveBody.content;
   if (requireContentOrMedia) assertResourceContent(effectiveBody);
@@ -184,10 +193,10 @@ exports.update = async (body, jwtPayload, io, { errors, requireContentOrMedia = 
     patch: body,
     updated: updateSupplement,
     targetPath: 'supplementaries.$[supplement]',
-    derivedFields:
-      translationEnabled && translationSourceChanged
-        ? ['translations']
-        : [],
+    derivedFields: [
+      ...(translationEnabled && translationSourceChanged ? ['translations'] : []),
+      ...(titleChanged(supplement, updateSupplement) ? ['title', 'title_lang', 'title_translations'] : []),
+    ],
   });
 
   const result = await persistSupplementMutation({
@@ -238,6 +247,10 @@ exports.update = async (body, jwtPayload, io, { errors, requireContentOrMedia = 
       { context: { postId: String(result._id), supplementId: String(updateSupplement._id) } }
     );
   }
+
+  scheduleSupplementTitleTranslation({
+    chatId: result._id, supplement: updateSupplement, previous: supplement, body, context, io,
+  });
 
   return result;
 };

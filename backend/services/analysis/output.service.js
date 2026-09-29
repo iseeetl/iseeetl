@@ -102,6 +102,28 @@ const buildTranslations = async ({ snapshot, base, translateContent, logger }) =
   });
 };
 
+const buildTitleTranslations = async ({ snapshot, translateContent, logger }) => {
+  if (!snapshot.resultTitle || !snapshot.resultTitleLang) return [];
+  const targets = [...new Set(snapshot.targetLangs)].filter((lang) => lang && lang !== snapshot.resultTitleLang);
+  if (!targets.length) return [];
+  try {
+    const translations = await translateContent(
+      snapshot.resultUserId, snapshot.resultTitle, snapshot.resultTitleLang, targets
+    );
+    return (Array.isArray(translations) ? translations : []).flatMap((entry) => {
+      const content = normalizeProviderOutput(entry?.content).replace(/[\r\n\u2028\u2029]+/g, ' ');
+      return content && targets.includes(entry.lang)
+        ? [{ user: snapshot.resultUserId, guest_id: null, lang: entry.lang, content }]
+        : [];
+    });
+  } catch (error) {
+    logger.warn('AI_ANALYSIS_TRANSLATION_FAILED', {
+      ...analysisLogContext(snapshot, 'title_translation_failed'), error_code: error?.code || null,
+    });
+    return [];
+  }
+};
+
 const buildAnalysisSupplement = async ({
   snapshot,
   providerOutput,
@@ -118,6 +140,9 @@ const buildAnalysisSupplement = async ({
   });
   return {
     user: snapshot.resultUserId,
+    title: snapshot.resultTitle || null,
+    title_lang: snapshot.resultTitle ? snapshot.resultTitleLang : null,
+    title_translations: await buildTitleTranslations({ snapshot, translateContent, logger }),
     lang: base.baseLang,
     content: base.content,
     translations,

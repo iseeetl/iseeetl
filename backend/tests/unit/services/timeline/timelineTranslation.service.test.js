@@ -46,6 +46,22 @@ const makeIo = () => {
 };
 
 describe('timelineTranslationのサービス', () => {
+  test.each([null, 'reply1'])('返信IDが%sのタイトル翻訳は変更前の原文を条件に更新し、競合時に配信しない', async (replyId) => {
+    translationCore.translateContent.mockResolvedValue([{ lang: 'en', content: 'Offers' }]);
+    Chat.findOneAndUpdate.mockResolvedValue(null);
+    const { io } = makeIo();
+    await timelineTranslation.translateSupplementTitleIfNeeded({
+      chatId: 'post1', replyId, supplementId: 'supp1', title: 'お買い得', titleLang: 'ja', targetLangs: ['en'], userId: 'user1', io,
+    });
+    expect(translationCore.translateContent).toHaveBeenCalledWith('user1', 'お買い得', 'ja', ['en']);
+    const [query, update, options] = Chat.findOneAndUpdate.mock.calls[0];
+    const match = replyId ? query.replies.$elemMatch.supplementaries.$elemMatch : query.supplementaries.$elemMatch;
+    expect(match).toEqual({ _id: 'supp1', title: 'お買い得', title_lang: 'ja', delete_flg: false });
+    expect(options.arrayFilters[0]).toMatchObject({ 'supplement.title': 'お買い得' });
+    expect(Object.keys(update.$set)).toEqual([replyId ? 'replies.$[reply].supplementaries.$[supplement].title_translations' : 'supplementaries.$[supplement].title_translations']);
+    expect(io.to).not.toHaveBeenCalled();
+  });
+
   test.each([
     'translateMainContentIfNeeded', 'translateGuestMainContentIfNeeded',
     'translateReplyIfNeeded', 'translateGuestReplyIfNeeded',

@@ -1,4 +1,11 @@
 {
+  "supplementTitle": {
+    "label": "Title",
+    "settingLabel": "Supplement title",
+    "hint": "Optional, up to 50 characters. Leave blank to show the default heading with the user’s name.",
+    "invalid": "Enter a title of up to 50 characters without line breaks.",
+    "displayHeadings": "Show post, reply and supplement headings"
+  },
   "まだ投稿がありません。投稿されると、ここに表示されます。": "No posts yet. New posts will appear here.",
   "投稿がないときの案内文": "Message when there are no posts",
   "空欄の場合は、標準の案内文を表示します。": "Leave blank to show the default message.",
@@ -438,7 +445,6 @@
   "タイムライン設定": "Timeline Settings",
   "読み上げ速度": "Reading Speed",
   "項目の表示": "Display Items",
-  "「◯◯の投稿」、「◯◯の返信」、「◯◯の付加情報」を表示する": "Display '○○'s Post and Reply and Additional information",
   "「日付」を表示する": "Display 'Date'",
   "「タグ」を表示する": "Display 'Tag'",
   "「付加情報」を表示する": "Display 'Additional Information'",

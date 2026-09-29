@@ -1,4 +1,11 @@
 {
+  "supplementTitle": {
+    "label": "Başlık",
+    "settingLabel": "Ek bilgi başlığı",
+    "hint": "İsteğe bağlı, en fazla 50 karakter. Boş bırakılırsa kullanıcı adını içeren varsayılan başlık gösterilir.",
+    "invalid": "Satır sonu kullanmadan en fazla 50 karakterlik bir başlık girin.",
+    "displayHeadings": "Gönderi, yanıt ve ek bilgi başlıklarını göster"
+  },
   "まだ投稿がありません。投稿されると、ここに表示されます。": "Henüz gönderi yok. Yeni gönderiler burada görünecek.",
   "投稿がないときの案内文": "Gönderi olmadığında gösterilen mesaj",
   "空欄の場合は、標準の案内文を表示します。": "Varsayılan mesajı göstermek için boş bırakın.",
@@ -438,7 +445,6 @@
   "タイムライン設定": "Zaman Çizelgesi Ayarları",
   "読み上げ速度": "Okuma Hızı",
   "項目の表示": "Görüntüleme Öğeleri",
-  "「◯◯の投稿」、「◯◯の返信」、「◯◯の付加情報」を表示する": "'◯◯'in gönderisini, '◯◯'in yanıtını ve '◯◯'in ek bilgilerini göster",
   "「日付」を表示する": "'Tarih' göster",
   "「タグ」を表示する": "'Etiket' göster",
   "「付加情報」を表示する": "'Ek Bilgileri' göster",

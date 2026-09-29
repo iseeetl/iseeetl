@@ -56,11 +56,13 @@ const createCategoryTag = (user, overrides = {}) =>
     ...overrides,
   });
 
-const createCommonSetting = ({ admin, resultUser, categoryTag, kind = 'vision', prompt = '' }) =>
+const createCommonSetting = ({ admin, resultUser, categoryTag, kind = 'vision', prompt = '', title = null }) =>
   AIAnalysisSetting.create({
     category_tag: categoryTag._id,
     analysis_kind: kind,
     additional_prompt: prompt,
+    result_title: title,
+    result_title_lang: title ? 'ja' : null,
     result_user: resultUser._id,
     revision: 1,
     user: admin._id,
@@ -89,6 +91,7 @@ describe('AI解析設定のタグ継承', () => {
       resultUser,
       categoryTag,
       prompt: 'master vision',
+      title: '共通の見出し',
     });
     const masterSpeech = await createCommonSetting({
       admin,
@@ -112,6 +115,7 @@ describe('AI解析設定のタグ継承', () => {
       .lean();
     expect(floorTag.source_category_tag.toString()).toBe(categoryTag._id.toString());
     expect(floorSettings).toHaveLength(2);
+    expect(floorSettings.find((setting) => setting.analysis_kind === 'vision')).toMatchObject({ result_title: '共通の見出し', result_title_lang: 'ja' });
     expect(floorSettings).toEqual(
       expect.arrayContaining([
         expect.objectContaining({
@@ -133,7 +137,7 @@ describe('AI解析設定のタグ継承', () => {
 
     await AIAnalysisSetting.updateOne(
       { _id: masterVision._id },
-      { $set: { additional_prompt: 'changed later' }, $inc: { revision: 1 } }
+      { $set: { additional_prompt: 'changed later', result_title: '変更した共通の見出し' }, $inc: { revision: 1 } }
     );
     expect(
       (await FloorAIAnalysisSetting.findOne({ source_master_setting: masterVision._id }).lean())
@@ -154,6 +158,7 @@ describe('AI解析設定のタグ継承', () => {
     }).lean();
     const sourceFloorVision = floorSettings.find((setting) => setting.analysis_kind === 'vision');
     expect(roomTag.source_floor_tag.toString()).toBe(floorTag._id.toString());
+    expect(roomVision).toMatchObject({ result_title: '共通の見出し', result_title_lang: 'ja' });
     expect(roomVision).toEqual(
       expect.objectContaining({
         room_tag: roomTag._id,

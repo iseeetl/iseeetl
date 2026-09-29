@@ -71,6 +71,18 @@
 
     <UiField
       v-slot="{ controlAttrs }"
+      :control-id="`${idPrefix}-result-title`"
+      :label="$t('supplementTitle.settingLabel')"
+      :description="$t('supplementTitle.hint')"
+      :invalid="Boolean(titleError)"
+      :error="titleError"
+    >
+      <input v-bind="controlAttrs" ref="titleInput" :value="titleValue" type="text" dir="auto"
+        maxlength="50" :disabled="sending" @input="$emit('update:titleValue', $event.target.value)" />
+    </UiField>
+
+    <UiField
+      v-slot="{ controlAttrs }"
       class="ai-analysis-setting-fields__result-user-search"
       :control-id="resultUserSearchId"
       :label="$t('aiAnalysisSettings.managementResultUser')"
@@ -194,6 +206,7 @@ export default {
     'search',
     'update:kindValue',
     'update:promptValue',
+    'update:titleValue',
     'update:resultUserValue',
     'update:searchValue',
     'update:tagValue',
@@ -204,6 +217,8 @@ export default {
     tagValue: { type: String, default: '' },
     kindValue: { type: String, default: '' },
     promptValue: { type: String, default: '' },
+    titleValue: { type: String, default: '' },
+    titleError: { type: String, default: '' },
     resultUserValue: { type: String, default: '' },
     searchValue: { type: String, default: '' },
     tags: { type: Array, default: () => [] },
@@ -263,6 +278,9 @@ export default {
     focusKind() {
       return this.focusControl(this.$refs.kindSelect);
     },
+    focusTitle() {
+      return this.focusControl(this.$refs.titleInput);
+    },
     focusPrompt() {
       return this.focusControl(this.$refs.promptInput);
     },
@@ -289,7 +307,8 @@ export default {
 
 .ai-analysis-setting-fields textarea,
 .ai-analysis-setting-fields select,
-.ai-analysis-setting-fields input[type='search'] {
+.ai-analysis-setting-fields input[type='search'],
+.ai-analysis-setting-fields input[type='text'] {
   box-sizing: border-box;
   width: 100%;
 }

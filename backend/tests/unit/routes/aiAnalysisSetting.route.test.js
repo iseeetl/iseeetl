@@ -30,6 +30,7 @@ const setup = () => {
   }));
   jest.doMock(settingValidatePath, () => ({
     validateAIAnalysisSearch: middlewareFactory('search'),
+    validateResultTitle: jest.fn(() => [(_req, _res, next) => next()]),
     validateAdditionalPrompt: middlewareFactory('prompt'),
     validateAllowedBodyFields: middlewareFactory('allowlist'),
     validateAnalysisKind: middlewareFactory('kind'),
@@ -143,6 +144,8 @@ describe('AI解析設定のルーティング', () => {
       'category_tag',
       'analysis_kind',
       'additional_prompt',
+      'result_title',
+      'result_title_lang',
       'result_user',
     ]);
     expect(baseValidate.validateMongoId).toHaveBeenCalledWith('category_tag');
@@ -169,6 +172,8 @@ describe('AI解析設定のルーティング', () => {
       'category_tag',
       'analysis_kind',
       'additional_prompt',
+      'result_title',
+      'result_title_lang',
       'result_user',
       'revision',
     ]);

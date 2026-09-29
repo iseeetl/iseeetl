@@ -18,7 +18,12 @@ const present = (post, input, operation, kind) => {
   const items = kind === 'reply' ? post.replies : reply ? reply.supplementaries : post.supplementaries;
   const item = operation === 'create' ? items[items.length - 1] : items.find((value) => String(value._id) === input._id);
   const dto = presentPostMutation({ ...item, room: post.room });
-  if (kind !== 'reply') { delete dto.room_tags; delete dto.animation; }
+  if (kind !== 'reply') {
+    delete dto.room_tags;
+    delete dto.animation;
+    dto.title = item.title ?? null;
+    dto.title_lang = item.title_lang ?? null;
+  }
   return { ...dto, post_id: String(post._id), ...(reply ? { reply_id: String(reply._id) } : {}) };
 };
 

@@ -211,6 +211,8 @@
       :tag-value="form.tagId"
       :kind-value="form.analysisKind"
       :prompt-value="form.additionalPrompt"
+      :title-value="form.resultTitle"
+      :title-error="formSubmitted && !titleValid ? $t('supplementTitle.invalid') : ''"
       :result-user-value="form.resultUserId"
       :search-value="resultUserSearch"
       :tags="tags"
@@ -231,6 +233,7 @@
       @update:tag-value="form.tagId = $event"
       @update:kind-value="form.analysisKind = $event"
       @update:prompt-value="form.additionalPrompt = $event; validatePrompt()"
+      @update:title-value="form.resultTitle = $event"
       @update:result-user-value="form.resultUserId = $event"
       @update:search-value="resultUserSearch = $event"
       @search="searchResultUsers"
@@ -319,6 +322,7 @@
 </template>
 
 <script>
+import { isValidSupplementTitle, supplementTitleLanguage } from '@/features/timeline/supplementTitle';
 import aiAnalysisSettingsApi from '@/api/aiAnalysisSettings';
 import tagApi from '@/api/tag';
 import { appendApiErrorMessage } from '@/api/apiClient';
@@ -349,6 +353,9 @@ const createEmptyForm = () => ({
   tagId: '',
   analysisKind: '',
   additionalPrompt: '',
+  resultTitle: '',
+  initialResultTitle: '',
+  resultTitleLang: null,
   resultUserId: '',
 });
 
@@ -424,6 +431,9 @@ export default {
     };
   },
   computed: {
+    titleValid() {
+      return isValidSupplementTitle(this.form.resultTitle);
+    },
     busy() {
       return this.loading || this.sending || this.searching;
     },
@@ -754,6 +764,9 @@ export default {
         tagId: setting.tag?._id || '',
         analysisKind: setting.analysis_kind || '',
         additionalPrompt: setting.additional_prompt || '',
+        resultTitle: setting.result_title || '',
+        initialResultTitle: setting.result_title || '',
+        resultTitleLang: setting.result_title_lang || null,
         resultUserId: setting.result_user?._id || '',
       };
       this.initialForm = { ...this.form };
@@ -881,7 +894,7 @@ export default {
         return false;
       }
       const prompt = this.validatePrompt();
-      if (!prompt.valid) {
+      if (!prompt.valid || !this.titleValid) {
         this.focusFirstFormError();
         return false;
       }
@@ -898,6 +911,8 @@ export default {
           return this.$refs.formFields?.focusKind();
         } else if (this.promptError) {
           return this.$refs.formFields?.focusPrompt();
+        } else if (!this.titleValid) {
+          return this.$refs.formFields?.focusTitle();
         } else if (!this.form.resultUserId) {
           return this.$refs.formFields?.focusResultUserSearch();
         }
@@ -950,6 +965,8 @@ export default {
           tagId: this.form.tagId,
           analysisKind: this.form.analysisKind,
           additionalPrompt: this.promptValidation.value,
+          resultTitle: this.form.resultTitle,
+          resultTitleLang: supplementTitleLanguage(this.form.resultTitle, this.form.initialResultTitle, this.form.resultTitleLang, this.$i18n.locale),
           resultUserId: this.form.resultUserId,
         };
         if (this.editingSetting) {

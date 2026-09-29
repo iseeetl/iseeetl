@@ -27,6 +27,30 @@ const snapshot = (overrides = {}) => ({
 const logger = () => ({ info: jest.fn(), warn: jest.fn(), error: jest.fn() });
 
 describe('AI解析結果の整形', () => {
+  test('タイトルの原文言語を使って本文と別に翻訳し、長い翻訳も省略しない', async () => {
+    const translatedTitle = '翻訳'.repeat(30);
+    const translateContent = jest.fn(async (_user, text) => [{ lang: 'en', content: text === '見出し' ? translatedTitle : 'body' }]);
+    const value = await buildAnalysisSupplement({
+      snapshot: snapshot({ resultTitle: '見出し', resultTitleLang: 'ja', targetLangs: ['en', 'ja'] }),
+      providerOutput: 'answer', translateContent, logger: logger(),
+    });
+    expect(value).toMatchObject({ title: '見出し', title_lang: 'ja', content: '#Advice answer' });
+    expect(translateContent).toHaveBeenCalledWith('user-1', '見出し', 'ja', ['en']);
+    expect(value.title_translations[0].content).toBe(translatedTitle);
+  });
+  test('タイトル翻訳が失敗しても原文タイトルと解析本文を保存する', async () => {
+    const translateContent = jest.fn(async (_user, text) => {
+      if (text === '見出し') throw new Error('translation unavailable');
+      return [{ lang: 'ja', content: '本文訳' }];
+    });
+    const value = await buildAnalysisSupplement({
+      snapshot: snapshot({ resultTitle: '見出し', resultTitleLang: 'ja', targetLangs: ['en', 'ja'] }),
+      providerOutput: 'answer', translateContent, logger: logger(),
+    });
+    expect(value).toMatchObject({ title: '見出し', title_translations: [], content: '#Advice answer' });
+    expect(value.translations).toHaveLength(1);
+  });
+
   test('解析を実行したルームタグの翻訳を使い、翻訳がなければ元のタグ名を使う', async () => {
     const translateContent = jest.fn(async () => [
       { lang: 'fr-FR', content: 'réponse' },

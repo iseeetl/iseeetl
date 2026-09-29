@@ -385,6 +385,7 @@ describe('共通AI解析設定の管理画面', () => {
         tagId: 'tag-1',
         analysisKind: 'conversation',
         additionalPrompt: '  e\u0301  ',
+        resultTitle: '解析メモ',
         resultUserId: 'user-1',
         revision: null,
       },
@@ -397,6 +398,8 @@ describe('共通AI解析設定の管理画面', () => {
         analysis_kind: 'conversation',
         additional_prompt: '\u00e9',
         result_user: 'user-1',
+        result_title: '解析メモ',
+        result_title_lang: 'ja',
       },
     ]);
     expect(reloadCount).to.equal(1);
@@ -409,6 +412,9 @@ describe('共通AI解析設定の管理画面', () => {
       additionalPrompt: '  e\u0301  ',
       resultUserId: 'user-1',
       revision: null,
+      resultTitle: '解析メモ',
+      initialResultTitle: '',
+      resultTitleLang: null,
     });
     expect(wrapper.vm.initialFormSnapshot).not.to.equal(null);
 
@@ -421,6 +427,9 @@ describe('共通AI解析設定の管理画面', () => {
       additionalPrompt: '',
       resultUserId: '',
       revision: null,
+      resultTitle: '',
+      initialResultTitle: '',
+      resultTitleLang: null,
     });
     expect(wrapper.vm.initialFormSnapshot).to.equal(null);
   });
@@ -507,6 +516,9 @@ describe('共通AI解析設定の管理画面', () => {
       tagId: 'tag-1',
       analysisKind: 'speech',
       additionalPrompt: 'next prompt',
+      resultTitle: '',
+      initialResultTitle: '',
+      resultTitleLang: null,
       resultUserId: 'user-2',
       revision: null,
     });
@@ -527,6 +539,9 @@ describe('共通AI解析設定の管理画面', () => {
       additionalPrompt: '',
       resultUserId: '',
       revision: null,
+      resultTitle: '',
+      initialResultTitle: '',
+      resultTitleLang: null,
     });
 
     wrapper.vm.openEditDialog(setting());
@@ -660,6 +675,8 @@ describe('共通AI解析設定の管理画面', () => {
         analysis_kind: 'conversation',
         additional_prompt: '',
         result_user: 'user-1',
+        result_title: null,
+        result_title_lang: null,
       },
     ]);
   });
@@ -724,6 +741,8 @@ describe('共通AI解析設定の管理画面', () => {
         analysis_kind: 'speech',
         additional_prompt: 'prompt',
         result_user: 'user-2',
+        result_title: null,
+        result_title_lang: null,
         revision: 4,
       },
     ]);

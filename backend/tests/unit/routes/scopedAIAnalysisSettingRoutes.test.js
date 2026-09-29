@@ -15,6 +15,7 @@ const setup = (type) => {
 
   jest.doMock(basePath, () => ({ validateMongoId: makeFactory() }));
   jest.doMock(settingValidatePath, () => ({
+    validateResultTitle: jest.fn(() => [(_req, _res, next) => next()]),
     validateAdditionalPrompt: makeFactory(),
     validateAllowedBodyFields: makeFactory(),
     validateAnalysisKind: makeFactory(),
@@ -108,7 +109,7 @@ describe.each([
     expect(context.controller[actions.list]).toHaveBeenCalledTimes(1);
   });
 
-  test('createはscope/tag/kind/promptと必須result_userだけを許可する', async () => {
+  test('作成時は対象範囲・タグ・解析種別・追加指示・タイトル・投稿者を検証する', async () => {
     const response = await request(context.app).post('/settings/create').send({});
 
     expect(response.status).toBe(200);
@@ -117,6 +118,8 @@ describe.each([
       tagField,
       'analysis_kind',
       'additional_prompt',
+      'result_title',
+      'result_title_lang',
       'result_user',
     ]);
     expect(context.baseValidate.validateMongoId).toHaveBeenCalledWith(tagField);
@@ -136,6 +139,8 @@ describe.each([
       tagField,
       'analysis_kind',
       'additional_prompt',
+      'result_title',
+      'result_title_lang',
       'result_user',
       'revision',
     ]);

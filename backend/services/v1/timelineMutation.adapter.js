@@ -1,4 +1,6 @@
 const AppError = require('../../utils/appError');
+const { normalizeTitle } = require('../../utils/supplementTitle');
+const { ALLOWED_LANGUAGES } = require('../../constants/languages');
 const { isMongoId } = require('../../utils/safePath');
 
 const invalidParams = () => new AppError({ code: 'INVALID_PARAMS' });
@@ -169,13 +171,23 @@ function adaptPostDelete(body) {
   return { room_id: requireId(body, 'room_id'), _id: requireId(body, 'post_id') };
 }
 
+function supplementTitleInput(body) {
+  const result = {};
+  if (hasOwn(body, 'title')) result.title = normalizeTitle(body.title);
+  if (hasOwn(body, 'title_lang')) {
+    if (body.title_lang !== null && !ALLOWED_LANGUAGES.includes(body.title_lang)) throw invalidParams();
+    result.title_lang = body.title_lang;
+  }
+  return result;
+}
+
 function adaptPostSupplementCreate(body) {
-  return { ...baseCreate(body), post_id: requireId(body, 'post_id') };
+  return { ...baseCreate(body), ...supplementTitleInput(body), post_id: requireId(body, 'post_id') };
 }
 
 function adaptPostSupplementUpdate(body) {
   return {
-    ...baseUpdate(body),
+    ...baseUpdate(body), ...supplementTitleInput(body),
     post_id: requireId(body, 'post_id'),
     _id: requireId(body, 'supplement_id'),
   };
@@ -218,7 +230,7 @@ function adaptReplyDelete(body) {
 
 function adaptReplySupplementCreate(body) {
   return {
-    ...baseCreate(body),
+    ...baseCreate(body), ...supplementTitleInput(body),
     post_id: requireId(body, 'post_id'),
     reply_id: requireId(body, 'reply_id'),
   };
@@ -226,7 +238,7 @@ function adaptReplySupplementCreate(body) {
 
 function adaptReplySupplementUpdate(body) {
   return {
-    ...baseUpdate(body),
+    ...baseUpdate(body), ...supplementTitleInput(body),
     post_id: requireId(body, 'post_id'),
     reply_id: requireId(body, 'reply_id'),
     _id: requireId(body, 'supplement_id'),

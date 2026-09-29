@@ -84,9 +84,11 @@ DB内部の更新番号、翻訳、返信・付加情報などの配列は含み
 
 返信は投稿と同じ入力項目に加え、真偽値の`notify_all`を任意で指定できます。省略・falseは通常の配信、trueはルーム内の画面に返信通知を表示します。内容の変更がなくtrueだけを送った場合も通知しますが、DBの保存日時や内容は変更しません。通知イベントIDと通知日時はSocket.IOの送信データにだけ付加し、DBへ保存しません。
 
-付加情報のリクエスト本文は`content`・`lang`・`media`だけを受け付け、`room_tags`・`animation`・`notify_all`は指定できません。作成時は`lang`が必須です。作成・更新時に省略した項目は、投稿と同じ扱いになります。本文または添付ファイルが必要です。
+付加情報のリクエスト本文は`content`・`lang`・`media`・`title`・`title_lang`だけを受け付け、`room_tags`・`animation`・`notify_all`は指定できません。作成時は`lang`が必須です。作成・更新時に省略した項目は、投稿と同じ扱いになります。本文または添付ファイルが必要です。
 
-成功応答では、操作した返信・付加情報を返します。投稿の応答と共通の項目に`post_id`を加え、返信付加情報には`reply_id`も含めます。付加情報には`room_tags`・`animation`を含めません。親投稿全体や、同じ親に属するほかの返信・付加情報は返しません。v1は親投稿JSONを返します。
+付加情報の`title`は任意の文字列で、前後空白を除いて50文字以内、改行不可です。空文字・空白のみ・`null`で解除し、更新時の省略は現在値を保持します。`title_lang`は対応言語コードで、省略時は保存済みのタイトル言語、なければ本文言語を使います。タイトルを解除すると言語と翻訳も解除します。入力不正は`400 INVALID_PARAMS`です。タイトルだけを指定した本文・添付のない作成はできません。
+
+成功応答では、操作した返信・付加情報を返します。投稿の応答と共通の項目に`post_id`を加え、返信付加情報には`reply_id`も含めます。付加情報には`title`・`title_lang`を含め、未設定は`null`です。`room_tags`・`animation`は含めません。親投稿全体や、同じ親に属するほかの返信・付加情報は返しません。v1は親投稿JSONを返します。
 
 Socket.IO配信は`REPLY_CREATE/UPDATE/DELETE`、`SUPPLEMENT_CREATE/UPDATE/DELETE`、`REPLY_SUPPLEMENT_CREATE/UPDATE/DELETE`を使用します。外部機能の有効状態に応じた通知・翻訳・解析の条件は[返信](timeline-replies.md)、[投稿付加情報](timeline-post-supplements.md)、[返信付加情報](timeline-reply-supplements.md)を参照してください。
 
@@ -104,7 +106,7 @@ Socket.IO配信は`REPLY_CREATE/UPDATE/DELETE`、`SUPPLEMENT_CREATE/UPDATE/DELET
 | 複合検索 | `POST` base`/search` | JSONの`from`、`to`、`globalServerQuery`、`serverQuery`だけ |
 | 詳細 | `GET` base`/:post_id` | クエリパラメータなし |
 
-成功時は`200`で、一覧・検索は親投稿の配列、詳細は親投稿JSONを返します。返信・付加情報・翻訳・リアクションも含み、論理削除された子データは除外します。更新APIと異なり、タイムライン表示に必要なデータをまとめて返します。
+成功時は`200`で、一覧・検索は親投稿の配列、詳細は親投稿JSONを返します。返信・付加情報・翻訳・リアクションも含み、付加情報のタイトル翻訳は`title_translations`（`lang`・`content`）で返します。論理削除された子データは除外します。更新APIと異なり、タイムライン表示に必要なデータをまとめて返します。
 
 日時はISO 8601形式の文字列で指定します。`from`は作成日時の上限（含まない）、`to`は下限（含む）です。作成日時の降順で通常10件、`to`を指定した範囲取得では最大200件を返します。
 

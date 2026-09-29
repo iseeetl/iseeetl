@@ -2,6 +2,8 @@ const { Schema } = require('mongoose');
 
 const ReactionSchema = require('./Reaction');
 const TranslationSchema = require('./Translation');
+const { ALLOWED_LANGUAGES } = require('../../../constants/languages');
+const { MAX_TITLE_LENGTH, LINE_BREAK } = require('../../../utils/supplementTitle');
 
 const AIAnalysisMetaSchema = new Schema(
   {
@@ -70,6 +72,15 @@ function validateCompleteAnalysisMeta() {
 });
 
 const SupplementSchema = new Schema({
+  title: {
+    type: String,
+    default: null,
+    trim: true,
+    maxlength: MAX_TITLE_LENGTH,
+    validate: (value) => value == null || !LINE_BREAK.test(value),
+  },
+  title_lang: { type: String, enum: [...ALLOWED_LANGUAGES, null], default: null },
+  title_translations: { type: [TranslationSchema], default: [] },
   user: {
     type: Schema.Types.ObjectId,
     ref: 'User',
