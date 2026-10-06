@@ -1079,6 +1079,54 @@ describe('フロア・ルームの作成・取得・更新・削除と権限', (
     expect(detail.body._id).toBe(room._id.toString());
   });
 
+  test.each([
+    ['翻訳があるフロア', 'ja', true],
+    ['翻訳がないフロア', 'ja', false],
+    ['作成時の言語が未設定のフロア', null, true],
+    ['言語項目が保存されていない旧フロア', undefined, true],
+  ])('ルーム詳細にフロア名・言語・翻訳を含める（%s）', async (_label, lang, hasTranslations) => {
+    const owner = await User.create({
+      username: '翻訳確認ユーザ',
+      mail: 'room-detail-translation@example.invalid',
+      role: 'Editor',
+    });
+    const translations = hasTranslations
+      ? [{ user: owner._id, lang: 'en', title: 'English floor', description: 'Floor description' }]
+      : [];
+    const floor = await Floor.create({
+      user: owner._id,
+      title: '日本語のフロア',
+      description: 'フロアの説明',
+      lang,
+      target_langs: ['en'],
+      translations,
+    });
+    if (lang === undefined) {
+      await Floor.collection.updateOne({ _id: floor._id }, { $unset: { lang: '' } });
+    }
+    const room = await Room.create({
+      user: owner._id,
+      floor: floor._id,
+      title: '日本語のルーム',
+      lang: 'ja',
+    });
+
+    const detail = await request(app).post('/room/detail').send({ _id: String(room._id) });
+
+    expect(detail.status).toBe(200);
+    expect(detail.body.floor).toMatchObject({
+      _id: String(floor._id),
+      title: '日本語のフロア',
+      lang: lang ?? null,
+      target_langs: ['en'],
+      floor_display_hidden: false,
+    });
+    expect(detail.body.floor.translations).toEqual(JSON.parse(JSON.stringify(floor.translations)));
+    expect(detail.body.user._id).toBe(String(owner._id));
+    expect(detail.body.floor).not.toHaveProperty('description');
+    expect(detail.body.floor).not.toHaveProperty('user');
+  });
+
   test('ユーザ削除後はそのトークンでフロア・ルーム一覧を取得できない', async () => {
     const user = await User.create({
       username: 'DeletedListUser',

@@ -5,7 +5,9 @@ import { reactive } from 'vue';
 import { mount } from '@vue/test-utils';
 import Timeline from '@/views/Timeline.vue';
 import UiDialog from '@/components/ui/UiDialog.vue';
-import appStore from '@/store';
+import RoomInfoDialog from '@/components/timeline/dialogs/RoomInfoDialog.vue';
+import appStore, { createApplicationStore } from '@/store';
+import { checkRoomAndRoles } from '@/features/timeline/bootstrap';
 import chatApi from '@/api/chat';
 import roomApi from '@/api/room';
 import tagApi from '@/api/tag';
@@ -939,9 +941,15 @@ describe('タイムライン画面', () => {
     expect(reconnectCount).to.equal(0);
   });
 
-  it('言語変更後のルーム詳細再取得でフロアとルームの翻訳表示を更新する', async () => {
+  it.each([
+    ['英語訳を表示する', 'ja', [{ lang: 'en', title: 'Floor' }], 'en', 'Floor'],
+    ['翻訳がない場合は作成時の名前を表示する', 'ja', [], 'en', '元フロア'],
+    ['対象言語の翻訳がなければ英語訳ではなく作成時の名前を表示する', 'ja', [{ lang: 'en', title: 'Floor' }], 'fr', '元フロア'],
+    ['作成時の言語が未設定なら作成時の名前を表示する', null, [{ lang: 'en', title: 'Floor' }], 'en', '元フロア'],
+    ['言語項目がない場合は作成時の名前を表示する', undefined, [{ lang: 'en', title: 'Floor' }], 'en', '元フロア'],
+  ])('ルーム情報のフロア名は初期表示・言語変更後ともに%s', async (_label, lang, translations, locale, expectedTitle) => {
     const originalDetail = roomApi.detail;
-    const dispatchCalls = [];
+    const store = createApplicationStore({ plugins: [] });
     const router = createVueRouter({
       history: createMemoryHistory(),
       routes: [{ path: '/floor/:floor_id/room/:room_id', name: 'TimeLine', component: {} }],
@@ -962,33 +970,49 @@ describe('タイムライン画面', () => {
           floor: {
             _id: 'f1',
             title: '元フロア',
-            lang: 'ja',
-            translations: [{ lang: 'en', title: 'Floor' }],
+            lang,
+            target_langs: ['en'],
+            translations,
+            floor_display_hidden: false,
           },
         },
       });
     };
     const wrapper = createWrapperWithMethods({
       router,
-      store: {
-        getters: { userIsLogin: true, roomId: 'r1', floorId: 'f1' },
-        dispatch: (type, payload) => dispatchCalls.push({ type, payload }),
-      },
-      mocks: { $i18n: { locale: 'en' }, $t: (key) => key },
+      store,
+      mocks: { $i18n: { locale }, $t: (key) => key },
+    });
+    const dialog = shallowMount(RoomInfoDialog, {
+      stubs: { UiDialog: { template: '<div><slot /></div>' }, UiButton: true, UiIcon: true },
+      props: { dialogVisible: true },
+      mocks: { $store: store, $t: (key) => key },
     });
 
     try {
-      const updated = await wrapper.vm.refreshTranslatedRoomPresentation();
+      await checkRoomAndRoles(wrapper.vm);
+      await flushPromises();
 
-      expect(updated).to.equal(true);
-      expect(wrapper.vm.room.title).to.equal('Room');
-      expect(wrapper.vm.room.description).to.equal('Description');
-      expect(dispatchCalls).to.deep.include.members([
-        { type: 'doUpdateFloorTitle', payload: { title: 'Floor' } },
-        { type: 'doUpdateRoomTitle', payload: { title: 'Room' } },
-      ]);
+      expect(dialog.get('.room-info-floor dd').text()).to.equal(expectedTitle);
+      expect(wrapper.vm.room.title).to.equal(locale === 'en' ? 'Room' : '元ルーム');
+      expect(wrapper.vm.room.description).to.equal(locale === 'en' ? 'Description' : '元説明');
+
+      wrapper.vm.$i18n.locale = 'ja';
+      expect(await wrapper.vm.refreshTranslatedRoomPresentation()).to.equal(true);
+      await flushPromises();
+      expect(dialog.get('.room-info-floor dd').text()).to.equal('元フロア');
+      expect(wrapper.vm.room.title).to.equal('元ルーム');
+      expect(wrapper.vm.room.description).to.equal('元説明');
+
+      wrapper.vm.$i18n.locale = locale;
+      expect(await wrapper.vm.refreshTranslatedRoomPresentation()).to.equal(true);
+      await flushPromises();
+      expect(dialog.get('.room-info-floor dd').text()).to.equal(expectedTitle);
+      expect(store.getters.floorId).to.equal('f1');
+      expect(store.getters.roomId).to.equal('r1');
     } finally {
       roomApi.detail = originalDetail;
+      dialog.unmount();
       wrapper.unmount();
     }
   });

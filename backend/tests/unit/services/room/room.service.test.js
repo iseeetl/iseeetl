@@ -227,7 +227,7 @@ describe('ルームのサービス', () => {
   });
 
   describe('詳細取得', () => {
-    test('populate したルームを返す', async () => {
+    test('所属フロアの言語と翻訳を含むルーム詳細を返す', async () => {
       const populated = { _id: 'r1', floor: { _id: 'f1' } };
       const populate = jest.fn().mockResolvedValue(populated);
       Room.findOne.mockResolvedValue({ _id: 'r1', floor: 'f1', populate });
@@ -238,7 +238,7 @@ describe('ルームのサービス', () => {
       expect(Room.findOne).toHaveBeenCalledWith({ _id: 'r1', delete_flg: false });
       expect(Floor.findOne).toHaveBeenCalledWith({ _id: 'f1', delete_flg: false });
       expect(populate).toHaveBeenCalledWith([
-        { path: 'floor', select: 'title target_langs translations floor_display_hidden' },
+        { path: 'floor', select: 'title lang target_langs translations floor_display_hidden' },
         { path: 'user', select: 'username image_name' },
       ]);
       expect(res).toEqual(populated);

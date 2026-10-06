@@ -105,7 +105,7 @@ exports.detail = async (body) => {
   const { room: foundRoom } = await findRoomWithFloor(roomId);
 
   const populatedRoom = await foundRoom.populate([
-    { path: 'floor', select: 'title target_langs translations floor_display_hidden' },
+    { path: 'floor', select: 'title lang target_langs translations floor_display_hidden' },
     { path: 'user', select: 'username image_name' },
   ]);
 
