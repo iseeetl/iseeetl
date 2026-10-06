@@ -169,30 +169,36 @@ describe('タイムラインのカラム', () => {
     expect(wrapper.find('.filter-timeline-title').find('.timeline-filter-summary-stub').exists()).to.equal(true);
   });
 
-  it('長いカラムタイトルは省略可能な領域へ置き、操作ボタン群を縮めない', () => {
+  it('長いカラムタイトルは省略可能な領域へ置く', () => {
     const wrapper = createWrapper({ props: { index: 4 } });
     const header = wrapper.get('.timeline-title');
     const titleArea = header.get('.timeline-title-summary');
-    const actions = header.get('.timeline-title-actions');
     const source = fs.readFileSync(COMPONENT_PATH, 'utf8');
     const titleAreaStyle = source.match(/\.timeline-title \.timeline-title-summary\s*\{([^}]*)\}/u);
-    const actionsStyle = source.match(/\.timeline-title-handle,\s*\.timeline-title-actions\s*\{([^}]*)\}/u);
     const titleButtonStyle = source.match(/\.timeline-scroll-to-top-button\s*\{([^}]*)\}/u);
 
     expect(titleArea.element.tagName).to.equal('H2');
     expect(titleArea.classes()).to.include('filter-timeline-title');
     expect(titleArea.get('.timeline-scroll-to-top-button').exists()).to.equal(true);
-    expect(actions.get('[data-testid="timeline-filter-delete-button-4"]').exists()).to.equal(true);
     expect(titleAreaStyle).to.not.equal(null);
     expect(titleAreaStyle[1]).to.include('flex: 1 1 auto;');
     expect(titleAreaStyle[1]).to.include('min-width: 0;');
     expect(titleAreaStyle[1]).to.include('overflow: hidden;');
-    expect(actionsStyle).to.not.equal(null);
-    expect(actionsStyle[1]).to.include('flex: 0 0 auto;');
     expect(titleButtonStyle).to.not.equal(null);
     expect(titleButtonStyle[1]).to.include('width: 100%;');
     expect(titleButtonStyle[1]).to.include('overflow: hidden;');
     expect(titleButtonStyle[1]).to.include('text-overflow: ellipsis;');
+  });
+
+  it('閉じるボタンは他の操作とは別に配置し、対象カラムの削除を通知する', async () => {
+    const wrapper = createWrapper({ props: { index: 4 } });
+    const closeButton = wrapper.get('[data-testid="timeline-filter-delete-button-4"]');
+
+    expect(wrapper.get('.timeline-title-actions').find('[data-testid="timeline-filter-delete-button-4"]').exists()).to.equal(false);
+    expect(closeButton.attributes('aria-label')).to.equal('絞り込み削除');
+    await closeButton.trigger('click');
+    expect(wrapper.emitted().deleteFilter).to.deep.equal([[4]]);
+    expect(wrapper.emitted().showFilterDialog).to.equal(undefined);
   });
 
   it('h2の見出しを維持し、タイトルのボタンから先頭へ移動できる', async () => {

@@ -85,21 +85,21 @@
               <UiIcon name="filter_alt" />
             </UiButton>
           </UiTooltip>
-
-          <UiTooltip :text="$t('絞り込み削除')">
-            <UiButton
-              appearance="text"
-              tone="primary"
-              density="dense"
-              iconOnly
-              :data-testid="'timeline-filter-delete-button-' + index"
-              :aria-label="$t('絞り込み削除')"
-              @click="$emit('deleteFilter', index)"
-            >
-              <UiIcon name="close" />
-            </UiButton>
-          </UiTooltip>
         </div>
+
+        <UiTooltip class="timeline-title-close" :text="$t('絞り込み削除')">
+          <UiButton
+            appearance="text"
+            tone="primary"
+            density="dense"
+            iconOnly
+            :data-testid="'timeline-filter-delete-button-' + index"
+            :aria-label="$t('絞り込み削除')"
+            @click="$emit('deleteFilter', index)"
+          >
+            <UiIcon name="close" />
+          </UiButton>
+        </UiTooltip>
       </div>
 
       <div class="timeline-content" :data-column-index="index" :aria-busy="filter._sending ? 'true' : 'false'">
@@ -727,6 +727,7 @@ export default {
 }
 
 .timeline-inner {
+  container: timeline-column / inline-size;
   max-width: 800px;
   width: 100%;
   height: 100%;
@@ -788,8 +789,12 @@ export default {
   background: white;
 }
 .timeline-title-handle,
-.timeline-title-actions {
+.timeline-title-actions,
+.timeline-title-close {
   flex: 0 0 auto;
+}
+.timeline-title-close {
+  margin-inline-start: auto;
 }
 .timeline-title .timeline-title-summary {
   display: block;
@@ -822,6 +827,26 @@ export default {
 .timeline-title-actions {
   display: flex;
   align-items: center;
+}
+/* 狭いカラムでは閉じる操作を優先し、隠した操作をTab移動の対象からも外す。 */
+@container timeline-column (max-width: 320px) {
+  .timeline-title-actions {
+    display: none;
+  }
+}
+@container timeline-column (max-width: 104px) {
+  .timeline-title {
+    padding-inline-start: 0;
+  }
+  .timeline-title-handle,
+  .timeline-title .timeline-title-summary {
+    display: none;
+  }
+}
+@container timeline-column (width < 44px) {
+  .timeline-title-close {
+    display: none;
+  }
 }
 .timeline-title::before {
   content: '';
