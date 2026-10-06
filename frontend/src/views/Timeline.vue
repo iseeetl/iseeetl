@@ -1440,9 +1440,6 @@ audio {
   }
 }
 
-.ar-mode-wrapper {
-  height: 100svh !important;
-}
 .ar-mode-wrapper .view {
   height: 100% !important;
 }

@@ -82,11 +82,13 @@ export default {
   display: flex;
   flex-direction: column;
   width: 100%;
-  height: calc(100svh - 48px);
+  height: 100%;
+  min-height: 0;
   padding: 0;
 }
 .view-content {
-  height: calc(100% - 48px);
+  height: 100%;
+  min-height: 0;
   overflow: hidden;
   margin: 0;
   padding: 0;
