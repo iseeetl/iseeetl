@@ -130,7 +130,7 @@ last_post_dateは、対象ルームで論理削除されていない最新投稿
 
 - 200 OK
 - body: delete_flgがfalseで、所属フロアも論理削除されていないルーム
-- floorにはフロアID、title、target_langs、translations、floor_display_hiddenを含む
+- floorにはフロアID、title、lang、target_langs、translations、floor_display_hiddenを含む。langはフロア作成時の言語で、フロア名の翻訳表示に使う
 - userにはユーザID、username、image_nameを含む
 
 #### エラー
