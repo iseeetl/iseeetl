@@ -47,7 +47,7 @@
               :value="roomTag._id"
               v-model="tags"
             />
-            <span dir="auto">{{ roomTag.name }}</span>
+            <span dir="auto">{{ getTagName(roomTag) }}</span>
           </label>
         </div>
       </fieldset>
@@ -78,6 +78,7 @@ import tagApi from '@/api/tag';
 import { appendApiErrorMessage } from '@/api/apiClient';
 import { showSnackbar } from '@/utils/snackbar';
 import { handleAuthError as handleAuthErrorUtil } from '@/utils/authError';
+import TranslationUtil from '@/utils/translationUtil';
 import BaseEditDialog from '@/components/common/BaseEditDialog.vue';
 import ConfirmDialog from '@/components/common/ConfirmDialog.vue';
 import UiButton from '@/components/ui/UiButton.vue';
@@ -121,6 +122,10 @@ export default {
     },
   },
   methods: {
+    getTagName(tag) {
+      return TranslationUtil.getTagName(tag, this.$i18n.locale);
+    },
+
     openedDialog() {
       this.tags = Array.isArray(this.soundTags) ? [...this.soundTags] : [];
       this.initialTags = this.tags.slice();
