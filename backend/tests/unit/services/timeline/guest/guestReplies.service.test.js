@@ -1,3 +1,9 @@
+const mockAnalysisEnabled = jest.fn(() => false);
+jest.mock('../../../../../services/analysis/settings/capability', () => ({
+  isAIAnalysisExecutionEnabled: mockAnalysisEnabled,
+}));
+jest.mock('../../../../../services/analysis.service', () => ({ runReplyAnalyses: jest.fn().mockResolvedValue([]) }));
+const { runReplyAnalyses } = require('../../../../../services/analysis.service');
 jest.mock('../../../../../services/spam.service', () => ({
   replaceSpams: jest.fn().mockImplementation(async (txt) => (txt ? 'CLEAN_' + txt : txt)),
 }));
@@ -64,6 +70,7 @@ describe('guestRepliesのサービス', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     mockIsGoogleTranslateEnabled.mockReturnValue(true);
+    mockAnalysisEnabled.mockReturnValue(false);
     process.env = {
       ...ORIGINAL_ENV,
       ONESIGNAL_APP_ID: 'APPID',
@@ -124,7 +131,7 @@ describe('guestRepliesのサービス', () => {
       const populatedChat = {
         _id: 'post1',
         room: { _id: 'room1' },
-        replies: [{ guest_id: 'guest123', content: 'CLEAN_こんにちは' }],
+        replies: [{ _id: 'reply1', guest_id: 'guest123', content: 'CLEAN_こんにちは' }],
       };
       const updatedChat = {
         _id: 'post1',
@@ -154,6 +161,16 @@ describe('guestRepliesのサービス', () => {
       const to = jest.fn(() => ({ emit }));
       return { to, _emit: emit };
     };
+
+    test('翻訳が無効でも保存したゲスト返信の解析を呼び出す', async () => {
+      setupHappyPathMocks();
+      mockIsGoogleTranslateEnabled.mockReturnValue(false);
+      mockAnalysisEnabled.mockReturnValue(true);
+      const io = getIoMock();
+      await guestRepliesService.createReply({ ...BASE_BODY, guest: false }, io);
+      await drainBackgroundTasks();
+      expect(runReplyAnalyses).toHaveBeenCalledWith(expect.objectContaining({ chatId: 'post1', replyId: 'reply1', guest: true, signal: expect.any(AbortSignal) }));
+    });
 
     test('ゲスト返信を作成し通知・Socketへ通知する', async () => {
       setupHappyPathMocks();
@@ -221,7 +238,7 @@ describe('guestRepliesのサービス', () => {
         expect.objectContaining({ _id: 'post1' })
       );
       await drainBackgroundTasks();
-      expect(logger.warn).toHaveBeenCalledWith('[background:timeline.guestReplies.create] failed',
+      expect(logger.warn).toHaveBeenCalledWith('[background:timeline.guestReplies.create.translation] failed',
         expect.objectContaining({ postId: 'post1', error: 'translation failed' }));
       expect(logger.warn).toHaveBeenCalledTimes(1);
       expect(getPendingTaskCount()).toBe(0);

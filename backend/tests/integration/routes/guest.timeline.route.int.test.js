@@ -26,9 +26,12 @@ jest.mock('../../../services/timeline/timelineTranslation.service', () => ({
   translateReplySupplementIfNeeded: jest.fn().mockResolvedValue(undefined),
 }));
 
-jest.mock('../../../services/analysis.service', () => ({
-  runPostAnalyses: jest.fn(),
-  runReplyAnalyses: jest.fn(),
+const mockAnalysisEnabled = jest.fn(() => false);
+jest.mock('../../../services/analysis/settings/capability', () => ({
+  isAIAnalysisExecutionEnabled: mockAnalysisEnabled,
+}));
+jest.mock('../../../services/analysis/provider.service', () => ({
+  analyzeWithProvider: jest.fn().mockResolvedValue('会話の回答'),
 }));
 
 jest.mock('../../../integrations/onesignal/notification.client', () => ({
@@ -43,7 +46,9 @@ const Floor = require('../../../models/Floor');
 const Room = require('../../../models/Room');
 const RoomTag = require('../../../models/RoomTag');
 const Chat = require('../../../models/Chat');
-const analysisService = require('../../../services/analysis.service');
+const { analyzeWithProvider } = require('../../../services/analysis/provider.service');
+const RoomAIAnalysisSetting = require('../../../models/RoomAIAnalysisSetting');
+const { drainBackgroundTasks } = require('../../../services/backgroundTaskRunner');
 const timelineTranslationService = require('../../../services/timeline/timelineTranslation.service');
 const { ALLOWED_LANGUAGES } = require('../../../constants/languages');
 
@@ -159,7 +164,11 @@ describe('ゲスト用タイムラインAPIのアクセス制御', () => {
     restoreEnv();
   });
 
+  afterEach(async () => { await drainBackgroundTasks(); });
+
   beforeEach(() => {
+    mockAnalysisEnabled.mockReturnValue(false);
+    analyzeWithProvider.mockClear();
     app = buildApp(buildIo());
   });
 
@@ -477,7 +486,7 @@ describe('ゲスト用タイムラインAPIのアクセス制御', () => {
     expect(rejectedReply.body?.error?.code).toBe('INVALID_PARAMS');
   });
 
-  test.each(['正常', '通知失敗'])('%sでもゲストの投稿・返信を保存し、解析タグがあってもAI解析は起動しない', async (stage) => {
+  test.each(['正常', '通知失敗'])('%sでもゲストの投稿・返信を保存し、AI機能が無効なら解析を実行しない', async (stage) => {
     if (stage === '通知失敗') app = buildApp({ to: () => ({ emit: () => { throw new Error('emit failed'); } }) });
     const ctx = await createContext();
     const { token } = await bootstrapGuestToken(app, guestName1);
@@ -507,7 +516,8 @@ describe('ゲスト用タイムラインAPIのアクセス制御', () => {
     expect(createdReply.status).toBe(200);
     expect(createdReply.body.replies[0].analysis_source_revision).toBeUndefined();
 
-    Object.values(analysisService).forEach((handler) => expect(handler).not.toHaveBeenCalled());
+    await drainBackgroundTasks();
+    expect(analyzeWithProvider).not.toHaveBeenCalled();
     expect(timelineTranslationService.translateGuestMainContentIfNeeded).not.toHaveBeenCalled();
     expect(timelineTranslationService.translateGuestReplyIfNeeded).not.toHaveBeenCalled();
     const saved = await Chat.findById(createdPost.body._id).lean();
@@ -515,6 +525,42 @@ describe('ゲスト用タイムラインAPIのアクセス制御', () => {
     expect(saved.replies[0].analysis_source_revision).toBe(1);
     expect(saved.supplementaries).toHaveLength(0);
     expect(saved.replies[0].supplementaries).toHaveLength(0);
+  });
+
+  test.each([
+    ['許可あり', true, null, 2],
+    ['許可なし', false, null, 0],
+    ['流すは対象外', true, 'move-and-erase', 0],
+  ])('ゲストの投稿と返信でDBの許可設定に従って会話だけを解析する（%s）', async (_label, enabled, animation, count) => {
+    mockAnalysisEnabled.mockReturnValue(true);
+    const ctx = await createContext();
+    await Room.updateOne({ _id: ctx.room._id }, { $set: { guest_conversation_enabled: enabled } });
+    const tag = await RoomTag.create({ floor: ctx.floor._id, room: ctx.room._id, user: ctx.user._id, order: 1, name: '相談', lang: 'ja' });
+    await RoomAIAnalysisSetting.create(['conversation', 'vision'].map((analysis_kind) => ({
+      floor: ctx.floor._id, room: ctx.room._id, room_tag: tag._id,
+      user: ctx.user._id, updated_by: ctx.user._id, result_user: ctx.user._id,
+      analysis_kind, result_title: '回答メモ', result_title_lang: 'ja',
+    })));
+    const { token } = await bootstrapGuestToken(app, guestName1);
+    // クライアントの許可値やゲスト種別は解析の認可に使用しない。
+    const options = { room_tags: [String(tag._id)], animation, guest_conversation_enabled: true, guest: false };
+    const post = await request(app).post('/chat/guest/post').set('x-guest-token', token)
+      .send(buildPostPayload(ctx, guestName1, options));
+    expect(post.status).toBe(200);
+    const reply = await request(app).post('/chat/guest/reply').set('x-guest-token', token)
+      .send(buildReplyPayload(ctx, post.body._id, guestName1, options));
+    expect(reply.status).toBe(200);
+    await drainBackgroundTasks();
+    expect(analyzeWithProvider).toHaveBeenCalledTimes(count);
+    const saved = await Chat.findById(post.body._id).lean();
+    for (const source of [saved, saved.replies[0]]) {
+      expect(source.supplementaries).toHaveLength(count ? 1 : 0);
+      if (count) {
+        expect(source.supplementaries[0]).toMatchObject({
+          title: '回答メモ', user: ctx.user._id, meta: { analysis_kind: 'conversation' },
+        });
+      }
+    }
   });
 
   test('ゲスト投稿の本文がnullなら拒否する（HTTP 400）', async () => {

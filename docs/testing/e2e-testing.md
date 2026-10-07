@@ -354,6 +354,7 @@ E2E専用DBを既知状態へ戻す場合は、フロントエンド／バック
 | 確認する仕様 | `flows/`からのファイル | 確認結果 |
 | --- | --- | --- |
 | フロア・ルーム画像の差し替え取消 | `floor/floor.crud.e2e.js`、`room/room.crud.e2e.js` | 同じファイルの再選択、取消後の保存・再読込で元画像を保持 |
+| ゲストの会話解析の許可設定 | `room/room.crud.e2e.js` | 初期状態はOFF。作成・編集で切り替え、再読込後も保存した状態を保持 |
 | スマホのタイムラインタブ | `timeline/filter.e2e.js` | タブ内のボタン配置・クリック、選択列の読み上げ・絞り込み編集・削除 |
 | 認証済み利用者の招待拒否 | `invite/invite-authenticated-rejection.e2e.js` | 不正・別対象・期限切れの拒否理由、未加入状態 |
 | 共通タグCSV取込 | `management/categorytag-management.csv-import.e2e.js` | プレビュー・取消時の未変更、保存、重複名拒否後の未変更 |

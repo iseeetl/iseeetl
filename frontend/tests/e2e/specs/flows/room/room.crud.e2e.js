@@ -329,6 +329,9 @@ module.exports = {
       clickFirstVisible(browser, '[data-testid="room-list-create-button"]', '作成ダイアログを開く');
       browser.waitForElementVisible('#room_title', 10000);
 
+      browser.assert.not.selected('#guest_conversation_enabled', 'ゲストの会話解析は既定でOFFです。');
+      clickFirstVisible(browser, '#guest_conversation_enabled', 'ゲストの会話解析を許可する');
+
       const roomTitle = `E2E Room ${stamp}`;
       const editedTitle = `E2E Room ${stamp} Edit`;
       browser.clearValue('#room_title').setValue('#room_title', roomTitle);
@@ -345,6 +348,7 @@ module.exports = {
         description: roomDescription,
         filesLength: 1,
         imageState: 'preview',
+        guestConversationEnabled: true,
         label: 'ルームの作成を確定',
       });
       waitForDialogClosed(browser, '#room_title', '作成');
@@ -354,6 +358,7 @@ module.exports = {
 
       clickRoomAction(browser, roomTitle, '編集');
       browser.waitForElementVisible('#room_title', 10000);
+      browser.assert.selected('#guest_conversation_enabled', '保存した会話解析の許可がONです。');
       let roomImageUrl = '';
       waitForRoomImageState(browser, true, (resolvedUrl) => {
         roomImageUrl = resolvedUrl;
@@ -368,6 +373,7 @@ module.exports = {
         description: roomDescription,
         filesLength: 0,
         imageState: 'uploaded',
+        guestConversationEnabled: true,
         label: '画像の差し替えをキャンセルした後にルームを保存',
       });
       waitForDialogClosed(browser, '#room_title', '差し替えキャンセル後の保存');
@@ -375,6 +381,8 @@ module.exports = {
       waitForRoomTitle(browser, roomTitle, true);
       clickRoomAction(browser, roomTitle, '編集');
       assertOriginalImage(browser, originalImage);
+      browser.assert.selected('#guest_conversation_enabled', '再読込後も会話解析の許可がONです。');
+      clickFirstVisible(browser, '#guest_conversation_enabled', 'ゲストの会話解析をOFFに戻す');
       removeUploadedRoomImage(browser);
       browser.clearValue('#room_title').setValue('#room_title', editedTitle);
       clickExactRoomDialogSubmit(browser, {
@@ -390,6 +398,7 @@ module.exports = {
       clickRoomAction(browser, editedTitle, '編集');
       browser.waitForElementVisible('#room_title', 10000);
       waitForRoomImageState(browser, false);
+      browser.assert.not.selected('#guest_conversation_enabled', '会話解析の許可がOFFで保存されています。');
       clickFirstVisible(browser, '[data-testid="base-edit-dialog-cancel"]', 'ルーム画像の確認画面を閉じる');
       waitForDialogClosed(browser, '#room_title', '画像の削除を確認');
       browser.perform(() => {

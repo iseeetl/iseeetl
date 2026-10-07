@@ -51,12 +51,14 @@ const createAnalysisExecutor = ({
     io,
     mediaPath,
     signal,
+    guest = false,
   }) => {
     const preparedSnapshot = await buildSnapshot({
       chatId,
       sourceType,
       replyId,
       settingId,
+      guest,
     });
     if (!preparedSnapshot) return { status: 'skipped' };
 
@@ -82,6 +84,7 @@ const createAnalysisExecutor = ({
             sourceType,
             replyId,
             settingId,
+            guest,
           });
           if (!snapshot || !snapshotsReferToSameSource(preparedSnapshot, snapshot)) return null;
           const resultState = await inspectResult(snapshot);
@@ -128,9 +131,12 @@ const createAnalysisExecutor = ({
     mediaPath,
     signal,
     kinds = null,
+    guest = false,
   }) => {
     if (!executionEnabled() || signal?.aborted) return [];
-    const settingIds = await listSettingIds({ chatId, sourceType, replyId, kinds });
+    const settingIds = await listSettingIds({
+      chatId, sourceType, replyId, kinds: guest ? ['conversation'] : kinds,
+    });
     const results = [];
     for (const settingId of settingIds) {
       if (signal?.aborted) break;
@@ -144,6 +150,7 @@ const createAnalysisExecutor = ({
             io,
             mediaPath,
             signal,
+            guest,
           })
         );
       } catch (error) {

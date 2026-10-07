@@ -192,6 +192,7 @@ export default {
         image_name: null,
         lang: null,
         guest_reaction_only: false,
+        guest_conversation_enabled: false,
         member_only: false,
         notification: true,
         external_sns_button: false,
@@ -246,6 +247,7 @@ export default {
       this.editRoomValue.image_name = room.image_name;
       this.editRoomValue.lang = room.lang;
       this.editRoomValue.guest_reaction_only = room.guest_reaction_only;
+      this.editRoomValue.guest_conversation_enabled = room.guest_conversation_enabled === true;
       this.editRoomValue.member_only = room.member_only;
       this.editRoomValue.notification = room.notification;
       this.editRoomValue.external_sns_button = room.external_sns_button;
@@ -314,6 +316,7 @@ export default {
       this.editRoomValue.image_name = null;
       this.editRoomValue.lang = null;
       this.editRoomValue.guest_reaction_only = false;
+      this.editRoomValue.guest_conversation_enabled = false;
       this.editRoomValue.member_only = false;
       this.editRoomValue.notification = true;
       this.editRoomValue.external_sns_button = false;

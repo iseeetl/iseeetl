@@ -26,6 +26,10 @@ const validateGuestReactionOnly = (fieldName) => {
   return body(fieldName).exists().isBoolean();
 };
 
+const validateGuestConversationEnabled = (fieldName) => body(fieldName)
+  .optional()
+  .custom((value) => typeof value === 'boolean');
+
 const validateMemberOnly = (fieldName) => {
   return body(fieldName).exists().isBoolean();
 };
@@ -56,6 +60,7 @@ module.exports = {
   validateRoomEmptyMessage,
   validateRoomSearch,
   validateGuestReactionOnly,
+  validateGuestConversationEnabled,
   validateMemberOnly,
   validateNotification,
   validateRoomDisplayHidden,

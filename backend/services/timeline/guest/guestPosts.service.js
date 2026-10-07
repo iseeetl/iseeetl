@@ -14,7 +14,9 @@ const { containsOnlyAllowedEmojis } = require('../shared/guestRules');
 const { emitPostCreate, notifyPostFilterMatch } = require('../shared/postNotifications');
 const { validateRoomTagsForRoom } = require('../shared/roomTagValidation');
 const { translateGuestMainContentIfNeeded } = require('../../../services/timeline/timelineTranslation.service');
-const { runBackgroundTask } = require('../../backgroundTaskRunner');
+const { runBackgroundSteps } = require('../../backgroundTaskRunner');
+const { runPostAnalyses } = require('../../analysis.service');
+const { isAIAnalysisExecutionEnabled } = require('../../analysis/settings/capability');
 
 exports.getPosts = async (body) => {
   const roomId = body.room_id;
@@ -99,20 +101,28 @@ exports.createPost = async (body, io) => {
 
   await emitPostCreate(io, result);
 
-  if (isGoogleTranslateEnabled()) {
-    runBackgroundTask(
-      'timeline.guestPosts.create',
-      () =>
-        translateGuestMainContentIfNeeded({
-          guestId,
-          chatId: result._id,
-          content: replacedContent,
-          lang,
-          targetLangs,
-          io,
-        }),
-      { context: { postId: String(result._id), guestId: String(guestId) } }
-    );
+  const translationEnabled = isGoogleTranslateEnabled();
+  const analysisEnabled = isAIAnalysisExecutionEnabled();
+  if (translationEnabled || analysisEnabled) {
+    runBackgroundSteps('timeline.guestPosts.create', {
+      translation: async () => {
+        if (translationEnabled) {
+          await translateGuestMainContentIfNeeded({
+            guestId,
+            chatId: result._id,
+            content: replacedContent,
+            lang,
+            targetLangs,
+            io,
+          });
+        }
+      },
+      analysis: async ({ signal }) => {
+        if (analysisEnabled) {
+          await runPostAnalyses({ chatId: result._id, io, signal, guest: true });
+        }
+      },
+    }, { context: { postId: String(result._id), guestId: String(guestId) } });
   }
 
   return result;

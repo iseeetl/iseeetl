@@ -4,16 +4,17 @@ const { createAnalysisExecutor } = require('./analysis/executor.service');
 
 const executor = createAnalysisExecutor();
 
-const runPostAnalyses = ({ chatId, io, mediaPath, signal }) =>
+const runPostAnalyses = ({ chatId, io, mediaPath, signal, guest = false }) =>
   executor.runSourceAnalyses({
     chatId,
     sourceType: 'post',
     io,
     mediaPath,
     signal,
+    guest,
   });
 
-const runReplyAnalyses = ({ chatId, replyId, io, mediaPath, signal }) =>
+const runReplyAnalyses = ({ chatId, replyId, io, mediaPath, signal, guest = false }) =>
   executor.runSourceAnalyses({
     chatId,
     sourceType: 'reply',
@@ -21,6 +22,7 @@ const runReplyAnalyses = ({ chatId, replyId, io, mediaPath, signal }) =>
     io,
     mediaPath,
     signal,
+    guest,
   });
 
 module.exports = {

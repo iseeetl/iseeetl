@@ -69,6 +69,7 @@ exports.create = async (body, jwtPayload) => {
     lang,
     translations: titleAndDescriptionTranslations,
     guest_reaction_only: guestReactionOnly,
+    guest_conversation_enabled: body.guest_conversation_enabled === true,
     member_only: memberOnly,
     room_display_hidden: roomDisplayHidden,
     notification,
@@ -159,10 +160,13 @@ exports.update = async (body, jwtPayload, io) => {
   if (translationEnabled && (isContentModified || isLangChanged)) {
     updateRoom.translations = titleAndDescriptionTranslations;
   }
+  if (body.guest_conversation_enabled !== undefined) {
+    updateRoom.guest_conversation_enabled = body.guest_conversation_enabled;
+  }
 
-  const updatedRoom = await Room.findByIdAndUpdate(roomId, updateRoom, { new: true, runValidators: true }).populate(
-    'user',
-    'username image_name'
+  const updatedRoom = await withAIAnalysisIntegrityLock(() =>
+    Room.findByIdAndUpdate(roomId, updateRoom, { new: true, runValidators: true })
+      .populate('user', 'username image_name')
   );
 
   if (updatedRoom && memberOnly === true && foundRoom.member_only !== true) await revalidateRestrictedRoom(io, roomId);
