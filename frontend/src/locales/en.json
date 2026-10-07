@@ -165,6 +165,7 @@
   "ルームの表示順序を更新しました": "Updated display order of rooms",
   "ルームの表示順序の更新に失敗しました": "Failed to update room display order",
   "ゲストはリアクションのみ": "Guests can only react",
+  "ゲストにAI解析（会話）を許可する": "Allow guests to use AI analysis (conversation)",
   "フロア一覧へ戻る": "Return to floor list",
   "ログインページへ戻る": "Return to login",
   "プロフィールへ戻る": "Return to profile",

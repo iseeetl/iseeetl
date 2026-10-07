@@ -82,6 +82,7 @@ const clickExactRoomDialogSubmit = (browser, options) => {
     { selector: '#room_title', property: 'value', value: options.title },
     { selector: '#room_description', property: 'value', value: options.description },
     { selector: '#guest_reaction_only', property: 'checked', value: !!options.guestReactionOnly },
+    { selector: '#guest_conversation_enabled', property: 'checked', value: !!options.guestConversationEnabled },
     { selector: '#member_only', property: 'checked', value: !!options.memberOnly },
     { selector: '#notification', property: 'checked', value: options.notification !== false },
     { selector: '#external_sns_button', property: 'checked', value: !!options.externalSnsButton },

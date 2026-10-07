@@ -1,5 +1,7 @@
 const AppError = require('../../../utils/appError');
-const { runBackgroundTask } = require('../../backgroundTaskRunner');
+const { runBackgroundSteps } = require('../../backgroundTaskRunner');
+const { runReplyAnalyses } = require('../../analysis.service');
+const { isAIAnalysisExecutionEnabled } = require('../../analysis/settings/capability');
 const { isGoogleTranslateEnabled } = require('../../../config/featureFlags');
 const { TIMELINE_POPULATE_WITH_REPLIES } = require('../shared/chatPopulate');
 
@@ -87,16 +89,30 @@ exports.createReply = async (body, io) => {
 
   await emitReplyCreate(io, responseChat);
 
-  // 翻訳失敗は返信作成の成否へ影響させない。
-  if (isGoogleTranslateEnabled()) {
-    runBackgroundTask('timeline.guestReplies.create', () =>
-      translateReplyAfterCreate({
-        result: responseChat,
-        updatedChat,
-        targetLangs,
-        io,
-        actor: { type: 'guest', id: guestId },
-      }), { context: { postId: String(responseChat._id) } });
+  const translationEnabled = isGoogleTranslateEnabled();
+  const analysisEnabled = isAIAnalysisExecutionEnabled();
+  if (translationEnabled || analysisEnabled) {
+    const createdReply = responseChat.replies[responseChat.replies.length - 1];
+    runBackgroundSteps('timeline.guestReplies.create', {
+      translation: async () => {
+        if (translationEnabled) {
+          await translateReplyAfterCreate({
+            result: responseChat,
+            updatedChat,
+            targetLangs,
+            io,
+            actor: { type: 'guest', id: guestId },
+          });
+        }
+      },
+      analysis: async ({ signal }) => {
+        if (analysisEnabled) {
+          await runReplyAnalyses({
+            chatId: responseChat._id, replyId: createdReply._id, io, signal, guest: true,
+          });
+        }
+      },
+    }, { context: { postId: String(responseChat._id) } });
   }
 
   return responseChat;

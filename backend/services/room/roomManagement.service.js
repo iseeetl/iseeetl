@@ -99,11 +99,16 @@ exports.managementUpdate = async (body, jwtPayload, io) => {
     updated_at: Date.now(),
   };
 
-  const updatedRoom = await Room.findOneAndUpdate(
-    { _id: roomId, delete_flg: expectedDeleteFlg },
-    updateRoom,
-    { new: true, runValidators: true }
-  ).populate('user', 'username image_name');
+  if (body.guest_conversation_enabled !== undefined) {
+    updateRoom.guest_conversation_enabled = body.guest_conversation_enabled;
+  }
+  const updatedRoom = await withAIAnalysisIntegrityLock(() =>
+    Room.findOneAndUpdate(
+      { _id: roomId, delete_flg: expectedDeleteFlg },
+      updateRoom,
+      { new: true, runValidators: true }
+    ).populate('user', 'username image_name')
+  );
   if (!updatedRoom) {
     const currentRoom = await Room.findById(roomId);
     throw new AppError({ code: currentRoom ? 'CONFLICT' : 'NOT_FOUND' });

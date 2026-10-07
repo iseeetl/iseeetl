@@ -81,6 +81,10 @@ const RoomSchema = new mongoose.Schema({
     type: Boolean,
     default: false,
   },
+  guest_conversation_enabled: {
+    type: Boolean,
+    default: false,
+  },
   member_only: {
     type: Boolean,
     default: false,

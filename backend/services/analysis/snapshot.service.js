@@ -77,15 +77,17 @@ const listMatchingAnalysisSettingIds = async ({
   return settings.map((setting) => normalizeId(setting)).filter(Boolean);
 };
 
-const buildAnalysisSnapshot = async ({ chatId, sourceType, replyId = null, settingId }) => {
+const buildAnalysisSnapshot = async ({ chatId, sourceType, replyId = null, settingId, guest = false }) => {
   const [resolved, setting] = await Promise.all([
     loadSource({ chatId, sourceType, replyId }),
     RoomAIAnalysisSetting.findOne({ _id: settingId, delete_flg: false }).lean(),
   ]);
   if (!resolved || !setting || !ANALYSIS_KINDS.includes(setting.analysis_kind)) return null;
+  if (guest && setting.analysis_kind !== 'conversation') return null;
   if (!Number.isSafeInteger(setting.revision) || setting.revision < 1) return null;
 
   const { chat, source } = resolved;
+  if (guest && source.animation === 'move-and-erase') return null;
   const sourceRevision = readSafeSourceRevision(source);
   if (sourceRevision === null || !sourceSupportsKind(source, setting.analysis_kind)) return null;
 
@@ -106,10 +108,14 @@ const buildAnalysisSnapshot = async ({ chatId, sourceType, replyId = null, setti
       delete_flg: false,
     }).lean(),
     User.findOne({ _id: setting.result_user, delete_flg: false }).select('_id').lean(),
-    Room.findOne({ _id: chat.room, floor: chat.floor, delete_flg: false }).select('_id floor').lean(),
+    Room.findOne({ _id: chat.room, floor: chat.floor, delete_flg: false })
+      .select('_id floor guest_conversation_enabled guest_reaction_only member_only').lean(),
     Floor.findOne({ _id: chat.floor, delete_flg: false }).select('_id target_langs').lean(),
   ]);
   if (!tag || !resultUser || !room || !floor || normalizeId(room.floor) !== normalizeId(floor)) {
+    return null;
+  }
+  if (guest && (room.guest_conversation_enabled !== true || room.guest_reaction_only || room.member_only)) {
     return null;
   }
 

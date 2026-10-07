@@ -1,3 +1,9 @@
+const mockAnalysisEnabled = jest.fn(() => false);
+jest.mock('../../../../../services/analysis/settings/capability', () => ({
+  isAIAnalysisExecutionEnabled: mockAnalysisEnabled,
+}));
+jest.mock('../../../../../services/analysis.service', () => ({ runPostAnalyses: jest.fn().mockResolvedValue([]) }));
+const { runPostAnalyses } = require('../../../../../services/analysis.service');
 jest.mock('../../../../../models/Chat', () => ({
   findOne: jest.fn(),
   create: jest.fn(),
@@ -20,9 +26,7 @@ jest.mock('../../../../../services/spam.service', () => ({ replaceSpams: jest.fn
 jest.mock('../../../../../services/timeline/timelineTranslation.service', () => ({
   translateGuestMainContentIfNeeded: jest.fn().mockResolvedValue(),
 }));
-jest.mock('../../../../../services/backgroundTaskRunner', () => ({
-  runBackgroundTask: jest.fn((_label, task) => task()),
-}));
+
 
 jest.mock('../../../../../services/timeline/shared/timelineList', () => ({ listTimelineChats: jest.fn() }));
 jest.mock('../../../../../services/timeline/shared/guestAccess', () => ({ ensureGuestRoomContext: jest.fn() }));
@@ -50,7 +54,7 @@ const { listTimelineChats } = require('../../../../../services/timeline/shared/t
 const { ensureGuestRoomContext } = require('../../../../../services/timeline/shared/guestAccess');
 const { containsOnlyAllowedEmojis } = require('../../../../../services/timeline/shared/guestRules');
 const { notifyPushFilterUsers } = require('../../../../../services/timeline/shared/pushFilterNotification');
-const { runBackgroundTask } = require('../../../../../services/backgroundTaskRunner');
+const { drainBackgroundTasks, getPendingTaskCount } = require('../../../../../services/backgroundTaskRunner');
 const { TIMELINE_POPULATE_WITH_REACTIONS, TIMELINE_POPULATE_WITH_REPLIES } = require('../../../../../services/timeline/shared/chatPopulate');
 const AppError = require('../../../../../utils/appError');
 
@@ -69,6 +73,7 @@ describe('guestPostsのサービス', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     mockIsGoogleTranslateEnabled.mockReturnValue(true);
+    mockAnalysisEnabled.mockReturnValue(false);
   });
 
   describe('投稿一覧取得', () => {
@@ -134,6 +139,20 @@ describe('guestPostsのサービス', () => {
       target_langs: ['en'],
     };
 
+    test('翻訳が失敗してもゲストの解析を呼び出す', async () => {
+      mockAnalysisEnabled.mockReturnValue(true);
+      findActiveRoom.mockResolvedValue({ _id: 'r1', guest_reaction_only: false });
+      ensureGuestRoomContext.mockResolvedValue({ floor: { _id: 'f1' } });
+      replaceSpams.mockResolvedValue('REPLACED');
+      Chat.create.mockResolvedValue({ _id: 'p1', room: objId('r1') });
+      serializeTimeline.mockImplementation((value) => value);
+      translateGuestMainContentIfNeeded.mockRejectedValueOnce(new Error('translation failed'));
+      await expect(service.createPost({ ...baseBody, guest: false, guest_conversation_enabled: true }, io))
+        .resolves.toEqual(expect.objectContaining({ _id: 'p1' }));
+      await drainBackgroundTasks();
+      expect(runPostAnalyses).toHaveBeenCalledWith(expect.objectContaining({ chatId: 'p1', guest: true, signal: expect.any(AbortSignal) }));
+    });
+
     test('ルームが無い場合は 400', async () => {
       findActiveRoom.mockRejectedValue(new AppError({ code: 'INVALID_PARAMS' }));
       await expect(service.createPost(baseBody, io)).rejects.toBeInstanceOf(AppError);
@@ -166,6 +185,7 @@ describe('guestPostsのサービス', () => {
       Chat.create.mockResolvedValue({ _id: 'p1', room: objId('r1') });
 
       await service.createPost(baseBody, io);
+      await drainBackgroundTasks();
 
       expect(Chat.create).toHaveBeenCalledWith(
         expect.objectContaining({ content: 'REPLACED', guest_name: 'Guest', room: 'r1' })
@@ -189,7 +209,7 @@ describe('guestPostsのサービス', () => {
         expect.objectContaining({ _id: 'p1' })
       );
 
-      expect(runBackgroundTask).not.toHaveBeenCalled();
+      expect(getPendingTaskCount()).toBe(0);
       expect(translateGuestMainContentIfNeeded).not.toHaveBeenCalled();
     });
   });

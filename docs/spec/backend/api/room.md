@@ -22,6 +22,12 @@ JWT必須APIでは、トークン発行時のロールではなく、リクエ�
 - Google Translateが無効な場合、通常更新と管理更新は保存済みのタイトル・説明の翻訳を保持する
 - 有効状態は[外部機能の有効状態API](capabilities.md)の`googleTranslate`を参照する
 
+### ゲストの会話解析の許可
+
+- 作成・通常更新・管理更新で`guest_conversation_enabled`を設定できる。任意の真偽値で、文字列・数値・nullは400 `INVALID_PARAMS`とする。
+- 作成時に省略するとfalse。項目がない既存ルームも不許可として扱う。更新時の省略は保存済みの値を維持する。
+- 通常のルーム情報とともに設定を返す。実行時はAPI入力の許可値を使わず、DBの最新設定で判定する。詳細は[ゲストの会話解析](../../ai-analysis.md#ゲストの会話解析)を参照。
+
 ### 投稿がないときの案内文
 
 - 作成・通常更新・管理更新で`empty_message`を設定できる。任意の文字列またはnull、200文字以内、改行不可
@@ -157,6 +163,7 @@ last_post_dateは、対象ルームで論理削除されていない最新投稿
   - empty_message: 文字列（200文字以内、改行不可）またはnull, 任意。[案内文の保存条件](#投稿がないときの案内文)を参照
   - lang: 文字列（[対応言語コード](../api-conventions.md#言語コード)）, 必須
   - guest_reaction_only: 真偽値, 必須
+  - guest_conversation_enabled: 真偽値, 任意。[ゲストの会話解析の許可](#ゲストの会話解析の許可)を参照
   - member_only: 真偽値, 必須
   - room_display_hidden: 真偽値, 必須
   - notification: 真偽値, 必須
@@ -206,6 +213,7 @@ last_post_dateは、対象ルームで論理削除されていない最新投稿
   - lang: 文字列（[対応言語コード](../api-conventions.md#言語コード)）, 必須
   - image_name: 文字列（timestamp_MongoIdを基部とするファイル名）またはnull, 必須
   - guest_reaction_only: 真偽値, 必須
+  - guest_conversation_enabled: 真偽値, 任意。[ゲストの会話解析の許可](#ゲストの会話解析の許可)を参照
   - member_only: 真偽値, 必須
   - room_display_hidden: 真偽値, 必須
   - notification: 真偽値, 必須
@@ -401,6 +409,7 @@ last_post_dateは、対象ルームで論理削除されていない最新投稿
   - lang: 文字列（[対応言語コード](../api-conventions.md#言語コード)）, 必須
   - image_name: 文字列（timestamp_MongoIdを基部とするファイル名）またはnull, 必須
   - guest_reaction_only: 真偽値, 必須
+  - guest_conversation_enabled: 真偽値, 任意。[ゲストの会話解析の許可](#ゲストの会話解析の許可)を参照
   - member_only: 真偽値, 必須
   - room_display_hidden: 真偽値, 必須
   - notification: 真偽値, 必須

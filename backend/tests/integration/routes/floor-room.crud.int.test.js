@@ -116,6 +116,53 @@ const createActiveRoomAISetting = async ({ floor, room, user, name }) => {
 describe('フロア・ルームの作成・取得・更新・削除と権限', () => {
   let app;
 
+  test.each(['/room/update', '/room/management/update'])('ゲスト会話解析の許可は既定OFFで、更新・省略・入力検証に対応する（%s）', async (route) => {
+    const admin = await User.create({ username: '会話管理者', mail: 'conversation-admin@example.invalid', role: 'Administrator' });
+    const floor = await Floor.create({ user: admin._id, title: '会話フロア', lang: 'ja' });
+    const authorization = `Bearer ${buildToken(admin)}`;
+    const created = await request(app).post('/room/create').set('Authorization', authorization)
+      .send(baseRoomPayload(String(floor._id)));
+    expect(created.status).toBe(200);
+    expect(created.body.guest_conversation_enabled).toBe(false);
+    const payload = baseRoomPayload(String(floor._id), { _id: created.body._id, image_name: null, delete_flg: false });
+    for (const enabled of [true, false]) {
+      const updated = await request(app).post(route).set('Authorization', authorization)
+        .send({ ...payload, guest_conversation_enabled: enabled });
+      expect(updated.status).toBe(200);
+      expect(updated.body.guest_conversation_enabled).toBe(enabled);
+      const kept = await request(app).post(route).set('Authorization', authorization).send(payload);
+      expect(kept.status).toBe(200);
+      const detail = await request(app).post('/room/detail').send({ _id: created.body._id });
+      expect(detail.body.guest_conversation_enabled).toBe(enabled);
+    }
+    const invalid = await request(app).post(route).set('Authorization', authorization)
+      .send({ ...payload, guest_conversation_enabled: 'true' });
+    expect(invalid.status).toBe(400);
+    const invalidCreate = await request(app).post('/room/create').set('Authorization', authorization)
+      .send(baseRoomPayload(String(floor._id), { guest_conversation_enabled: 1 }));
+    expect(invalidCreate.status).toBe(400);
+    const enabledCreate = await request(app).post('/room/create').set('Authorization', authorization)
+      .send(baseRoomPayload(String(floor._id), { guest_conversation_enabled: true }));
+    expect(enabledCreate.status).toBe(200);
+    expect(enabledCreate.body.guest_conversation_enabled).toBe(true);
+  });
+
+  test('ゲスト会話解析の許可はフロアメンバーが変更でき、一般ユーザは変更できない', async () => {
+    const owner = await User.create({ username: '編集者', mail: 'conversation-owner@example.invalid', role: 'Editor' });
+    const member = await User.create({ username: 'メンバー', mail: 'conversation-member@example.invalid', role: 'Author' });
+    const outsider = await User.create({ username: '一般ユーザ', mail: 'conversation-outsider@example.invalid', role: 'Author' });
+    const floor = await Floor.create({ user: owner._id, title: 'フロア', lang: 'ja' });
+    const room = await Room.create({ user: owner._id, floor: floor._id, title: 'ルーム' });
+    await FloorMember.create({ floor: floor._id, user: member._id });
+    const payload = baseRoomPayload(String(floor._id), { _id: String(room._id), image_name: null, guest_conversation_enabled: true });
+    const denied = await request(app).post('/room/update').set('Authorization', `Bearer ${buildToken(outsider)}`).send(payload);
+    expect(denied.status).toBe(403);
+    expect((await Room.findById(room._id)).guest_conversation_enabled).toBe(false);
+    const allowed = await request(app).post('/room/update').set('Authorization', `Bearer ${buildToken(member)}`).send(payload);
+    expect(allowed.status).toBe(200);
+    expect((await Room.findById(room._id)).guest_conversation_enabled).toBe(true);
+  });
+
   afterAll(async () => {
     await removeDirSafe(tempMediaRoot);
     if (ORIGINAL_ENV.JWT_SECRET === undefined) delete process.env.JWT_SECRET;

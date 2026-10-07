@@ -182,6 +182,19 @@
         <div class="edit-input-field">
           <input
             type="checkbox"
+            id="guest_conversation_enabled"
+            class="input-checkbox"
+            :disabled="sending"
+            v-model="guestConversationEnabled"
+          />
+          <label class="input-checkbox-label" for="guest_conversation_enabled">
+            {{ $t('ゲストにAI解析（会話）を許可する') }}
+          </label>
+        </div>
+
+        <div class="edit-input-field">
+          <input
+            type="checkbox"
             id="member_only"
             class="input-checkbox"
             :true-value="true"
@@ -342,6 +355,7 @@ export default {
       imageProcessing: false,
       imageLoadRequestVersion: 0,
       guestReactionOnly: false,
+      guestConversationEnabled: false,
       memberOnly: false,
       notification: true,
       showExternalShareButton: false,
@@ -419,6 +433,7 @@ export default {
         this.imageName = this.room.image_name;
         this.guestReactionOnly =
           typeof this.room.guest_reaction_only !== 'undefined' ? this.room.guest_reaction_only : false;
+        this.guestConversationEnabled = this.room.guest_conversation_enabled === true;
         this.memberOnly = this.room.member_only;
         this.notification = this.room.notification;
         this.showExternalShareButton = Boolean(this.room.external_sns_button);
@@ -439,6 +454,7 @@ export default {
         imageName: this.normalizeSnapshotText(this.imageName),
         hasSelectedImage: this.imageFile !== null || this.imageProcessing,
         guestReactionOnly: Boolean(this.guestReactionOnly),
+        guestConversationEnabled: Boolean(this.guestConversationEnabled),
         memberOnly: Boolean(this.memberOnly),
         notification: Boolean(this.notification),
         showExternalShareButton: Boolean(this.showExternalShareButton),
@@ -537,6 +553,7 @@ export default {
           empty_message: this.emptyMessage.trim(),
           lang: this.lang,
           guest_reaction_only: this.guestReactionOnly,
+          guest_conversation_enabled: this.guestConversationEnabled,
           member_only: this.memberOnly,
           room_display_hidden: this.roomDisplayHidden,
           notification: this.notification,
@@ -571,6 +588,7 @@ export default {
             lang: createdRoom.lang,
             image_name: uploadedImageName,
             guest_reaction_only: createdRoom.guest_reaction_only,
+            guest_conversation_enabled: createdRoom.guest_conversation_enabled,
             member_only: createdRoom.member_only,
             room_display_hidden: createdRoom.room_display_hidden,
             notification: createdRoom.notification,
@@ -629,6 +647,7 @@ export default {
           lang: this.lang,
           image_name: imageNameForUpdate,
           guest_reaction_only: this.guestReactionOnly,
+          guest_conversation_enabled: this.guestConversationEnabled,
           member_only: this.memberOnly,
           room_display_hidden: this.roomDisplayHidden,
           notification: this.notification,
@@ -724,6 +743,7 @@ export default {
       this.clearImageSelection();
       this.imageName = null;
       this.guestReactionOnly = false;
+      this.guestConversationEnabled = false;
       this.memberOnly = false;
       this.roomDisplayHidden = false;
       this.notification = true;

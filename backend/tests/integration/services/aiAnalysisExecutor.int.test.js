@@ -440,3 +440,97 @@ describe('設定に基づくAI解析の結合動作（外部サービスはモ�
     expect(saved.meta.analysis_source_revision).toBe(1);
   });
 });
+
+describe('ゲスト会話解析の送信前の許可確認', () => {
+  const setupGuest = async (withReply = false) => {
+    const ctx = await setup({ withReply, kinds: ['conversation', 'vision'] });
+    await Room.updateOne({ _id: ctx.room._id }, { $set: { guest_conversation_enabled: true } });
+    const prefix = withReply ? 'replies.0.' : '';
+    await Chat.updateOne({ _id: ctx.post._id }, {
+      $unset: { [`${prefix}user`]: '' },
+      $set: { [`${prefix}guest_id`]: 'guest-analysis', [`${prefix}guest_name`]: 'ゲスト' },
+    });
+    return { ...ctx, args: { chatId: ctx.post._id, sourceType: withReply ? 'reply' : 'post', replyId: withReply ? ctx.replyId : null, guest: true } };
+  };
+
+  test.each([false, true])('最新の許可がONなら会話だけを実行し、メディア解析は実行しない（返信=%s）', async (withReply) => {
+    const ctx = await setupGuest(withReply);
+    const analyze = jest.fn(async () => '会話の回答');
+    const { io, emit } = createIo();
+    const results = await createAnalysisExecutor({ executionEnabled: () => true, prepareInput, analyze })
+      .runSourceAnalyses({ ...ctx.args, io });
+    expect(results.map((result) => result.status)).toEqual(['created']);
+    expect(analyze).toHaveBeenCalledTimes(1);
+    expect(analyze).toHaveBeenCalledWith(expect.objectContaining({ kind: 'conversation' }));
+    const supplements = await sourceSupplements({ postId: ctx.post._id, replyId: ctx.args.replyId });
+    expect(supplements).toHaveLength(1);
+    expect(supplements[0].user).toEqual(ctx.resultUser._id);
+    if (withReply) expect(emit).toHaveBeenCalledWith('REPLY_SUPPLEMENT_CREATE', expect.any(Object), expect.any(Object));
+    else expect(emit).toHaveBeenCalledWith('SUPPLEMENT_CREATE', expect.any(Object));
+  });
+
+  test.each([false, true])('流す形式の投稿・返信は会話解析の対象にしない（返信=%s）', async (withReply) => {
+    const ctx = await setupGuest(withReply);
+    await Chat.updateOne({ _id: ctx.post._id }, { $set: { [withReply ? 'replies.0.animation' : 'animation']: 'move-and-erase' } });
+    const analyze = jest.fn();
+    await createAnalysisExecutor({ executionEnabled: () => true, analyze }).runSourceAnalyses(ctx.args);
+    expect(analyze).not.toHaveBeenCalled();
+  });
+
+  test.each([false, true])('送信準備中に許可がOFFになったら外部AIを呼ばない（返信=%s）', async (withReply) => {
+    const ctx = await setupGuest(withReply);
+    const analyze = jest.fn(async () => '回答');
+    const executor = createAnalysisExecutor({ executionEnabled: () => true, analyze,
+      prepareInput: async (_options, callback) => {
+        await Room.updateOne({ _id: ctx.room._id }, { $set: { guest_conversation_enabled: false } });
+        return callback(null);
+      },
+    });
+    await expect(executor.runSourceAnalyses(ctx.args)).resolves.toEqual([{ status: 'changed-before-send' }]);
+    expect(analyze).not.toHaveBeenCalled();
+    expect(await sourceSupplements({ postId: ctx.post._id, replyId: ctx.args.replyId })).toHaveLength(0);
+  });
+
+  test.each([
+    ['旧データ', { $unset: { guest_conversation_enabled: '' } }],
+    ['許可なし', { $set: { guest_conversation_enabled: false } }],
+    ['リアクションのみ', { $set: { guest_reaction_only: true } }],
+    ['メンバー限定', { $set: { member_only: true } }],
+    ['削除済み', { $set: { delete_flg: true } }],
+  ])('%sのルームでは許可を推測せず解析しない', async (_label, update) => {
+    const ctx = await setupGuest();
+    await Room.collection.updateOne({ _id: ctx.room._id }, update);
+    const analyze = jest.fn();
+    await createAnalysisExecutor({ executionEnabled: () => true, analyze }).runSourceAnalyses(ctx.args);
+    expect(analyze).not.toHaveBeenCalled();
+  });
+
+  test('検索後に設定が会話以外へ変わっていたら解析しない', async () => {
+    const ctx = await setupGuest();
+    const setting = ctx.settings.find((item) => item.analysis_kind === 'conversation');
+    await RoomAIAnalysisSetting.updateOne({ _id: setting._id }, { $set: { analysis_kind: 'speech' } });
+    const analyze = jest.fn();
+    await createAnalysisExecutor({ executionEnabled: () => true, analyze,
+      listSettingIds: async () => [setting._id],
+    }).runSourceAnalyses(ctx.args);
+    expect(analyze).not.toHaveBeenCalled();
+  });
+
+  test('送信後に許可をOFFにすると実行中の結果は保存し、次の設定は実行しない', async () => {
+    const ctx = await setupGuest();
+    const secondTag = await RoomTag.create({ floor: ctx.floor._id, room: ctx.room._id, user: ctx.owner._id, order: 2, name: '別の相談' });
+    await RoomAIAnalysisSetting.create({ floor: ctx.floor._id, room: ctx.room._id,
+      room_tag: secondTag._id, analysis_kind: 'conversation', result_user: ctx.resultUser._id,
+      user: ctx.owner._id, updated_by: ctx.owner._id,
+    });
+    await Chat.updateOne({ _id: ctx.post._id }, { $push: { room_tags: secondTag._id } });
+    const analyze = jest.fn(async () => {
+      await Room.updateOne({ _id: ctx.room._id }, { $set: { guest_conversation_enabled: false } });
+      return '送信済みの回答';
+    });
+    const results = await createAnalysisExecutor({ executionEnabled: () => true, analyze, prepareInput }).runSourceAnalyses(ctx.args);
+    expect(results.map((result) => result.status)).toEqual(['created', 'skipped']);
+    expect(analyze).toHaveBeenCalledTimes(1);
+    expect(await sourceSupplements({ postId: ctx.post._id })).toHaveLength(1);
+  });
+});

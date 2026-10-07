@@ -14,6 +14,7 @@ const createRoom = (overrides = {}) => ({
   image_name: null,
   lang: 'ja',
   guest_reaction_only: false,
+  guest_conversation_enabled: false,
   member_only: false,
   notification: true,
   external_sns_button: false,
@@ -185,7 +186,7 @@ describe('ルームの管理画面', () => {
     wrapper.vm.showEditRoomDialog(createRoom({ delete_flg: true }));
     expect(wrapper.vm.editRoomValue.dialogVisible).to.equal(false);
 
-    wrapper.vm.showEditRoomDialog(createRoom());
+    wrapper.vm.showEditRoomDialog(createRoom({ guest_conversation_enabled: true }));
     await wrapper.vm.$nextTick();
 
     const dialog = wrapper.findComponent({ name: 'EditRoomDialog' });
@@ -196,6 +197,7 @@ describe('ルームの管理画面', () => {
     });
     expect(dialog.props('room')._id).to.equal('room-1');
     expect(dialog.props('room').floor).to.equal('floor-1');
+    expect(dialog.props('room').guest_conversation_enabled).to.equal(true);
   });
 
   it('親フロアが削除済みまたは不明なら利用不可を示し、復元を無効化して理由を関連付ける', () => {
@@ -324,6 +326,7 @@ describe('ルームの管理画面', () => {
       image_name: null,
       lang: null,
       guest_reaction_only: false,
+      guest_conversation_enabled: false,
       member_only: false,
       notification: true,
       external_sns_button: false,

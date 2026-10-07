@@ -25,6 +25,7 @@ describe('AI解析の呼出処理', () => {
     expect(mockRunSourceAnalyses).toHaveBeenCalledWith({
       chatId: 'post-1',
       sourceType: 'post',
+      guest: false,
       io: 'io',
       mediaPath: '/media',
       signal,
@@ -44,10 +45,15 @@ describe('AI解析の呼出処理', () => {
     expect(mockRunSourceAnalyses).toHaveBeenCalledWith({
       chatId: 'post-1',
       sourceType: 'reply',
+      guest: false,
       replyId: 'reply-1',
       io: 'io',
       mediaPath: '/media',
       signal,
     });
+  });
+  test.each(['runPostAnalyses', 'runReplyAnalyses'])('%sはゲストの実行条件を引き継ぐ', async (method) => {
+    await analysisService[method]({ chatId: 'post-1', replyId: 'reply-1', guest: true });
+    expect(mockRunSourceAnalyses).toHaveBeenLastCalledWith(expect.objectContaining({ guest: true }));
   });
 });

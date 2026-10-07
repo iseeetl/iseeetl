@@ -80,6 +80,7 @@
   - 投稿がないときの案内文: 任意、最大200文字、改行不可。[通常画面の案内文設定](Room.md#投稿がないときの案内文)と共通
   - ルーム画像の選択、選択取消、登録済み画像の削除
   - `guest_reaction_only`: 「ゲストはリアクションのみ」
+  - `guest_conversation_enabled`: 「ゲストにAI解析（会話）を許可する」。未設定はOFF
   - `member_only`: 「招待メンバーのみ」
   - `notification`: 「タイムライン最上部に通知する」
   - `external_sns_button`: 「外部SNS連携ボタンを表示する」

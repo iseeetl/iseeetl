@@ -4,11 +4,23 @@ const {
   validateRoomEmptyMessage,
   validateRoomSearch,
   validateMemberOnly,
+  validateGuestConversationEnabled,
   validateRoomDisplayOrders,
   validateRoomDisplayOrder,
 } = require('../../../validates/room.validate');
 
 describe('ルームの入力検証', () => {
+  test.each([true, false, undefined])('ゲスト会話解析の許可に真偽値と省略を受け付ける（%s）', async (value) => {
+    const result = await runValidators(validateGuestConversationEnabled('guest_conversation_enabled'),
+      buildReq({ body: { guest_conversation_enabled: value } }));
+    expect(result.isEmpty()).toBe(true);
+  });
+
+  test.each(['true', 'false', 1, 0, null, [], {}])('ゲスト会話解析の許可が真偽値でなければ拒否する（%j）', async (value) => {
+    const result = await runValidators(validateGuestConversationEnabled('guest_conversation_enabled'),
+      buildReq({ body: { guest_conversation_enabled: value } }));
+    expect(result.isEmpty()).toBe(false);
+  });
   test('上限以内のルームタイトルを受け付ける', async () => {
     const req = buildReq({ body: { title: 'room' } });
     const result = await runValidators(validateRoomTitle('title'), req);

@@ -52,6 +52,7 @@ const existingRoom = (overrides = {}) => ({
   lang: 'ja',
   image_name: 'saved-a.jpg',
   guest_reaction_only: false,
+  guest_conversation_enabled: false,
   member_only: false,
   notification: true,
   external_sns_button: false,
@@ -67,6 +68,7 @@ const createdRoom = (overrides = {}) => ({
   description: 'Desc',
   lang: 'ja',
   guest_reaction_only: false,
+  guest_conversation_enabled: false,
   member_only: false,
   room_display_hidden: false,
   notification: true,
@@ -407,6 +409,7 @@ describe('ルームの編集', () => {
       empty_message: '',
       lang: 'ja',
       guest_reaction_only: false,
+      guest_conversation_enabled: false,
       member_only: false,
       room_display_hidden: false,
       notification: true,
@@ -480,6 +483,7 @@ describe('ルームの編集', () => {
       lang: 'ja',
       image_name: null,
       guest_reaction_only: false,
+      guest_conversation_enabled: false,
       member_only: false,
       room_display_hidden: false,
       notification: true,
@@ -908,5 +912,43 @@ describe('投稿がないときの案内文の編集', () => {
     expect(wrapper.vm.v$.emptyMessage.$invalid).toBe(true);
     expect(wrapper.vm.emptyMessageError).toBe('200文字まで');
     wrapper.unmount();
+  });
+});
+
+describe('ゲストの会話解析の許可設定', () => {
+  afterEach(() => vi.restoreAllMocks());
+
+  it.each([undefined, false, true])('既存ルームの設定を表示し、未設定ならOFFにする（%s）', async (enabled) => {
+    const wrapper = createWrapper({ props: { room: existingRoom({ guest_conversation_enabled: enabled }) } });
+    wrapper.vm.openedDialog();
+    await wrapper.vm.$nextTick();
+    expect(wrapper.get('#guest_conversation_enabled').element.checked).toBe(enabled === true);
+    expect(wrapper.get('label[for="guest_conversation_enabled"]').text()).toBe('ゲストにAI解析（会話）を許可する');
+  });
+
+  it('新規作成はOFFで始まり、ONにして保存できる', async () => {
+    const create = vi.spyOn(roomApi, 'create').mockResolvedValue({ data: createdRoom({ guest_conversation_enabled: true }) });
+    const wrapper = createWrapper();
+    wrapper.vm.openedDialog();
+    expect(wrapper.get('#guest_conversation_enabled').element.checked).toBe(false);
+    await wrapper.get('#guest_conversation_enabled').setValue(true);
+    expect(wrapper.vm.hasUnsavedChanges).toBe(true);
+    await wrapper.vm.create();
+    expect(create).toHaveBeenCalledWith(expect.objectContaining({ guest_conversation_enabled: true }), expect.any(Object));
+    wrapper.vm.clearValue();
+    expect(wrapper.vm.guestConversationEnabled).toBe(false);
+  });
+
+  it.each([false, true])('通常編集と管理画面から許可をOFFに戻せる（管理画面=%s）', async (managementMode) => {
+    const update = vi.spyOn(roomApi, 'update').mockResolvedValue({ data: existingRoom({ guest_conversation_enabled: false }) });
+    const wrapper = createWrapper({ props: { room: existingRoom({ guest_conversation_enabled: true }), managementMode } });
+    wrapper.vm.openedDialog();
+    await wrapper.vm.$nextTick();
+    await wrapper.get('#guest_conversation_enabled').setValue(false);
+    expect(wrapper.vm.hasUnsavedChanges).toBe(true);
+    await wrapper.vm.update();
+    expect(update).toHaveBeenCalledWith(expect.objectContaining({ guest_conversation_enabled: false }), { management: managementMode }, expect.any(Object));
+    await wrapper.setData({ sending: true });
+    expect(wrapper.get('#guest_conversation_enabled').element.disabled).toBe(true);
   });
 });
