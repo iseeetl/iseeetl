@@ -1,4 +1,5 @@
 const defaultLogger = require('../../utils/logger');
+const { errorLogDetails, safeDiagnostic } = require('../../utils/errorLogDetails');
 const { isAIAnalysisExecutionEnabled } = require('./settings/capability');
 const { analyzeWithProvider } = require('./provider.service');
 const { withPreparedAnalysisInput } = require('./media.service');
@@ -28,6 +29,8 @@ const snapshotsReferToSameSource = (prepared, current) =>
 const safeLogContext = ({ sourceType, chatId, replyId, settingId }) => ({
   source_type: sourceType,
   source_id: sourceType === 'reply' ? String(replyId || '') : String(chatId || ''),
+  post_id: String(chatId || ''),
+  reply_id: replyId ? String(replyId) : null,
   setting_id: String(settingId || ''),
 });
 
@@ -53,74 +56,108 @@ const createAnalysisExecutor = ({
     signal,
     guest = false,
   }) => {
-    const preparedSnapshot = await buildSnapshot({
-      chatId,
-      sourceType,
-      replyId,
-      settingId,
-      guest,
-    });
-    if (!preparedSnapshot) return { status: 'skipped' };
+    const startedAt = Date.now();
+    const context = {
+      ...safeLogContext({ sourceType, chatId, replyId, settingId }),
+      kind: null,
+      stage: 'snapshot',
+    };
+    try {
+      const preparedSnapshot = await buildSnapshot({
+        chatId,
+        sourceType,
+        replyId,
+        settingId,
+        guest,
+      });
+      if (!preparedSnapshot) return { status: 'skipped' };
 
-    const result = await prepareInput(
-      {
-        kind: preparedSnapshot.kind,
-        mediaRoot: mediaPath,
-        source: preparedSnapshot.source,
-        signal,
-      },
-      async (media) => {
-        if (signal?.aborted) {
-          const error = new Error('AI analysis aborted');
-          error.name = 'AbortError';
-          throw error;
-        }
-
-        // メディア変換中の変更に備え、参照先の変更・削除と同じロック内で再確認し、送信を開始する。
-        // 外部APIの応答はロックを解放してから待つ。
-        const send = await withSendLock(async () => {
-          const snapshot = await buildSnapshot({
-            chatId,
-            sourceType,
-            replyId,
-            settingId,
-            guest,
-          });
-          if (!snapshot || !snapshotsReferToSameSource(preparedSnapshot, snapshot)) return null;
-          const resultState = await inspectResult(snapshot);
-          if (['idempotent', 'stale', 'deleted', 'conflict', 'missing-source'].includes(resultState)) {
-            return { skipStatus: resultState };
+      context.kind = preparedSnapshot.kind;
+      context.stage = 'media_prepare';
+      const result = await prepareInput(
+        {
+          kind: preparedSnapshot.kind,
+          mediaRoot: mediaPath,
+          source: preparedSnapshot.source,
+          signal,
+        },
+        async (media) => {
+          if (signal?.aborted) {
+            const error = new Error('AI analysis aborted');
+            error.name = 'AbortError';
+            throw error;
           }
-          return {
-            snapshot,
-            responsePromise: analyze({
-              kind: snapshot.kind,
-              sourceText: snapshot.source.content,
-              language: snapshot.source.lang,
-              additionalPrompt: snapshot.prompt,
-              media,
-              signal,
-            }),
-          };
-        });
-        if (!send) {
-          return { status: 'changed-before-send' };
-        }
-        if (send.skipStatus) return { status: send.skipStatus, value: null };
-        const { snapshot } = send;
-        const providerOutput = await send.responsePromise;
-        if (!providerOutput) return { status: 'provider-empty' };
 
-        const supplement = await buildSupplement({
-          snapshot,
-          providerOutput,
-          logger,
+          // メディア変換中の変更に備え、参照先の変更・削除と同じロック内で再確認し、送信を開始する。
+          // 外部APIの応答はロックを解放してから待つ。
+          context.stage = 'before_send';
+          const send = await withSendLock(async () => {
+            const snapshot = await buildSnapshot({
+              chatId,
+              sourceType,
+              replyId,
+              settingId,
+              guest,
+            });
+            if (!snapshot || !snapshotsReferToSameSource(preparedSnapshot, snapshot)) return null;
+            const resultState = await inspectResult(snapshot);
+            if (['idempotent', 'stale', 'deleted', 'conflict', 'missing-source'].includes(resultState)) {
+              return { skipStatus: resultState };
+            }
+            context.stage = 'provider';
+            return {
+              snapshot,
+              responsePromise: analyze({
+                kind: snapshot.kind,
+                sourceText: snapshot.source.content,
+                language: snapshot.source.lang,
+                additionalPrompt: snapshot.prompt,
+                media,
+                signal,
+              }),
+            };
+          });
+          if (!send) {
+            return { status: 'changed-before-send' };
+          }
+          if (send.skipStatus) return { status: send.skipStatus, value: null };
+          const { snapshot } = send;
+          const providerOutput = await send.responsePromise;
+          if (!providerOutput) {
+            logger.error('AI_ANALYSIS_OUTPUT_INVALID', {
+              ...context, stage: 'output_validation', reason: 'empty', elapsed_ms: Date.now() - startedAt,
+            });
+            return { status: 'provider-empty' };
+          }
+
+          context.stage = 'output';
+          const supplement = await buildSupplement({
+            snapshot,
+            providerOutput,
+            logger,
+            startedAt,
+          });
+          if (!supplement) return { status: 'invalid-output' };
+          context.stage = 'persist';
+          return persistResult({ snapshot, supplement, io, logger });
+        }
+      );
+      return result || { status: 'skipped' };
+    } catch (error) {
+      if (!isAbortError(error, signal)) {
+        const invalidOutput = error?.code === 'AI_ANALYSIS_OUTPUT_INVALID';
+        const stage = invalidOutput ? 'output_validation'
+          : error?.code === 'AI_ANALYSIS_MEDIA_CLEANUP_FAILED' ? 'media_cleanup' : context.stage;
+        logger.error(invalidOutput ? 'AI_ANALYSIS_OUTPUT_INVALID' : 'AI_ANALYSIS_SETTING_FAILED', {
+          ...context,
+          stage,
+          elapsed_ms: Date.now() - startedAt,
+          ...errorLogDetails(error),
+          ...(invalidOutput ? { reason: safeDiagnostic(error.reason) } : {}),
         });
-        if (!supplement) return { status: 'invalid-output' };
-        return persistResult({ snapshot, supplement, io, logger });
       }
-    );
-    return result || { status: 'skipped' };
+      throw error;
+    }
   };
 
   const runSourceAnalyses = async ({
@@ -134,9 +171,23 @@ const createAnalysisExecutor = ({
     guest = false,
   }) => {
     if (!executionEnabled() || signal?.aborted) return [];
-    const settingIds = await listSettingIds({
-      chatId, sourceType, replyId, kinds: guest ? ['conversation'] : kinds,
-    });
+    let settingIds;
+    const startedAt = Date.now();
+    try {
+      settingIds = await listSettingIds({
+        chatId, sourceType, replyId, kinds: guest ? ['conversation'] : kinds,
+      });
+    } catch (error) {
+      if (isAbortError(error, signal)) return [];
+      logger.error('AI_ANALYSIS_SOURCE_FAILED', {
+        ...safeLogContext({ sourceType, chatId, replyId }),
+        kind: null,
+        stage: 'settings_lookup',
+        elapsed_ms: Date.now() - startedAt,
+        ...errorLogDetails(error),
+      });
+      return [{ status: 'failed' }];
+    }
     const results = [];
     for (const settingId of settingIds) {
       if (signal?.aborted) break;
@@ -155,10 +206,6 @@ const createAnalysisExecutor = ({
         );
       } catch (error) {
         if (isAbortError(error, signal)) break;
-        logger.warn('AI_ANALYSIS_SETTING_FAILED', {
-          ...safeLogContext({ sourceType, chatId, replyId, settingId }),
-          error_code: error?.code || null,
-        });
         results.push({ status: 'failed' });
       }
     }

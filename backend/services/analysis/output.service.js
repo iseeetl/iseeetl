@@ -1,18 +1,23 @@
 const translationService = require('../translation.service');
 const defaultLogger = require('../../utils/logger');
+const { errorLogDetails } = require('../../utils/errorLogDetails');
 const { makeLabelByLangFromTag, prefixWithLabel } = require('./labels');
 
 const MAX_PROVIDER_CODE_POINTS = 300;
 const MAX_SUPPLEMENT_UTF16_UNITS = 400;
 
-const analysisLogContext = (snapshot, reason) => ({
+const analysisLogContext = (snapshot, reason, startedAt) => ({
   source_type: snapshot.sourceType,
   source_id: snapshot.source._id,
+  post_id: snapshot.chatId,
+  reply_id: snapshot.replyId || null,
   setting_id: snapshot.settingId,
   kind: snapshot.kind,
   source_revision: snapshot.sourceRevision,
   setting_revision: snapshot.settingRevision,
   reason,
+  stage: reason.includes('translation') ? 'translation' : 'output_validation',
+  elapsed_ms: Date.now() - startedAt,
 });
 
 const normalizeProviderOutput = (value) =>
@@ -30,14 +35,14 @@ const truncateSpeechWithPrefix = ({ label, text }) => {
   return `${prefix}${body}…`;
 };
 
-const buildBaseContent = ({ snapshot, providerOutput, logger }) => {
+const buildBaseContent = ({ snapshot, providerOutput, logger, startedAt = Date.now() }) => {
   const text = normalizeProviderOutput(providerOutput);
   if (!text) {
-    logger.warn('AI_ANALYSIS_OUTPUT_INVALID', analysisLogContext(snapshot, 'empty'));
+    logger.error('AI_ANALYSIS_OUTPUT_INVALID', analysisLogContext(snapshot, 'empty', startedAt));
     return null;
   }
   if (snapshot.kind !== 'speech' && [...text].length > MAX_PROVIDER_CODE_POINTS) {
-    logger.warn('AI_ANALYSIS_OUTPUT_INVALID', analysisLogContext(snapshot, 'provider_code_points'));
+    logger.error('AI_ANALYSIS_OUTPUT_INVALID', analysisLogContext(snapshot, 'provider_code_points', startedAt));
     return null;
   }
 
@@ -48,20 +53,20 @@ const buildBaseContent = ({ snapshot, providerOutput, logger }) => {
   let content = prefixWithLabel(label, text);
   if (content.length > MAX_SUPPLEMENT_UTF16_UNITS) {
     if (snapshot.kind !== 'speech') {
-      logger.warn('AI_ANALYSIS_OUTPUT_INVALID', analysisLogContext(snapshot, 'base_utf16_units'));
+      logger.error('AI_ANALYSIS_OUTPUT_INVALID', analysisLogContext(snapshot, 'base_utf16_units', startedAt));
       return null;
     }
     content = truncateSpeechWithPrefix({ label, text });
     if (!content || content.length === 0 || content.length > MAX_SUPPLEMENT_UTF16_UNITS) {
-      logger.warn('AI_ANALYSIS_OUTPUT_INVALID', analysisLogContext(snapshot, 'prefix_utf16_units'));
+      logger.error('AI_ANALYSIS_OUTPUT_INVALID', analysisLogContext(snapshot, 'prefix_utf16_units', startedAt));
       return null;
     }
-    logger.warn('AI_ANALYSIS_OUTPUT_TRUNCATED', analysisLogContext(snapshot, 'base_utf16_units'));
+    logger.warn('AI_ANALYSIS_OUTPUT_TRUNCATED', analysisLogContext(snapshot, 'base_utf16_units', startedAt));
   }
   return { baseLang, content, text };
 };
 
-const buildTranslations = async ({ snapshot, base, translateContent, logger }) => {
+const buildTranslations = async ({ snapshot, base, translateContent, logger, startedAt }) => {
   const targets = [...new Set(snapshot.targetLangs)].filter((lang) => lang && lang !== base.baseLang);
   if (targets.length === 0) return [];
 
@@ -75,8 +80,8 @@ const buildTranslations = async ({ snapshot, base, translateContent, logger }) =
     );
   } catch (error) {
     logger.warn('AI_ANALYSIS_TRANSLATION_FAILED', {
-      ...analysisLogContext(snapshot, 'translation_failed'),
-      error_code: error?.code || null,
+      ...analysisLogContext(snapshot, 'translation_failed', startedAt),
+      ...errorLogDetails(error),
     });
     return [];
   }
@@ -89,7 +94,7 @@ const buildTranslations = async ({ snapshot, base, translateContent, logger }) =
     if (content.length > MAX_SUPPLEMENT_UTF16_UNITS) {
       logger.warn(
         'AI_ANALYSIS_OUTPUT_INVALID',
-        analysisLogContext(snapshot, 'translation_utf16_units')
+        analysisLogContext(snapshot, 'translation_utf16_units', startedAt)
       );
       return [];
     }
@@ -102,7 +107,7 @@ const buildTranslations = async ({ snapshot, base, translateContent, logger }) =
   });
 };
 
-const buildTitleTranslations = async ({ snapshot, translateContent, logger }) => {
+const buildTitleTranslations = async ({ snapshot, translateContent, logger, startedAt }) => {
   if (!snapshot.resultTitle || !snapshot.resultTitleLang) return [];
   const targets = [...new Set(snapshot.targetLangs)].filter((lang) => lang && lang !== snapshot.resultTitleLang);
   if (!targets.length) return [];
@@ -118,7 +123,7 @@ const buildTitleTranslations = async ({ snapshot, translateContent, logger }) =>
     });
   } catch (error) {
     logger.warn('AI_ANALYSIS_TRANSLATION_FAILED', {
-      ...analysisLogContext(snapshot, 'title_translation_failed'), error_code: error?.code || null,
+      ...analysisLogContext(snapshot, 'title_translation_failed', startedAt), ...errorLogDetails(error),
     });
     return [];
   }
@@ -129,20 +134,22 @@ const buildAnalysisSupplement = async ({
   providerOutput,
   translateContent = translationService.translateContent,
   logger = defaultLogger,
+  startedAt = Date.now(),
 }) => {
-  const base = buildBaseContent({ snapshot, providerOutput, logger });
+  const base = buildBaseContent({ snapshot, providerOutput, logger, startedAt });
   if (!base) return null;
   const translations = await buildTranslations({
     snapshot,
     base,
     translateContent,
     logger,
+    startedAt,
   });
   return {
     user: snapshot.resultUserId,
     title: snapshot.resultTitle || null,
     title_lang: snapshot.resultTitle ? snapshot.resultTitleLang : null,
-    title_translations: await buildTitleTranslations({ snapshot, translateContent, logger }),
+    title_translations: await buildTitleTranslations({ snapshot, translateContent, logger, startedAt }),
     lang: base.baseLang,
     content: base.content,
     translations,

@@ -43,16 +43,16 @@ describe('loggerの検証', () => {
       process.env = { ...ORIGINAL_ENV, NODE_ENV: 'production' };
     });
 
-    test('info / warn は出力せず、エラーは出力する', () => {
+    test('infoとwarnを抑止し、errorだけを出力する', () => {
       const logger = loadLogger();
 
       logger.info('ignore');
-      logger.warn('ignore');
-      logger.error('ignore');
+      logger.warn('warning');
+      logger.error('failure');
 
       expect(logSpy).not.toHaveBeenCalled();
       expect(warnSpy).not.toHaveBeenCalled();
-      expect(errorSpy).toHaveBeenCalledWith('[ERROR]', 'ignore');
+      expect(errorSpy).toHaveBeenCalledWith('[ERROR]', 'failure');
     });
   });
 });

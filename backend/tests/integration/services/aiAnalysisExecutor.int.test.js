@@ -376,7 +376,7 @@ describe('設定に基づくAI解析の結合動作（外部サービスはモ�
 
     expect(results).toEqual([{ status: 'failed' }, expect.objectContaining({ status: 'created' })]);
     expect(await sourceSupplements({ postId: context.post._id })).toHaveLength(1);
-    expect(logger.warn).toHaveBeenCalledWith(
+    expect(logger.error).toHaveBeenCalledWith(
       'AI_ANALYSIS_SETTING_FAILED',
       expect.objectContaining({ error_code: 'PROVIDER_FAILED' })
     );

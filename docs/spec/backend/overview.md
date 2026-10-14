@@ -193,12 +193,12 @@ User、FloorMember、RoomMember、KickedUserは`autoIndex: true`とし、起動�
 
 ### ログ、エラー、定期処理
 
-- `backend/utils/logger.js` はdevelopmentでinfo/warn/error、productionでerrorを出力する
+- `backend/utils/logger.js` はdevelopmentでinfo/warn/error、productionでerrorだけを出力する
 - HTTP受付開始時に8つの外部機能の有効状態を`enabled`／`disabled`として1行で出力し、設定値や秘密値は出力しない
 - `backend/middlewares/errorHandler.js`のグローバルエラーハンドラが、`AppError`と未処理エラーをJSONへ変換する。本番アプリと結合テスト環境は同じ実装を使用する
 - developmentでは認証APIの処理時間をアプリ共通のロガーへ出力する
-- AppErrorはwarn、未処理例外はerrorとしてstackをログへ出し、クライアントへはエラーカタログのcode、status、messageと任意detailsだけを返す
-- cron、`setInterval`、アプリ内スケジューラは使用していない。翻訳・解析などは`services/backgroundTaskRunner.js`で追跡してリクエスト処理から非同期で開始し、失敗は同じ処理管理モジュールで記録する
+- AppErrorはwarn、未処理例外はerrorとしてstackをログへ出す。本番ではwarnを抑止する。クライアントへはエラーカタログのcode、status、messageと任意detailsだけを返す
+- cron、`setInterval`、アプリ内スケジューラは使用していない。翻訳・解析などは`services/backgroundTaskRunner.js`で追跡してリクエスト処理から非同期で開始し、未処理の失敗は同じ処理管理モジュールで記録する。AI解析は解析処理内で最終的な失敗をerrorとして記録する
 
 エラー応答の形式は [REST API 共通規約](api-conventions.md)、監視・データ保持の運用条件は [バックエンドの運用上の注意](considerations.md) を参照してください。
 
