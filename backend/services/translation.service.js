@@ -2,6 +2,7 @@ const { translateText } = require('../integrations/google/translate.client');
 const { canTranslate } = require('./googleApiUsage.service');
 const { ALLOWED_LANGUAGES } = require('../constants/languages');
 const logger = require('../utils/logger');
+const { errorLogDetails, safeDiagnostic } = require('../utils/errorLogDetails');
 const { isGoogleTranslateEnabled } = require('../config/featureFlags');
 
 function uniqFilteredTargets(targets, source) {
@@ -15,13 +16,34 @@ function uniqFilteredTargets(targets, source) {
   return Array.from(set);
 }
 
-const logTranslateError = (operation, error) => {
+const translationLogContext = (context) => context ? Object.fromEntries(
+  ['source_type', 'source_id', 'post_id', 'reply_id', 'setting_id', 'kind', 'field']
+    .map((key) => [key, safeDiagnostic(context[key])])
+) : {};
+
+const logTranslateError = (operation, error, context = {}) => {
   logger.error(`[translation.service] ${operation} failed`, {
-    error: error instanceof Error ? error.message : String(error),
+    reason: 'translation_failed',
+    ...context,
+    ...errorLogDetails(error),
   });
 };
 
-const translateTargets = async (operation, targets, translateTarget) => {
+const checkTranslationUsage = async (operation, content, source, targets, context = {}) => {
+  try {
+    return await canTranslate(content, source, targets);
+  } catch (error) {
+    logTranslateError(operation, error, {
+      ...context,
+      reason: 'usage_check_failed',
+      source_language: safeDiagnostic(source),
+      target_languages: targets,
+    });
+    return false;
+  }
+};
+
+const translateTargets = async (operation, targets, translateTarget, context = {}) => {
   const settled = await Promise.allSettled(targets.map((lang) => translateTarget(lang)));
   const translations = [];
   const failedLanguages = [];
@@ -32,7 +54,9 @@ const translateTargets = async (operation, targets, translateTarget) => {
     }
     const lang = targets[index];
     failedLanguages.push(lang);
-    logTranslateError(`${operation}:${lang}`, result.reason);
+    logTranslateError(`${operation}:${lang}`, result.reason, {
+      ...context, reason: 'provider_failed', target_language: lang,
+    });
   });
   Object.defineProperty(translations, 'failedLanguages', {
     value: Object.freeze(failedLanguages),
@@ -53,7 +77,7 @@ module.exports = {
       const textForCount = (title || '') + (description || '');
       if (!textForCount || targets.length === 0) return [];
 
-      const ok = await canTranslate(textForCount, sourceLanguageCode, targets);
+      const ok = await checkTranslationUsage('translateTitleAndDescription', textForCount, sourceLanguageCode, targets);
       if (!ok) return [];
 
       const results = await translateTargets('translateTitleAndDescription', targets, async (lang) => {
@@ -79,7 +103,7 @@ module.exports = {
       const targets = uniqFilteredTargets(targetLanguageCodes, source);
       if (!name || targets.length === 0) return [];
 
-      const ok = await canTranslate(name, source, targets);
+      const ok = await checkTranslationUsage('translateTag', name, source, targets);
       if (!ok) return [];
 
       const results = await translateTargets('translateTag', targets, async (lang) => {
@@ -107,7 +131,7 @@ module.exports = {
       const targets = uniqFilteredTargets(targetLanguageCodes, source);
       if (!title || targets.length === 0) return [];
 
-      const ok = await canTranslate(title, source, targets);
+      const ok = await checkTranslationUsage('translateQuickTextGroup', title, source, targets);
       if (!ok) return [];
 
       const results = await translateTargets('translateQuickTextGroup', targets, async (lang) => {
@@ -135,7 +159,7 @@ module.exports = {
       const targets = uniqFilteredTargets(targetLanguageCodes, source);
       if (!label || targets.length === 0) return [];
 
-      const ok = await canTranslate(label, source, targets);
+      const ok = await checkTranslationUsage('translateQuickTextItem', label, source, targets);
       if (!ok) return [];
 
       const results = await translateTargets('translateQuickTextItem', targets, async (lang) => {
@@ -154,13 +178,14 @@ module.exports = {
     }
   },
 
-  async translateContent(userId, content, sourceLanguageCode, targetLanguageCodes) {
+  async translateContent(userId, content, sourceLanguageCode, targetLanguageCodes, logContext) {
     if (!isGoogleTranslateEnabled()) return [];
+    const context = translationLogContext(logContext);
     try {
       const targets = uniqFilteredTargets(targetLanguageCodes, sourceLanguageCode);
       if (!content || targets.length === 0) return [];
 
-      const ok = await canTranslate(content, sourceLanguageCode, targets);
+      const ok = await checkTranslationUsage('translateContent', content, sourceLanguageCode, targets, context);
       if (!ok) return [];
 
       const results = await translateTargets('translateContent', targets, async (lang) => {
@@ -170,10 +195,10 @@ module.exports = {
           targetLanguageCode: lang,
         });
         return { user: userId || null, guest_id: null, lang, content: translated || '' };
-      });
+      }, context);
       return results;
     } catch (e) {
-      logTranslateError('translateContent', e);
+      logTranslateError('translateContent', e, context);
       return [];
     }
   },
@@ -184,7 +209,7 @@ module.exports = {
       const targets = uniqFilteredTargets(targetLanguageCodes, sourceLanguageCode);
       if (!content || targets.length === 0) return [];
 
-      const ok = await canTranslate(content, sourceLanguageCode, targets);
+      const ok = await checkTranslationUsage('translateGuestContent', content, sourceLanguageCode, targets);
       if (!ok) return [];
 
       const results = await translateTargets('translateGuestContent', targets, async (lang) => {

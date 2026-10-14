@@ -76,6 +76,8 @@ pm2 logs iseeetl --err --lines 200
 
 AI解析の失敗は`AI_ANALYSIS_SOURCE_FAILED`、`AI_ANALYSIS_SETTING_FAILED`、`AI_ANALYSIS_OUTPUT_INVALID`を手掛かりに、対象の`post_id`・`reply_id`と前後のログを確認します。項目とレベルの意味は[AI解析のログ](../spec/ai-analysis.md#失敗時のログ)を参照してください。
 
+AI解析結果の翻訳がない場合は、`[translation.service] translateContent`と`AI_ANALYSIS_TRANSLATION_FAILED`も確認します。`post_id`・`reply_id`・`setting_id`で対象を特定し、`field`で本文とタイトル、`reason`でAPI失敗と利用量確認の失敗を区別します。原文は保存できていても、翻訳だけが失敗している場合があります。アプリ独自の月間上限超過による中止はWARNのため本番ログには残りません。
+
 ## サーバ再起動後の自動起動
 
 同じ実行ユーザ・管理領域で[PM2の自動起動手順](https://pm2.keymetrics.io/docs/usage/startup/)に従ってOSへ登録し、動作確認後にプロセス一覧を保存します。

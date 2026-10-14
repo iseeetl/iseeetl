@@ -19,8 +19,62 @@ const translationService = require('../../../services/translation.service');
 
 describe('translationのサービス', () => {
   beforeEach(() => {
-    jest.clearAllMocks();
+    jest.resetAllMocks();
     mockIsGoogleTranslateEnabled.mockReturnValue(true);
+  });
+
+  test.each([
+    ['translateTitleAndDescription', () => translationService.translateTitleAndDescription('u1', 'title', 'desc', 'ja', ['en'])],
+    ['translateTag', () => translationService.translateTag('u1', { name: 'tag', lang: 'ja' }, ['en'])],
+    ['translateQuickTextGroup', () => translationService.translateQuickTextGroup('u1', { title: 'group', lang: 'ja' }, ['en'])],
+    ['translateQuickTextItem', () => translationService.translateQuickTextItem('u1', { label: 'item', lang: 'ja' }, ['en'])],
+    ['translateContent', () => translationService.translateContent('u1', 'hello', 'ja', ['en'])],
+    ['translateGuestContent', () => translationService.translateGuestContent('g1', 'hello', 'ja', ['en'])],
+  ])('%sは利用量DBの障害を一度だけERRORに記録して翻訳を中止する', async (operation, translate) => {
+    canTranslate.mockRejectedValue(Object.assign(new Error('private-fixture'), { code: 13 }));
+
+    await expect(translate()).resolves.toEqual([]);
+
+    expect(translateText).not.toHaveBeenCalled();
+    expect(logger.error).toHaveBeenCalledTimes(1);
+    expect(logger.error).toHaveBeenCalledWith(`[translation.service] ${operation} failed`, {
+      reason: 'usage_check_failed', source_language: 'ja', target_languages: ['en'],
+      error_code: 13, error_type: 'Error', http_status: null, request_id: null,
+    });
+  });
+
+  test('API失敗のログにAI解析の対象情報と診断項目だけを記録する', async () => {
+    canTranslate.mockResolvedValue(true);
+    translateText.mockRejectedValue(Object.assign(new Error('private-fixture response'), {
+      code: 8, response: { status: 429, headers: { 'x-request-id': 'fixture-request' }, data: 'private-fixture' },
+    }));
+    const context = {
+      source_type: 'reply', source_id: 'reply-1', post_id: 'post-1', reply_id: 'reply-1',
+      setting_id: 'setting-1', kind: 'video', field: 'title',
+    };
+    const result = await translationService.translateContent('u1', 'private-fixture input', 'ja', ['en'], {
+      ...context, content: 'private-fixture', error: 'private-fixture', token: 'private-fixture',
+    });
+
+    expect(result).toEqual([]);
+    expect(translationService.getFailedTranslationLanguages(result)).toEqual(['en']);
+    expect(logger.error).toHaveBeenCalledTimes(1);
+    expect(logger.error).toHaveBeenCalledWith('[translation.service] translateContent:en failed', {
+      ...context, reason: 'provider_failed', target_language: 'en',
+      error_code: 8, error_type: 'Error', http_status: 429, request_id: 'fixture-request',
+    });
+    expect(JSON.stringify(logger.error.mock.calls)).not.toContain('private-fixture');
+  });
+
+  test('利用量DBの障害にもAI解析の対象情報を付ける', async () => {
+    canTranslate.mockRejectedValue(new Error('private-fixture'));
+    await translationService.translateContent('u1', 'hello', 'ja', ['en'], {
+      post_id: 'post-1', setting_id: 'setting-1', field: 'body',
+    });
+    expect(logger.error).toHaveBeenCalledTimes(1);
+    expect(logger.error).toHaveBeenCalledWith('[translation.service] translateContent failed', expect.objectContaining({
+      post_id: 'post-1', setting_id: 'setting-1', field: 'body', reason: 'usage_check_failed',
+    }));
   });
 
   test.each([
@@ -37,6 +91,7 @@ describe('translationのサービス', () => {
 
     expect(canTranslate).not.toHaveBeenCalled();
     expect(translateText).not.toHaveBeenCalled();
+    expect(logger.error).not.toHaveBeenCalled();
   });
 
   describe('タイトルと説明の翻訳', () => {
@@ -89,7 +144,7 @@ describe('translationのサービス', () => {
       expect(res).toEqual([]);
       expect(logger.error).toHaveBeenCalledWith(
         expect.stringContaining('translateTitleAndDescription'),
-        expect.objectContaining({ error: 'fail' })
+        expect.objectContaining({ reason: 'provider_failed', error_type: 'Error', target_language: 'fr' })
       );
     });
   });
@@ -161,7 +216,7 @@ describe('translationのサービス', () => {
       expect(res).toEqual([]);
       expect(logger.error).toHaveBeenCalledWith(
         expect.stringContaining('translateTag'),
-        expect.objectContaining({ error: 'fail' })
+        expect.objectContaining({ reason: 'provider_failed', error_type: 'Error', target_language: 'en' })
       );
     });
   });
@@ -203,7 +258,7 @@ describe('translationのサービス', () => {
       expect(Object.keys(res)).toEqual(['0', '1']);
       expect(logger.error).toHaveBeenCalledWith(
         expect.stringContaining('translateContent:fr'),
-        expect.objectContaining({ error: 'provider failed' })
+        expect.objectContaining({ reason: 'provider_failed', error_type: 'Error', target_language: 'fr' })
       );
     });
 
@@ -234,7 +289,7 @@ describe('translationのサービス', () => {
       expect(res).toEqual([]);
       expect(logger.error).toHaveBeenCalledWith(
         expect.stringContaining('translateContent'),
-        expect.objectContaining({ error: 'fail' })
+        expect.objectContaining({ reason: 'provider_failed', error_type: 'Error', target_language: 'en' })
       );
     });
   });
@@ -275,7 +330,7 @@ describe('translationのサービス', () => {
       expect(res).toEqual([]);
       expect(logger.error).toHaveBeenCalledWith(
         expect.stringContaining('translateGuestContent'),
-        expect.objectContaining({ error: 'fail' })
+        expect.objectContaining({ reason: 'provider_failed', error_type: 'Error', target_language: 'en' })
       );
     });
   });

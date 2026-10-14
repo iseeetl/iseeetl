@@ -1,5 +1,12 @@
 const mongoose = require('mongoose');
 
+jest.mock('../../../integrations/google/translate.client', () => ({ translateText: jest.fn() }));
+jest.mock('../../../config/featureFlags', () => ({
+  ...jest.requireActual('../../../config/featureFlags'),
+  isGoogleTranslateEnabled: jest.fn(() => false),
+  getGoogleTranslateConfig: jest.fn(() => ({ limit: null })),
+}));
+
 const ROLES = require('../../../constants/roles');
 const Chat = require('../../../models/Chat');
 const Floor = require('../../../models/Floor');
@@ -83,6 +90,87 @@ const sourceSupplements = async ({ postId, replyId = null }) => {
 };
 
 describe('設定に基づくAI解析の結合動作（外部サービスはモック）', () => {
+  describe('共通翻訳処理の失敗後も解析結果を保存する', () => {
+    const { translateText } = require('../../../integrations/google/translate.client');
+    const flags = require('../../../config/featureFlags');
+    const logger = require('../../../utils/logger');
+    const GoogleApiUsage = require('../../../models/GoogleApiUsage');
+
+    beforeEach(() => {
+      flags.isGoogleTranslateEnabled.mockReturnValue(true);
+      translateText.mockReset();
+      jest.spyOn(logger, 'error').mockImplementation(() => {});
+    });
+
+    afterEach(() => {
+      jest.restoreAllMocks();
+      flags.isGoogleTranslateEnabled.mockReturnValue(false);
+    });
+
+    test.each(['post', 'reply'])('%sの本文・タイトルで一部言語が失敗しても原文と成功した翻訳を保存・配信する', async (sourceType) => {
+      const withReply = sourceType === 'reply';
+      const context = await setup({ withReply });
+      await Floor.updateOne({ _id: context.floor._id }, { $set: { target_langs: ['ja', 'fr'] } });
+      await RoomAIAnalysisSetting.updateOne({ _id: context.settings[0]._id }, {
+        $set: { result_title: 'fixture title', result_title_lang: 'en' },
+      });
+      translateText.mockImplementation(async ({ contents, targetLanguageCode }) => {
+        if (targetLanguageCode === 'fr') throw Object.assign(new Error('private-fixture'), { code: 8 });
+        return [contents[0] === 'fixture title' ? '翻訳タイトル' : '翻訳本文'];
+      });
+      const { emit, io } = createIo();
+      const executor = createAnalysisExecutor({ executionEnabled: () => true, prepareInput, analyze: async () => 'fixture answer' });
+      const args = {
+        chatId: context.post._id, sourceType, replyId: withReply ? context.replyId : null,
+        settingId: context.settings[0]._id, io, mediaPath: '/mocked',
+      };
+      await expect(executor.executeSetting(args)).resolves.toMatchObject({ status: 'created' });
+
+      const [saved] = await sourceSupplements({ postId: context.post._id, replyId: args.replyId });
+      expect(saved).toMatchObject({
+        content: '#Custom analysis fixture answer', title: 'fixture title',
+        translations: [expect.objectContaining({ lang: 'ja', content: '#独自解析 翻訳本文' })],
+        title_translations: [expect.objectContaining({ lang: 'ja', content: '翻訳タイトル' })],
+      });
+      expect(logger.error).toHaveBeenCalledTimes(2);
+      for (const field of ['body', 'title']) {
+        expect(logger.error).toHaveBeenCalledWith('[translation.service] translateContent:fr failed', expect.objectContaining({
+          source_type: sourceType, post_id: context.post._id.toString(),
+          reply_id: withReply ? context.replyId.toString() : null,
+          setting_id: context.settings[0]._id.toString(), field, error_code: 8,
+        }));
+      }
+      expect(emit).toHaveBeenCalledTimes(1);
+      const [event, payload] = emit.mock.calls[0];
+      expect(event).toBe(withReply ? 'REPLY_SUPPLEMENT_CREATE' : 'SUPPLEMENT_CREATE');
+      const source = withReply ? payload.replies.find((reply) => String(reply._id) === String(args.replyId)) : payload;
+      expect(source.supplementaries[0]).toMatchObject({
+        content: saved.content, title: saved.title,
+        translations: [expect.objectContaining({ lang: 'ja', content: '#独自解析 翻訳本文' })],
+        title_translations: [expect.objectContaining({ lang: 'ja', content: '翻訳タイトル' })],
+      });
+    });
+
+    test('利用量DBの例外を記録した後も解析原文を保存する', async () => {
+      const context = await setup();
+      await Floor.updateOne({ _id: context.floor._id }, { $set: { target_langs: ['ja'] } });
+      jest.spyOn(GoogleApiUsage, 'findOneAndUpdate').mockRejectedValue(Object.assign(new Error('private-fixture'), { code: 13 }));
+      const executor = createAnalysisExecutor({ executionEnabled: () => true, prepareInput, analyze: async () => 'fixture answer' });
+      await expect(executor.executeSetting({
+        chatId: context.post._id, sourceType: 'post', settingId: context.settings[0]._id,
+        io: createIo().io, mediaPath: '/mocked',
+      })).resolves.toMatchObject({ status: 'created' });
+      const [saved] = await sourceSupplements({ postId: context.post._id });
+      expect(saved).toMatchObject({ content: '#Custom analysis fixture answer', translations: [] });
+      expect(translateText).not.toHaveBeenCalled();
+      expect(logger.error).toHaveBeenCalledTimes(1);
+      expect(logger.error).toHaveBeenCalledWith('[translation.service] translateContent failed', expect.objectContaining({
+        post_id: context.post._id.toString(), setting_id: context.settings[0]._id.toString(),
+        field: 'body', reason: 'usage_check_failed', error_code: 13,
+      }));
+    });
+  });
+
   test.each([
     { sourceType: 'post', kind: 'conversation' },
     { sourceType: 'reply', kind: 'conversation' },
@@ -141,7 +229,15 @@ describe('設定に基づくAI解析の結合動作（外部サービスはモ�
       } else {
         expect(saved.content).toBe(`#Custom analysis ${providerOutput}`);
       }
-      expect(translateContent).toHaveBeenLastCalledWith(context.resultUser._id.toString(), providerOutput, 'en', ['ja', 'fr']);
+      expect(translateContent).toHaveBeenLastCalledWith(
+        context.resultUser._id.toString(), providerOutput, 'en', ['ja', 'fr'],
+        expect.objectContaining({
+          post_id: context.post._id.toString(),
+          reply_id: withReply ? context.replyId.toString() : null,
+          setting_id: context.settings[0]._id.toString(),
+          field: 'body',
+        })
+      );
       expect(emit).toHaveBeenCalledTimes(revision);
       expect(io.to).toHaveBeenLastCalledWith(context.room._id.toString());
       const [event, payload, createdReplySupplement] = emit.mock.calls[revision - 1];

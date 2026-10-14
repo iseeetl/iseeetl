@@ -20,6 +20,10 @@ LINE／Google認証、メール、Google Translate、OpenAI、OneSignal、Google
 AI解析モデルは解析種別ごとの環境変数で指定する。
 現行の有効化条件は[環境変数](environment-variables.md)、AI解析の境界は[AI解析設定・実行仕様](../ai-analysis.md)を参照する。
 
+Google翻訳APIの失敗と利用量管理のDB障害は、共通の翻訳処理でERRORとして記録する。ログには処理名、対象言語、失敗理由と取得できたエラーコード・種別・HTTPステータス・リクエストIDを含め、本文・翻訳結果・例外メッセージは出力しない。AI解析からの翻訳には投稿ID・返信ID・解析設定ID・解析種別・本文とタイトルの区別も付ける。翻訳の失敗だけでは原文の保存を取り消さず、成功した言語の翻訳も保持する。
+
+アプリ独自の月間利用量上限を超えた場合は、`TRANSLATION_MONTHLY_LIMIT_EXCEEDED`のWARNに対象月・加算後の使用量・上限を記録して翻訳を中止する。本番ではWARNを出力しない。使用量は判定前に加算し、中止した分も戻さない。Google側の利用上限によるAPIエラーはERRORとして記録する。
+
 ### REST API共通契約
 
 AppErrorは共通JSONへ変換する一方、レート制限、Multer、未定義非GETなどは異なる応答になり得る。
