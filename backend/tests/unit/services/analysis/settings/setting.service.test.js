@@ -1009,6 +1009,71 @@ describe('フロアとルームのAI解析設定', () => {
   });
 });
 
+describe.each([
+  { scope: '共通', type: 'common', Model: mockAIAnalysisSetting, Tag: mockCategoryTag, tagField: 'category_tag', create: settingService.createCommon },
+  { scope: 'フロア', type: 'floor', Model: mockFloorAIAnalysisSetting, Tag: mockFloorTag, tagField: 'floor_tag', create: settingService.createFloor },
+  { scope: 'ルーム', type: 'room', Model: mockRoomAIAnalysisSetting, Tag: mockRoomTag, tagField: 'room_tag', create: settingService.createRoom },
+])('$scope設定のタグ名の文字数検査', ({ type, Model, Tag, tagField, create }) => {
+  test.each([
+    { operation: '作成', nameLength: 398, translationLength: 500, accepted: true },
+    { operation: '更新', nameLength: 398, translationLength: 500, accepted: true },
+    { operation: '作成', nameLength: 399, translationLength: 10, accepted: false },
+    { operation: '更新', nameLength: 399, translationLength: 10, accepted: false },
+  ])('$operation時に基準名$nameLength文字・翻訳名$translationLength文字を検査する', async ({
+    operation, nameLength, translationLength, accepted,
+  }) => {
+    const tag = {
+      _id: 'tag-1', floor: 'floor-1', room: 'room-1',
+      name: 'T'.repeat(nameLength),
+      translations: [{ lang: 'en', name: 't'.repeat(translationLength) }],
+    };
+    const current = {
+      _id: 'setting-1', floor: 'floor-1', room: 'room-1',
+      [tagField]: tag._id, result_user: 'result-user-1', revision: 1,
+    };
+    const body = {
+      _id: current._id, floor_id: 'floor-1', room_id: 'room-1',
+      [tagField]: tag._id, result_user: 'result-user-1', revision: 1,
+      analysis_kind: 'vision', additional_prompt: '',
+    };
+    Tag.findOne.mockReturnValue(queryResult(tag));
+    mockUser.findOne.mockReturnValue(queryResult({ _id: 'result-user-1' }));
+    Model.findOne.mockReturnValue(queryResult(current));
+    Model.findById.mockReturnValue(queryResult(commonPopulated({ ...current, [tagField]: tag })));
+    if (operation === '更新' && type !== 'common') {
+      Model.findById.mockReturnValueOnce(queryResult(current));
+    }
+    Model.create.mockResolvedValue({ _id: current._id });
+    Model.findOneAndUpdate.mockResolvedValue({ _id: current._id });
+
+    const result = operation === '作成'
+      ? create(body, jwt)
+      : type === 'common'
+        ? settingService.updateCommon(body, jwt)
+        : settingService.updateScoped(type, body, jwt);
+
+    if (!accepted) {
+      await expect(result).rejects.toMatchObject({ code: 'INVALID_PARAMS', status: 400 });
+      expect(Model.create).not.toHaveBeenCalled();
+      expect(Model.findOneAndUpdate).not.toHaveBeenCalled();
+      return;
+    }
+    await expect(result).resolves.toMatchObject({
+      _id: current._id,
+      tag: { name: tag.name, translations: tag.translations },
+    });
+    if (operation === '作成') {
+      expect(Model.create).toHaveBeenCalledWith(expect.objectContaining({ [tagField]: tag._id }));
+    } else {
+      expect(Model.findOneAndUpdate).toHaveBeenCalledWith(
+        { _id: current._id, revision: 1, delete_flg: false },
+        expect.objectContaining({ $set: expect.objectContaining({ [tagField]: tag._id }) }),
+        { new: true, runValidators: true }
+      );
+    }
+  });
+});
+
 describe('環境変数からの初期ユーザ取得', () => {
   const originalSupportUserId = process.env.SUPPORT_USER_ID;
   const supportUserId = '111111111111111111111111';

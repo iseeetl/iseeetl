@@ -8,6 +8,7 @@ const RoomAIAnalysisSetting = require('../../../models/RoomAIAnalysisSetting');
 const RoomTag = require('../../../models/RoomTag');
 const User = require('../../../models/User');
 const { createAnalysisExecutor } = require('../../../services/analysis/executor.service');
+const { buildAnalysisSupplement } = require('../../../services/analysis/output.service');
 const { persistPostAnalysisSourceMutation } = require('../../../services/timeline/shared/analysisSourceMutation');
 const { createFloor, createRoom, createUser } = require('../_helpers/models');
 
@@ -82,6 +83,81 @@ const sourceSupplements = async ({ postId, replyId = null }) => {
 };
 
 describe('設定に基づくAI解析の結合動作（外部サービスはモック）', () => {
+  test.each([
+    { sourceType: 'post', kind: 'conversation' },
+    { sourceType: 'reply', kind: 'conversation' },
+    { sourceType: 'post', kind: 'speech' },
+    { sourceType: 'reply', kind: 'speech' },
+  ])('$sourceTypeの$kind解析で長い翻訳本文と翻訳タグ名を新規保存・更新・配信する', async ({ sourceType, kind }) => {
+    const withReply = sourceType === 'reply';
+    const context = await setup({ withReply, kinds: [kind] });
+    const translatedTag = 'T'.repeat(399);
+    await Floor.updateOne({ _id: context.floor._id }, { $set: { target_langs: ['ja', 'fr'] } });
+    await RoomTag.updateOne({ _id: context.tag._id }, {
+      $push: { translations: { user: context.owner._id, lang: 'fr', name: translatedTag } },
+    });
+    const providerOutput = kind === 'speech' ? 'a'.repeat(600) : 'valid result';
+    const translateContent = jest.fn();
+    const { emit, io } = createIo();
+    const executor = createAnalysisExecutor({
+      executionEnabled: () => true,
+      prepareInput,
+      analyze: async () => providerOutput,
+      buildSupplement: (options) => buildAnalysisSupplement({ ...options, translateContent }),
+    });
+    const args = {
+      chatId: context.post._id,
+      sourceType,
+      replyId: withReply ? context.replyId : null,
+      settingId: context.settings[0]._id,
+      io,
+      mediaPath: '/mocked',
+    };
+    let supplementId;
+    for (const revision of [1, 2]) {
+      if (revision === 2) {
+        await RoomAIAnalysisSetting.updateOne({ _id: context.settings[0]._id }, { $inc: { revision: 1 } });
+      }
+      const translatedBody = `${revision}${'訳'.repeat(500)}`;
+      translateContent.mockResolvedValue([
+        { lang: 'ja', content: translatedBody },
+        { lang: 'fr', content: 'réponse' },
+      ]);
+      await expect(executor.executeSetting(args)).resolves.toMatchObject({ status: revision === 1 ? 'created' : 'updated' });
+      const supplements = await sourceSupplements({ postId: context.post._id, replyId: args.replyId });
+      expect(supplements).toHaveLength(1);
+      const [saved] = supplements;
+      if (revision === 1) supplementId = saved._id.toString();
+      expect(saved._id.toString()).toBe(supplementId);
+      expect(saved.meta.analysis_setting_revision).toBe(revision);
+      const expectedTranslations = [
+        { lang: 'ja', content: `#独自解析 ${translatedBody}` },
+        { lang: 'fr', content: `#${translatedTag} réponse` },
+      ];
+      expect(saved.translations.map(({ lang, content }) => ({ lang, content }))).toEqual(expectedTranslations);
+      if (kind === 'speech') {
+        expect(saved.content).toHaveLength(400);
+        expect(saved.content.endsWith('…')).toBe(true);
+      } else {
+        expect(saved.content).toBe(`#Custom analysis ${providerOutput}`);
+      }
+      expect(translateContent).toHaveBeenLastCalledWith(context.resultUser._id.toString(), providerOutput, 'en', ['ja', 'fr']);
+      expect(emit).toHaveBeenCalledTimes(revision);
+      expect(io.to).toHaveBeenLastCalledWith(context.room._id.toString());
+      const [event, payload, createdReplySupplement] = emit.mock.calls[revision - 1];
+      expect(event).toBe(`${withReply ? 'REPLY_' : ''}SUPPLEMENT_${revision === 1 ? 'CREATE' : 'UPDATE'}`);
+      const emittedSource = withReply
+        ? payload.replies.find((reply) => reply._id.toString() === args.replyId.toString())
+        : payload;
+      expect(emittedSource.supplementaries[0].translations).toEqual(
+        expectedTranslations.map((translation) => expect.objectContaining(translation))
+      );
+      if (withReply && revision === 1) {
+        expect(createdReplySupplement.translations).toEqual(emittedSource.supplementaries[0].translations);
+      }
+    }
+  });
+
   test.each([false, true])('返信=%sでも設定のタイトルを反映し、再解析時だけ最新設定で置き換える', async (withReply) => {
     const ctx = await setup({ withReply });
     await RoomAIAnalysisSetting.updateOne({ _id: ctx.settings[0]._id }, { $set: { result_title: '解析メモ', result_title_lang: 'ja' } });
