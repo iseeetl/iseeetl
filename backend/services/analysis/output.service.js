@@ -20,6 +20,16 @@ const analysisLogContext = (snapshot, reason, startedAt) => ({
   elapsed_ms: Date.now() - startedAt,
 });
 
+const translationLogContext = (snapshot, field) => ({
+  source_type: snapshot.sourceType,
+  source_id: snapshot.source._id,
+  post_id: snapshot.chatId,
+  reply_id: snapshot.replyId || null,
+  setting_id: snapshot.settingId,
+  kind: snapshot.kind,
+  field,
+});
+
 const normalizeProviderOutput = (value) =>
   typeof value === 'string' ? value.trim() : '';
 
@@ -76,11 +86,14 @@ const buildTranslations = async ({ snapshot, base, translateContent, logger, sta
       snapshot.resultUserId,
       base.text,
       base.baseLang,
-      targets
+      targets,
+      translationLogContext(snapshot, 'body')
     );
   } catch (error) {
-    logger.warn('AI_ANALYSIS_TRANSLATION_FAILED', {
+    logger.error('AI_ANALYSIS_TRANSLATION_FAILED', {
       ...analysisLogContext(snapshot, 'translation_failed', startedAt),
+      field: 'body',
+      target_languages: targets,
       ...errorLogDetails(error),
     });
     return [];
@@ -106,7 +119,8 @@ const buildTitleTranslations = async ({ snapshot, translateContent, logger, star
   if (!targets.length) return [];
   try {
     const translations = await translateContent(
-      snapshot.resultUserId, snapshot.resultTitle, snapshot.resultTitleLang, targets
+      snapshot.resultUserId, snapshot.resultTitle, snapshot.resultTitleLang, targets,
+      translationLogContext(snapshot, 'title')
     );
     return (Array.isArray(translations) ? translations : []).flatMap((entry) => {
       const content = normalizeProviderOutput(entry?.content).replace(/[\r\n\u2028\u2029]+/g, ' ');
@@ -115,8 +129,10 @@ const buildTitleTranslations = async ({ snapshot, translateContent, logger, star
         : [];
     });
   } catch (error) {
-    logger.warn('AI_ANALYSIS_TRANSLATION_FAILED', {
+    logger.error('AI_ANALYSIS_TRANSLATION_FAILED', {
       ...analysisLogContext(snapshot, 'title_translation_failed', startedAt), ...errorLogDetails(error),
+      field: 'title',
+      target_languages: targets,
     });
     return [];
   }

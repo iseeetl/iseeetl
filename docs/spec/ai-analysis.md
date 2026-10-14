@@ -82,14 +82,20 @@
 | `AI_ANALYSIS_SOURCE_FAILED` | ERROR | 解析対象に一致する設定の検索に失敗 |
 | `AI_ANALYSIS_SETTING_FAILED` | ERROR | 対象の確認、メディア準備、外部API呼び出し、結果保存、一時ファイルの削除のいずれかに失敗 |
 | `AI_ANALYSIS_OUTPUT_INVALID` | ERROR | 応答が空、文字数超過などで解析結果を保存できない |
-| `AI_ANALYSIS_TRANSLATION_FAILED` | WARN | 解析本文またはタイトルの翻訳処理で例外が発生。原文は保存対象 |
+| `[translation.service] translateContent:<言語> failed` | ERROR | 解析本文またはタイトルの翻訳APIが失敗。失敗した言語ごとに記録し、原文と成功した翻訳は保存対象 |
+| `[translation.service] translateContent failed` | ERROR | 翻訳の利用量確認などが失敗。原文は保存対象 |
+| `AI_ANALYSIS_TRANSLATION_FAILED` | ERROR | 共通の翻訳処理で処理されず、AI解析側まで伝わった例外。原文は保存対象 |
 | `AI_ANALYSIS_OUTPUT_TRUNCATED` | WARN | 文字起こしを仕様どおり省略して保存対象にした |
 
 表のWARNは本番では出力しません。
 
+翻訳APIの失敗と利用量管理のDB障害は共通の翻訳処理で記録し、AI解析側では重ねて記録しません。翻訳ログの`field`は本文なら`body`、タイトルなら`title`です。API失敗の`reason`は`provider_failed`、利用量確認の失敗は`usage_check_failed`で区別します。API失敗では`target_language`、利用量確認の失敗やAI解析側で捕捉した例外では`target_languages`に対象言語を記録します。
+
+アプリ独自の月間上限超過では、`TRANSLATION_MONTHLY_LIMIT_EXCEEDED`のWARNを記録して翻訳を中止します。本番では出力しません。これはGoogle側の利用上限によるAPIエラーとは別です。機能無効や対象言語なしの場合は、翻訳のエラーログを出しません。
+
 - `post_id`は投稿ID（返信解析では親投稿ID）、`reply_id`は返信ID、`setting_id`は解析設定ID、`kind`は解析種別です。設定の取得前に失敗した場合は、一部の項目を確定できません。
-- `stage`で処理段階を区別します。`settings_lookup`は設定検索、`snapshot`は解析対象の取得、`media_prepare`はメディア準備、`before_send`は送信前の再確認、`provider`は外部API呼び出し、`output`は結果の整形、`output_validation`は出力の検査、`translation`は翻訳、`persist`は結果保存、`media_cleanup`は一時ファイルの削除です。
-- `elapsed_ms`は当該設定の処理開始からログ記録までのミリ秒数です。設定検索の失敗では検索開始からの時間です。外部APIだけの応答時間ではありません。
+- AI解析側のログは`stage`で処理段階を区別します。`settings_lookup`は設定検索、`snapshot`は解析対象の取得、`media_prepare`はメディア準備、`before_send`は送信前の再確認、`provider`は外部API呼び出し、`output`は結果の整形、`output_validation`は出力の検査、`translation`は翻訳、`persist`は結果保存、`media_cleanup`は一時ファイルの削除です。
+- AI解析側の`elapsed_ms`は当該設定の処理開始からログ記録までのミリ秒数です。設定検索の失敗では検索開始からの時間です。外部APIだけの応答時間ではありません。共通の翻訳ログには`stage`・`elapsed_ms`を付けません。
 - 例外がある場合は、取得できた`error_code`、`error_type`、`http_status`、`request_id`を記録します。タイムアウトなどでHTTP応答がない場合、`http_status`は`null`です。出力検査では`reason`に空応答や文字数超過の理由を記録します。
 - 投稿本文、追加指示、解析結果本文、メディア、APIキー、外部APIの応答全文や例外本文は解析ログへ出力しません。
 - 機能無効、解析対象外、対象の変更・削除によるスキップ、終了処理による中断はERRORにしません。自動再試行はありません。

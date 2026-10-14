@@ -29,7 +29,7 @@ const snapshot = (overrides = {}) => ({
 const logger = () => ({ info: jest.fn(), warn: jest.fn(), error: jest.fn() });
 
 describe('AI解析結果の整形', () => {
-  test('翻訳例外は安全なWARNだけを記録し、解析本文を残す', async () => {
+  test('翻訳例外は安全なERRORだけを記録し、解析本文を残す', async () => {
     const log = logger();
     const value = await buildAnalysisSupplement({
       snapshot: snapshot(),
@@ -41,12 +41,13 @@ describe('AI解析結果の整形', () => {
     });
     expect(value.content).toBe('#Advice fixture answer');
     expect(value.translations).toEqual([]);
-    expect(log.error).not.toHaveBeenCalled();
-    expect(log.warn).toHaveBeenCalledTimes(1);
-    expect(log.warn).toHaveBeenCalledWith('AI_ANALYSIS_TRANSLATION_FAILED', expect.objectContaining({
+    expect(log.warn).not.toHaveBeenCalled();
+    expect(log.error).toHaveBeenCalledTimes(1);
+    expect(log.error).toHaveBeenCalledWith('AI_ANALYSIS_TRANSLATION_FAILED', expect.objectContaining({
       post_id: 'post-1', stage: 'translation', reason: 'translation_failed', error_code: 8,
+      field: 'body', target_languages: ['fr-FR'],
     }));
-    expect(JSON.stringify(log.warn.mock.calls)).not.toContain('private');
+    expect(JSON.stringify(log.error.mock.calls)).not.toContain('private');
   });
 
   test('タイトルの原文言語を使って本文と別に翻訳し、長い翻訳も省略しない', async () => {
@@ -57,20 +58,29 @@ describe('AI解析結果の整形', () => {
       providerOutput: 'answer', translateContent, logger: logger(),
     });
     expect(value).toMatchObject({ title: '見出し', title_lang: 'ja', content: '#Advice answer' });
-    expect(translateContent).toHaveBeenCalledWith('user-1', '見出し', 'ja', ['en']);
+    expect(translateContent).toHaveBeenCalledWith('user-1', '見出し', 'ja', ['en'], expect.objectContaining({
+      post_id: 'post-1', setting_id: 'setting-1', field: 'title',
+    }));
     expect(value.title_translations[0].content).toBe(translatedTitle);
   });
   test('タイトル翻訳が失敗しても原文タイトルと解析本文を保存する', async () => {
+    const log = logger();
     const translateContent = jest.fn(async (_user, text) => {
       if (text === '見出し') throw new Error('translation unavailable');
       return [{ lang: 'ja', content: '本文訳' }];
     });
     const value = await buildAnalysisSupplement({
       snapshot: snapshot({ resultTitle: '見出し', resultTitleLang: 'ja', targetLangs: ['en', 'ja'] }),
-      providerOutput: 'answer', translateContent, logger: logger(),
+      providerOutput: 'answer', translateContent, logger: log,
     });
     expect(value).toMatchObject({ title: '見出し', title_translations: [], content: '#Advice answer' });
     expect(value.translations).toHaveLength(1);
+    expect(log.warn).not.toHaveBeenCalled();
+    expect(log.error).toHaveBeenCalledTimes(1);
+    expect(log.error).toHaveBeenCalledWith('AI_ANALYSIS_TRANSLATION_FAILED', expect.objectContaining({
+      post_id: 'post-1', setting_id: 'setting-1', field: 'title', target_languages: ['en'],
+      reason: 'title_translation_failed',
+    }));
   });
 
   test('解析を実行したルームタグの翻訳を使い、翻訳がなければ元のタグ名を使う', async () => {
@@ -237,7 +247,9 @@ describe('AI解析結果の整形', () => {
 
     expect(value.content).toHaveLength(400);
     expect(value.content.endsWith('…')).toBe(true);
-    expect(translateContent).toHaveBeenCalledWith('user-1', providerOutput, 'ja', ['en']);
+    expect(translateContent).toHaveBeenCalledWith('user-1', providerOutput, 'ja', ['en'], expect.objectContaining({
+      post_id: 'post-1', setting_id: 'setting-1', field: 'body',
+    }));
     expect(value.translations[0].content).toBe(`#Advice ${translated.trim()}`);
     expect(log.warn).toHaveBeenCalledTimes(1);
     expect(log.warn).toHaveBeenCalledWith('AI_ANALYSIS_OUTPUT_TRUNCATED', expect.any(Object));

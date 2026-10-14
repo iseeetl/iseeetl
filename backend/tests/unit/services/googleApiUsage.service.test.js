@@ -1,6 +1,8 @@
 jest.mock('../../../models/GoogleApiUsage', () => ({
   findOneAndUpdate: jest.fn(),
 }));
+jest.mock('../../../utils/logger', () => ({ warn: jest.fn(), error: jest.fn() }));
+const logger = require('../../../utils/logger');
 const mockIsGoogleTranslateEnabled = jest.fn(() => true);
 const mockGetGoogleTranslateConfig = jest.fn(() => ({ limit: 1000 }));
 jest.mock('../../../config/featureFlags', () => ({
@@ -15,7 +17,7 @@ describe('Google翻訳の利用量判定', () => {
   const ORIGINAL_ENV = process.env;
 
   beforeEach(() => {
-    jest.clearAllMocks();
+    jest.resetAllMocks();
     process.env = { ...ORIGINAL_ENV };
     mockIsGoogleTranslateEnabled.mockReturnValue(true);
     mockGetGoogleTranslateConfig.mockReturnValue({ limit: 1000 });
@@ -23,6 +25,10 @@ describe('Google翻訳の利用量判定', () => {
 
   afterAll(() => {
     process.env = ORIGINAL_ENV;
+  });
+
+  afterEach(() => {
+    jest.useRealTimers();
   });
 
   test('内容が空なら false（DB 更新なし）', async () => {
@@ -83,6 +89,11 @@ describe('Google翻訳の利用量判定', () => {
     const ok = await canTranslate('abc', 'en', ['ja', 'fr']);
     expect(ok).toBe(false);
 
+    expect(logger.warn).toHaveBeenCalledTimes(1);
+    expect(logger.warn).toHaveBeenCalledWith('TRANSLATION_MONTHLY_LIMIT_EXCEEDED', {
+      year_month: '2025-01', usage: 11, limit: 10,
+    });
+    expect(logger.error).not.toHaveBeenCalled();
     expect(GoogleApiUsage.findOneAndUpdate).toHaveBeenCalledWith(
       { api_type: 'translate', year_month: '2025-01' },
       { $inc: { usage: 6 }, year_month: '2025-01' },
@@ -101,13 +112,13 @@ describe('Google翻訳の利用量判定', () => {
     expect(GoogleApiUsage.findOneAndUpdate).toHaveBeenCalled();
   });
 
-  test('例外時は false（安全側）', async () => {
-    GoogleApiUsage.findOneAndUpdate.mockImplementation(() => {
-      throw new Error('DB error');
-    });
+  test('DB例外は翻訳側で記録できるように伝え、上限超過のWARNを出さない', async () => {
+    const error = new Error('DB error');
+    GoogleApiUsage.findOneAndUpdate.mockRejectedValue(error);
 
-    const ok = await canTranslate('hello', 'en', ['ja']);
-    expect(ok).toBe(false);
+    await expect(canTranslate('hello', 'en', ['ja'])).rejects.toBe(error);
+    expect(logger.warn).not.toHaveBeenCalled();
+    expect(logger.error).not.toHaveBeenCalled();
   });
 
   test('ソース言語が targetLangs に含まれていても除外され、charCount に反映される', async () => {
