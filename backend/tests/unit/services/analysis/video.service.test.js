@@ -1,239 +1,192 @@
-const fs = require('fs');
 const path = require('path');
 
-const { createTestRuntime } = require('../../../_helpers/testRuntime');
-
-jest.mock('fluent-ffmpeg', () => jest.fn());
-jest.mock('../../../../services/analysis/provider.service', () => ({
-  analyzeWithProvider: jest.fn(),
-}));
+const mockCommand = Object.fromEntries(
+  ['seekInput', 'videoFilters', 'videoCodec', 'outputOptions', 'format', 'output']
+    .map((name) => [name, jest.fn()])
+);
+Object.values(mockCommand).forEach((method) => method.mockReturnValue(mockCommand));
+jest.mock('fluent-ffmpeg', () => jest.fn(() => mockCommand));
+jest.mock('../../../../services/analysis/provider.service', () => ({ analyzeWithProvider: jest.fn() }));
 jest.mock('../../../../services/analysis/image.service', () => ({
   convertImageBufferForAnalysis: jest.fn(),
+}));
+jest.mock('../../../../services/analysis/mediaPath', () => ({
+  ...jest.requireActual('../../../../services/analysis/mediaPath'),
+  copySafeRegularFile: jest.fn(),
+  readSafeRegularFile: jest.fn(),
 }));
 jest.mock('../../../../services/analysis/ffmpegRunner', () => ({
   probeMediaFile: jest.fn(),
   runFfmpegCommand: jest.fn(),
 }));
 
+const { copySafeRegularFile, readSafeRegularFile } = require('../../../../services/analysis/mediaPath');
+const { probeMediaFile, runFfmpegCommand } = require('../../../../services/analysis/ffmpegRunner');
+const { convertImageBufferForAnalysis } = require('../../../../services/analysis/image.service');
 const {
-  VIDEO_MAX_DURATION_SECONDS,
-  readEbmlDocType,
-  readIsoBmffBrands,
+  VIDEO_MAX_BYTES,
+  extractVideoFramesForAnalysis,
+  prepareVideoSource,
   validateVideoProbe,
 } = require('../../../../services/analysis/video.service');
 
-const runtime = createTestRuntime('backend/analysis-video-service');
-
-const video = (codecName, extra = {}) => ({ codec_type: 'video', codec_name: codecName, ...extra });
-const audio = (codecName) => ({ codec_type: 'audio', codec_name: codecName });
-const probe = ({ formatName, duration = 30, streams }) => ({
-  format: {
-    format_name: formatName,
-    format_long_name: formatName.includes('webm') ? 'Matroska / WebM' : 'QuickTime / MOV',
-    duration,
-    ...(formatName.includes('webm') ? { tags: { doc_type: 'webm' } } : {}),
-  },
-  ...(formatName.includes('webm') ? { ebmlDocType: 'webm' } : {}),
-  ...(formatName.includes('mov') || formatName.includes('mp4')
-    ? { isoBmffBrands: { majorBrand: 'isom', compatibleBrands: ['isom', 'iso2', 'avc1', 'mp41'] } }
-    : {}),
+const stream = (index, codecType, extra = {}) => ({ index, codec_type: codecType, ...extra });
+const probe = (streams, format = {}) => ({
+  format: { format_name: 'mov,mp4,m4a,3gp,3g2,mj2', duration: '30', ...format },
   streams,
 });
-
-const ftypBox = (majorBrand, compatibleBrands = []) => {
-  const size = 16 + compatibleBrands.length * 4;
-  const buffer = Buffer.alloc(size);
-  buffer.writeUInt32BE(size, 0);
-  buffer.write('ftyp', 4, 'ascii');
-  buffer.write(majorBrand, 8, 'ascii');
-  buffer.writeUInt32BE(0, 12);
-  compatibleBrands.forEach((brand, index) => buffer.write(brand, 16 + index * 4, 'ascii'));
-  return buffer;
-};
+const fixtureRoot = path.join(process.cwd(), 'fixture');
 
 describe('AI解析用の動画検証', () => {
-  afterEach(async () => {
-    await runtime.removeDirSafe(runtime.testRuntimePath());
+  beforeEach(() => {
+    jest.clearAllMocks();
+    copySafeRegularFile.mockResolvedValue(undefined);
+    readSafeRegularFile.mockResolvedValue(Buffer.from('frame'));
+    convertImageBufferForAnalysis.mockResolvedValue(Buffer.from('jpeg'));
+    runFfmpegCommand.mockResolvedValue(undefined);
+  });
+
+  test('mebx・字幕・添付情報と複数の音声があっても映像を選択できる', () => {
+    expect(validateVideoProbe(probe([
+      stream(0, 'video', { codec_name: 'h264' }),
+      stream(1, 'audio', { codec_name: 'aac' }),
+      stream(2, 'audio'),
+      stream(3, 'data', { codec_tag_string: 'mebx', duration: '60' }),
+      stream(4, 'subtitle'),
+      stream(5, 'attachment'),
+    ]), { streamType: 'video' })).toMatchObject({ streamIndex: 0, duration: 30, skip: false });
+  });
+
+  test.each(['hevc', 'vp9', undefined])('映像コーデックを限定しない: %s', (codecName) => {
+    expect(validateVideoProbe(probe([
+      stream(0, 'video', { codec_name: codecName }),
+      stream(1, 'audio', { codec_name: 'opus' }),
+    ]), { streamType: 'video' }).streamIndex).toBe(0);
+  });
+
+  test.each(['video', 'audio'])('複数の%sトラックでは既定を優先する', (streamType) => {
+    expect(validateVideoProbe(probe([
+      stream(0, streamType),
+      stream(3, streamType, { disposition: { default: 1 } }),
+    ]), { streamType }).streamIndex).toBe(3);
+  });
+
+  test.each([0, 1])('既定トラックがない場合や複数ある場合は先頭の番号を選ぶ: %s', (isDefault) => {
+    expect(validateVideoProbe(probe([
+      stream(5, 'audio', { disposition: { default: isDefault } }),
+      stream(2, 'audio', { disposition: { default: isDefault } }),
+    ]), { streamType: 'audio' }).streamIndex).toBe(2);
+  });
+
+  test('既定のサムネイル画像を除外して映像本体を選ぶ', () => {
+    expect(validateVideoProbe(probe([
+      stream(0, 'video', { disposition: { default: 1, attached_pic: 1 } }),
+      stream(1, 'video'),
+    ]), { streamType: 'video' }).streamIndex).toBe(1);
   });
 
   test.each([
-    ['mov,mp4,m4a,3gp,3g2,mj2', [video('h264')]],
-    ['mov,mp4,m4a,3gp,3g2,mj2', [video('h264'), audio('aac')]],
-    ['mov,mp4,m4a,3gp,3g2,mj2', [video('h264'), audio('mp3')]],
-    ['matroska,webm', [video('vp8')]],
-    ['matroska,webm', [video('vp9'), audio('opus')]],
-    ['matroska,webm', [video('vp9'), audio('vorbis')]],
-  ])('許可されたコンテナとコーデックの組み合わせを受け付ける: %s', (formatName, streams) => {
-    expect(validateVideoProbe(probe({ formatName, streams }))).toMatchObject({
-      audioStreamCount: streams.filter((stream) => stream.codec_type === 'audio').length,
-      duration: 30,
-      skip: false,
-    });
+    [stream(0, 'video', { codec_name: 'hevc' }), stream(1, 'audio')],
+    [stream(0, 'video'), stream(1, 'audio'), stream(2, 'video')],
+    [stream(1, 'audio'), stream(2, 'data', { codec_tag_string: 'mebx' })],
+  ])('音声の取り出しでは映像の有無・本数・コーデックを制限しない: %j', (...streams) => {
+    expect(validateVideoProbe(probe(streams), { streamType: 'audio' }).streamIndex).toBe(1);
   });
 
   test.each([
-    ['mov,mp4', [video('vp9')]],
-    ['mov,mp4', [video('h264'), audio('opus')]],
-    ['matroska,webm', [video('h264')]],
-    ['matroska,webm', [video('vp9'), audio('aac')]],
-    ['avi', [video('h264')]],
-  ])('許可されていないコンテナとコーデックの組み合わせを拒否する: %s', (formatName, streams) => {
-    expect(() => validateVideoProbe(probe({ formatName, streams }))).toThrow(
+    ['video', []],
+    ['video', [stream(0, 'audio')]],
+    ['video', [stream(0, 'video', { disposition: { attached_pic: 1 } })]],
+    ['audio', [stream(0, 'video')]],
+  ])('必要な%sトラックがなければ解析を省く', (streamType, streams) => {
+    expect(validateVideoProbe(probe(streams), { streamType })).toEqual({ skip: true, reason: 'no_stream' });
+  });
+
+  test('選択したトラックの長さを検査し、他のトラックの長さを使わない', () => {
+    expect(validateVideoProbe(probe([
+      stream(0, 'video', { duration: '30' }),
+      stream(1, 'audio', { duration: '60' }),
+      stream(2, 'data', { duration: '90' }),
+    ], { duration: '90' }), { streamType: 'video' }).duration).toBe(30);
+  });
+
+  test('トラックの長さを取得できない場合はコンテナの長さで検査する', () => {
+    expect(validateVideoProbe(probe([stream(0, 'video', { duration: 'N/A' })]), {
+      streamType: 'video',
+    }).duration).toBe(30);
+  });
+
+  test.each(['video', 'audio'])('%sの選択トラックが30秒を超えたら拒否する', (streamType) => {
+    expect(() => validateVideoProbe(probe([
+      stream(0, streamType, { duration: '30.001' }),
+    ], { duration: '29' }), { streamType })).toThrow(
       expect.objectContaining({ code: 'AI_ANALYSIS_VIDEO_INVALID' })
     );
   });
 
-  test.each([
-    ['mov,mp4', 'h264', { codec_type: 'audio' }],
-    ['mov,mp4', 'h264', audio('')],
-    ['matroska,webm', 'vp9', { codec_type: 'audio' }],
-    ['matroska,webm', 'vp9', audio('')],
-  ])('音声ストリームがある場合はコーデック情報の欠落と空値を拒否する: %s', (formatName, videoCodec, audioStream) => {
-    expect(() =>
-      validateVideoProbe(probe({ formatName, streams: [video(videoCodec), audioStream] }))
-    ).toThrow(expect.objectContaining({ code: 'AI_ANALYSIS_VIDEO_INVALID' }));
+  test.each([0, -1, 'N/A', undefined, 30.001])('有効な再生時間を確認できない動画は拒否する: %s', (duration) => {
+    expect(() => validateVideoProbe(probe([stream(0, 'video')], { duration }), {
+      streamType: 'video',
+    })).toThrow(expect.objectContaining({ code: 'AI_ANALYSIS_VIDEO_INVALID' }));
   });
 
-  test.each([
-    ['M4A ', ['M4A ', 'isom']],
-    ['3gp6', ['3gp6', 'isom']],
-    ['3g2a', ['3g2a', 'isom']],
-  ])('ffprobeが汎用のMOV・MP4名を返しても、許可されていないftypブランドを拒否する: %s', (majorBrand, compatibleBrands) => {
-    const entry = probe({ formatName: 'mov,mp4,m4a,3gp,3g2,mj2', streams: [video('h264')] });
-    entry.isoBmffBrands = { majorBrand, compatibleBrands };
-    expect(() => validateVideoProbe(entry)).toThrow(
-      expect.objectContaining({ code: 'AI_ANALYSIS_VIDEO_INVALID' })
-    );
+  test.each([-1, undefined, '0', 0.5])('選択トラックの番号が不正な場合は拒否する: %s', (index) => {
+    expect(() => validateVideoProbe(probe([stream(index, 'video')]), {
+      streamType: 'video',
+    })).toThrow(expect.objectContaining({ code: 'AI_ANALYSIS_VIDEO_INVALID' }));
   });
 
-  test('ftypの欠落と互換ブランドへのM4A・3GPの混入を拒否する', () => {
-    const missing = probe({ formatName: 'mov,mp4,m4a,3gp,3g2,mj2', streams: [video('h264')] });
-    delete missing.isoBmffBrands;
-    expect(() => validateVideoProbe(missing)).toThrow(
-      expect.objectContaining({ code: 'AI_ANALYSIS_VIDEO_INVALID' })
-    );
-
-    const mixed = probe({ formatName: 'mov,mp4,m4a,3gp,3g2,mj2', streams: [video('h264')] });
-    mixed.isoBmffBrands.compatibleBrands.push('M4A ');
-    expect(() => validateVideoProbe(mixed)).toThrow(
-      expect.objectContaining({ code: 'AI_ANALYSIS_VIDEO_INVALID' })
-    );
+  test('対象コンテナとOggの扱いは維持する', () => {
+    expect(validateVideoProbe(probe([stream(0, 'video')], { format_name: 'matroska,webm' }), {
+      streamType: 'video',
+    }).streamIndex).toBe(0);
+    expect(() => validateVideoProbe(probe([stream(0, 'video')], { format_name: 'avi' }), {
+      streamType: 'video',
+    })).toThrow(expect.objectContaining({ code: 'AI_ANALYSIS_VIDEO_INVALID' }));
+    expect(validateVideoProbe(probe([stream(0, 'video')], { format_name: 'ogg' }), {
+      streamType: 'video',
+    })).toEqual({ skip: true, reason: 'ogg' });
   });
 
-  test('実ファイルのftypボックスからMP4・QuickTimeのブランドを安全に取得する', async () => {
-    const directory = runtime.ensureDirSync(runtime.testRuntimePath('iso-bmff-fixtures'));
-    const mp4Path = path.join(directory, 'fixture.mp4');
-    const quickTimePath = path.join(directory, 'fixture.mov');
-    const m4aPath = path.join(directory, 'fixture.m4a');
-    await fs.promises.writeFile(mp4Path, ftypBox('isom', ['isom', 'iso2', 'avc1', 'mp41']));
-    await fs.promises.writeFile(quickTimePath, ftypBox('qt  ', ['qt  ']));
-    await fs.promises.writeFile(m4aPath, ftypBox('M4A ', ['M4A ', 'isom']));
-
-    await expect(readIsoBmffBrands(mp4Path)).resolves.toEqual({
-      majorBrand: 'isom',
-      compatibleBrands: ['isom', 'iso2', 'avc1', 'mp41'],
+  test('容量制限付きで元ファイルを複製し、要求した音声トラックを返す', async () => {
+    const signal = new AbortController().signal;
+    probeMediaFile.mockResolvedValueOnce(probe([
+      stream(0, 'video'), stream(1, 'audio'), stream(2, 'data', { codec_tag_string: 'mebx' }),
+    ]));
+    const filePath = path.join(fixtureRoot, 'input.mov');
+    const workspace = path.join(fixtureRoot, 'workspace');
+    const videoPath = path.join(workspace, 'source-video.mov');
+    await expect(prepareVideoSource({ filePath, workspace, streamType: 'audio', signal })).resolves.toMatchObject({
+      videoPath, streamIndex: 1, duration: 30,
     });
-    await expect(readIsoBmffBrands(quickTimePath)).resolves.toEqual({
-      majorBrand: 'qt  ',
-      compatibleBrands: ['qt  '],
+    expect(copySafeRegularFile).toHaveBeenCalledWith({ filePath, destination: videoPath, maxBytes: VIDEO_MAX_BYTES, signal });
+    expect(probeMediaFile).toHaveBeenCalledWith(videoPath, { signal });
+  });
+
+  test('選択した映像から25%・50%・75%の3フレームだけを取り出す', async () => {
+    const signal = new AbortController().signal;
+    const result = await extractVideoFramesForAnalysis({
+      videoPath: path.join(fixtureRoot, 'input.mov'),
+      streamIndex: 2,
+      duration: 20,
+      workspace: fixtureRoot,
+      signal,
     });
-    await expect(readIsoBmffBrands(m4aPath)).resolves.toEqual({
-      majorBrand: 'M4A ',
-      compatibleBrands: ['M4A ', 'isom'],
-    });
+    expect(mockCommand.seekInput.mock.calls).toEqual([[5], [10], [15]]);
+    expect(mockCommand.outputOptions).toHaveBeenCalledWith([
+      '-map', '0:2', '-frames:v', '1', '-q:v', '3', '-map_metadata', '-1', '-an', '-sn', '-dn',
+    ]);
+    expect(runFfmpegCommand).toHaveBeenCalledTimes(3);
+    expect(runFfmpegCommand).toHaveBeenCalledWith(mockCommand, { signal });
+    expect(result.frameBase64s).toEqual(Array(3).fill(Buffer.from('jpeg').toString('base64')));
   });
 
-  test('別のボックス内にある偽のftyp情報をコンテナのブランドとして使わない', async () => {
-    const directory = runtime.ensureDirSync(runtime.testRuntimePath('iso-bmff-payload-fixtures'));
-    const filePath = path.join(directory, 'disguised.3gp');
-    const fakeFtyp = ftypBox('isom', ['isom']);
-    const mdat = Buffer.alloc(8 + fakeFtyp.length);
-    mdat.writeUInt32BE(mdat.length, 0);
-    mdat.write('mdat', 4, 'ascii');
-    fakeFtyp.copy(mdat, 8);
-    await fs.promises.writeFile(filePath, mdat);
-    await expect(readIsoBmffBrands(filePath)).resolves.toBeNull();
-  });
-
-  test('動画1本・音声1本以下・禁止ストリームなし・30秒以内を要求する', () => {
-    const invalid = [
-      probe({ formatName: 'mov,mp4', streams: [] }),
-      probe({ formatName: 'mov,mp4', streams: [video('h264'), video('h264')] }),
-      probe({ formatName: 'mov,mp4', streams: [video('h264'), audio('aac'), audio('aac')] }),
-      probe({
-        formatName: 'mov,mp4',
-        streams: [video('h264'), { codec_type: 'subtitle', codec_name: 'mov_text' }],
-      }),
-      probe({ formatName: 'mov,mp4', streams: [video('h264')], duration: VIDEO_MAX_DURATION_SECONDS + 0.001 }),
-      probe({
-        formatName: 'mov,mp4',
-        streams: [video('h264', { disposition: { attached_pic: 1 } })],
-      }),
-    ];
-    invalid.forEach((entry) => {
-      expect(() => validateVideoProbe(entry)).toThrow(
-        expect.objectContaining({ code: 'AI_ANALYSIS_VIDEO_INVALID' })
-      );
-    });
-  });
-
-  test('形式と各ストリームの最長時間を使い、30.000秒を許可して30.001秒を拒否する', () => {
-    expect(
-      validateVideoProbe(
-        probe({ formatName: 'mov,mp4', duration: 30, streams: [video('h264', { duration: 29.9 })] })
-      ).duration
-    ).toBe(30);
-    expect(() =>
-      validateVideoProbe(
-        probe({ formatName: 'mov,mp4', duration: 29, streams: [video('h264', { duration: 30.001 })] })
-      )
-    ).toThrow(expect.objectContaining({ code: 'AI_ANALYSIS_VIDEO_INVALID' }));
-  });
-
-  test('Matroskaの解析名にwebmが含まれていてもDocTypeがWebMでなければ拒否する', () => {
-    const disguised = probe({ formatName: 'matroska,webm', streams: [video('vp9')] });
-    disguised.ebmlDocType = 'matroska';
-    expect(() => validateVideoProbe(disguised)).toThrow(
-      expect.objectContaining({ code: 'AI_ANALYSIS_VIDEO_INVALID' })
-    );
-  });
-
-  test('EBMLヘッダのDocType要素から実際のWebM形式を判定する', async () => {
-    const directory = runtime.ensureDirSync(runtime.testRuntimePath('fixtures'));
-    const webmPath = path.join(directory, 'fixture.webm');
-    const matroskaPath = path.join(directory, 'fixture.mkv');
-    await fs.promises.writeFile(
-      webmPath,
-      Buffer.from([0x1a, 0x45, 0xdf, 0xa3, 0x87, 0x42, 0x82, 0x84, 0x77, 0x65, 0x62, 0x6d])
-    );
-    await fs.promises.writeFile(
-      matroskaPath,
-      Buffer.from([
-        0x1a, 0x45, 0xdf, 0xa3, 0x8b, 0x42, 0x82, 0x88, 0x6d, 0x61, 0x74, 0x72, 0x6f,
-        0x73, 0x6b, 0x61,
-      ])
-    );
-    await expect(readEbmlDocType(webmPath)).resolves.toBe('webm');
-    await expect(readEbmlDocType(matroskaPath)).resolves.toBe('matroska');
-  });
-
-  test('EBMLヘッダの外にある偽のDocType情報を使わない', async () => {
-    const directory = runtime.ensureDirSync(runtime.testRuntimePath('payload-fixtures'));
-    const filePath = path.join(directory, 'disguised.mkv');
-    await fs.promises.writeFile(
-      filePath,
-      Buffer.from([
-        0x1a, 0x45, 0xdf, 0xa3, 0x8b, 0x42, 0x82, 0x88, 0x6d, 0x61, 0x74, 0x72, 0x6f,
-        0x73, 0x6b, 0x61,
-        0x18, 0x53, 0x80, 0x67, 0x87, 0x42, 0x82, 0x84, 0x77, 0x65, 0x62, 0x6d,
-      ])
-    );
-    await expect(readEbmlDocType(filePath)).resolves.toBe('matroska');
-  });
-
-  test('Oggは通常のアップロード処理を変更せず、AI解析だけを省く', () => {
-    expect(
-      validateVideoProbe(probe({ formatName: 'ogg', streams: [video('theora')] }))
-    ).toEqual({ skip: true, reason: 'ogg' });
+  test('選択した映像を抽出できなければ失敗を呼び出し元に伝える', async () => {
+    const error = new Error('decoder failed');
+    runFfmpegCommand.mockRejectedValueOnce(error);
+    await expect(extractVideoFramesForAnalysis({
+      videoPath: path.join(fixtureRoot, 'invalid.mov'), streamIndex: 0, duration: 10, workspace: fixtureRoot,
+    })).rejects.toBe(error);
+    expect(convertImageBufferForAnalysis).not.toHaveBeenCalled();
   });
 });

@@ -72,7 +72,7 @@ describe('AI解析用のメディア準備', () => {
     mockPrepareVideoSource.mockResolvedValue({
       videoPath: VIDEO_SOURCE_PATH,
       duration: 30,
-      audioStreamCount: 1,
+      streamIndex: 2,
     });
     mockExtractVideoFramesForAnalysis.mockResolvedValue({ frameBase64s: ['ZjE=', 'ZjI=', 'ZjM='] });
     mockExtractVideoAudioForAnalysis.mockResolvedValue({
@@ -133,20 +133,39 @@ describe('AI解析用のメディア準備', () => {
       },
       callback
     );
+    expect(mockPrepareVideoSource).toHaveBeenCalledWith(
+      expect.objectContaining({ streamType: 'video' })
+    );
     expect(mockExtractVideoFramesForAnalysis).toHaveBeenCalledWith(
-      expect.objectContaining({ duration: 30 })
+      expect.objectContaining({ streamIndex: 2, duration: 30 })
     );
     expect(callback).toHaveBeenCalledWith({ frameBase64s: ['ZjE=', 'ZjI=', 'ZjM='] });
     expect(mockCleanupTempWorkspace).toHaveBeenCalledTimes(1);
   });
 
-  test('Oggまたは音声ストリームがない動画ではコールバックを呼ばず後処理する', async () => {
+  test.each(['audioScene', 'speech'])('%sでは動画の選択した音声だけをコールバックへ渡す', async (kind) => {
+    const callback = jest.fn().mockResolvedValue('result');
+    await expect(withPreparedAnalysisInput(
+      { kind, mediaRoot: MEDIA_ROOT, source: { ...source, audio_name: null } }, callback
+    )).resolves.toBe('result');
+    expect(mockPrepareVideoSource).toHaveBeenCalledWith(
+      expect.objectContaining({ streamType: 'audio' })
+    );
+    expect(mockExtractVideoAudioForAnalysis).toHaveBeenCalledWith(
+      expect.objectContaining({ videoPath: VIDEO_SOURCE_PATH, streamIndex: 2 })
+    );
+    expect(mockExtractVideoFramesForAnalysis).not.toHaveBeenCalled();
+    expect(callback).toHaveBeenCalledWith({ audioBuffer: Buffer.from('video-audio'), audioFileName: 'audio.mp3' });
+    expect(mockCleanupTempWorkspace).toHaveBeenCalledTimes(1);
+  });
+
+  test.each(['video', 'audioScene', 'speech'])('%sで必要なトラックがなければコールバックを呼ばず後処理する', async (kind) => {
     mockPrepareVideoSource.mockResolvedValueOnce(null);
     const callback = jest.fn();
     await expect(
       withPreparedAnalysisInput(
         {
-          kind: 'speech',
+          kind,
           mediaRoot: MEDIA_ROOT,
           source: { ...source, audio_name: null },
         },
@@ -155,20 +174,19 @@ describe('AI解析用のメディア準備', () => {
     ).resolves.toBeNull();
     expect(callback).not.toHaveBeenCalled();
     expect(mockCleanupTempWorkspace).toHaveBeenCalledTimes(1);
+    expect(mockExtractVideoFramesForAnalysis).not.toHaveBeenCalled();
+    expect(mockExtractVideoAudioForAnalysis).not.toHaveBeenCalled();
+  });
 
-    mockPrepareVideoSource.mockResolvedValueOnce({ videoPath: 'fixture', duration: 1, audioStreamCount: 0 });
-    await expect(
-      withPreparedAnalysisInput(
-        {
-          kind: 'audioScene',
-          mediaRoot: MEDIA_ROOT,
-          source: { ...source, audio_name: null },
-        },
-        callback
-      )
-    ).resolves.toBeNull();
+  test('動画の抽出失敗でも作業ディレクトリを削除し、エラーを呼び出し元へ伝える', async () => {
+    const error = new Error('decoder failed');
+    mockExtractVideoFramesForAnalysis.mockRejectedValueOnce(error);
+    const callback = jest.fn();
+    await expect(withPreparedAnalysisInput(
+      { kind: 'video', mediaRoot: MEDIA_ROOT, source }, callback
+    )).rejects.toBe(error);
     expect(callback).not.toHaveBeenCalled();
-    expect(mockCleanupTempWorkspace).toHaveBeenCalledTimes(2);
+    expect(mockCleanupTempWorkspace).toHaveBeenCalledTimes(1);
   });
 
   test('外部サービスのエラーや中断でも作業ディレクトリを削除し、元のエラーを維持する', async () => {
