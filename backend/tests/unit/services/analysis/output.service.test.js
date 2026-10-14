@@ -160,7 +160,7 @@ describe('AI解析結果の整形', () => {
     );
   });
 
-  test('翻訳だけが上限を超えた場合はその翻訳を省き、有効な本文と他の翻訳を残す', async () => {
+  test.each(['vision', 'audioScene', 'video', 'conversation'])('%sの500文字の翻訳を他の翻訳とともに全文保持する', async (kind) => {
     const log = logger();
     const translateContent = jest.fn(async () => [
       { lang: 'en', content: 'x'.repeat(500) },
@@ -168,7 +168,7 @@ describe('AI解析結果の整形', () => {
     ]);
     const value = await buildAnalysisSupplement({
       snapshot: snapshot({
-        kind: 'vision',
+        kind,
         source: { _id: 'post-1', lang: 'ja' },
       }),
       providerOutput: 'valid',
@@ -178,13 +178,107 @@ describe('AI解析結果の整形', () => {
 
     expect(value.content).toBe('#相談 valid');
     expect(value.translations).toEqual([
+      expect.objectContaining({ lang: 'en', content: `#Advice ${'x'.repeat(500)}` }),
       expect.objectContaining({ lang: 'fr-FR', content: '#Conseil court' }),
     ]);
     expect(log.error).not.toHaveBeenCalled();
+    expect(log.warn).not.toHaveBeenCalled();
+  });
+
+  test.each([400, 401])('タグ名込み%s文字の翻訳を省略せず保持する', async (length) => {
+    const content = 'x'.repeat(length - '#Advice '.length);
+    const log = logger();
+    const value = await buildAnalysisSupplement({
+      snapshot: snapshot({ source: { _id: 'post-1', lang: 'ja' }, targetLangs: ['en'] }),
+      providerOutput: 'valid',
+      translateContent: jest.fn().mockResolvedValue([{ lang: 'en', content }]),
+      logger: log,
+    });
+
+    expect(value.translations).toEqual([
+      expect.objectContaining({ lang: 'en', content: `#Advice ${content}` }),
+    ]);
+    expect(value.translations[0].content).toHaveLength(length);
+    expect(log.warn).not.toHaveBeenCalled();
+    expect(log.error).not.toHaveBeenCalled();
+  });
+
+  test('翻訳タグ名と区切りだけで400文字を超えても翻訳本文とともに全文保持する', async () => {
+    const translatedName = 'T'.repeat(399);
+    const log = logger();
+    const value = await buildAnalysisSupplement({
+      snapshot: snapshot({
+        source: { _id: 'post-1', lang: 'ja' },
+        targetLangs: ['en'],
+        triggerTag: { _id: 'tag-1', name: '相談', translations: [{ lang: 'en', name: translatedName }] },
+      }),
+      providerOutput: 'valid',
+      translateContent: jest.fn().mockResolvedValue([{ lang: 'en', content: 'answer' }]),
+      logger: log,
+    });
+
+    expect(value.content).toBe('#相談 valid');
+    expect(value.translations[0].content).toBe(`#${translatedName} answer`);
+    expect(log.warn).not.toHaveBeenCalled();
+    expect(log.error).not.toHaveBeenCalled();
+  });
+
+  test('文字起こしの原文は省略し、翻訳には省略前の本文を渡して長い結果を保持する', async () => {
+    const providerOutput = '文字起こし'.repeat(120);
+    const translated = 'transcribed '.repeat(60);
+    const translateContent = jest.fn().mockResolvedValue([{ lang: 'en', content: translated }]);
+    const log = logger();
+    const value = await buildAnalysisSupplement({
+      snapshot: snapshot({ kind: 'speech', source: { _id: 'post-1', lang: 'ja' }, targetLangs: ['en'] }),
+      providerOutput,
+      translateContent,
+      logger: log,
+    });
+
+    expect(value.content).toHaveLength(400);
+    expect(value.content.endsWith('…')).toBe(true);
+    expect(translateContent).toHaveBeenCalledWith('user-1', providerOutput, 'ja', ['en']);
+    expect(value.translations[0].content).toBe(`#Advice ${translated.trim()}`);
     expect(log.warn).toHaveBeenCalledTimes(1);
-    expect(log.warn).toHaveBeenCalledWith('AI_ANALYSIS_OUTPUT_INVALID', expect.objectContaining({
-      stage: 'translation', reason: 'translation_utf16_units',
-    }));
+    expect(log.warn).toHaveBeenCalledWith('AI_ANALYSIS_OUTPUT_TRUNCATED', expect.any(Object));
+    expect(log.error).not.toHaveBeenCalled();
+  });
+
+  test('空の翻訳と原文言語の翻訳は除外し、有効な翻訳を残す', async () => {
+    const value = await buildAnalysisSupplement({
+      snapshot: snapshot(),
+      providerOutput: 'valid',
+      translateContent: jest.fn().mockResolvedValue([
+        { lang: 'fr-FR', content: '   ' },
+        { lang: 'de', content: '' },
+        { lang: 'en', content: 'same language' },
+        { content: 'missing language' },
+        { lang: 'fr-FR', content: 'réponse' },
+      ]),
+      logger: logger(),
+    });
+
+    expect(value.content).toBe('#Advice valid');
+    expect(value.translations).toEqual([
+      expect.objectContaining({ lang: 'fr-FR', content: '#Conseil réponse' }),
+    ]);
+  });
+
+  test('翻訳タグ名を解析原文に付けた結果が400文字を超える場合は拒否する', async () => {
+    const log = logger();
+    const translateContent = jest.fn();
+    const value = await buildAnalysisSupplement({
+      snapshot: snapshot({
+        triggerTag: { _id: 'tag-1', name: '相談', translations: [{ lang: 'en', name: 'T'.repeat(399) }] },
+      }),
+      providerOutput: 'valid',
+      translateContent,
+      logger: log,
+    });
+
+    expect(value).toBeNull();
+    expect(translateContent).not.toHaveBeenCalled();
+    expect(log.error).toHaveBeenCalledWith('AI_ANALYSIS_OUTPUT_INVALID', expect.objectContaining({ reason: 'base_utf16_units' }));
   });
 
   test('接頭辞付きの文字起こしを切り詰めてもサロゲートペアを分割しない', () => {

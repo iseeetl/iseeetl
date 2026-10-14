@@ -91,13 +91,6 @@ const buildTranslations = async ({ snapshot, base, translateContent, logger, sta
     const text = normalizeProviderOutput(translation?.content);
     if (!translation?.lang || !text || translation.lang === base.baseLang) return [];
     const content = prefixWithLabel(labelByLang(translation.lang), text);
-    if (content.length > MAX_SUPPLEMENT_UTF16_UNITS) {
-      logger.warn(
-        'AI_ANALYSIS_OUTPUT_INVALID',
-        analysisLogContext(snapshot, 'translation_utf16_units', startedAt)
-      );
-      return [];
-    }
     return [{
       user: snapshot.resultUserId,
       guest_id: null,

@@ -1,4 +1,5 @@
 const { titleFields } = require('../../../utils/supplementTitle');
+const { prefixWithLabel } = require('../labels');
 const AppError = require('../../../utils/appError');
 const {
   MAX_ACTIVE_SETTINGS_PER_SCOPE,
@@ -232,8 +233,7 @@ const serializePopulated = async (Model, id, type) => {
 };
 
 const assertTagPrefixFits = (tag) => {
-  const names = [tag.name, ...(tag.translations || []).map((translation) => translation.name)];
-  if (names.some((name) => typeof name === 'string' && `${name}: `.length > 400)) {
+  if (typeof tag.name === 'string' && prefixWithLabel(tag.name, '').length > 400) {
     throw new AppError({ code: 'INVALID_PARAMS' });
   }
 };
