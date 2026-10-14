@@ -73,6 +73,13 @@ describe('AI解析用の音声変換', () => {
     ).toThrow(expect.objectContaining({ code: 'AI_ANALYSIS_AUDIO_INVALID' }));
   });
 
+  test('動画からは選択した音声トラックだけを取り出す', async () => {
+    await transcodeToAnalysisMp3({ inputPath: INPUT_PATH, outputPath: OUTPUT_PATH, streamIndex: 3 });
+    expect(mockCommand.outputOptions).toHaveBeenCalledWith([
+      '-map', '0:3', '-map_metadata', '-1', '-vn', '-sn', '-dn',
+    ]);
+  });
+
   test('ffmpegをモノラル・16kHz・64kbpsで1回実行し、メタデータと他のストリームを除去して中断信号を渡す', async () => {
     const controller = new AbortController();
     await transcodeToAnalysisMp3({

@@ -43,14 +43,14 @@ const validateMp3Probe = (probe, { transcoded = false } = {}) => {
   return probe;
 };
 
-const transcodeToAnalysisMp3 = async ({ inputPath, outputPath, signal } = {}) => {
+const transcodeToAnalysisMp3 = async ({ inputPath, outputPath, streamIndex, signal } = {}) => {
   const command = ffmpeg(inputPath)
     .noVideo()
     .audioChannels(1)
     .audioFrequency(AUDIO_SAMPLE_RATE)
     .audioCodec('libmp3lame')
     .audioBitrate(AUDIO_BIT_RATE)
-    .outputOptions(['-map', '0:a:0', '-map_metadata', '-1', '-vn', '-sn', '-dn'])
+    .outputOptions(['-map', streamIndex == null ? '0:a:0' : `0:${streamIndex}`, '-map_metadata', '-1', '-vn', '-sn', '-dn'])
     .format('mp3')
     .output(outputPath);
   await runFfmpegCommand(command, { signal });
@@ -78,9 +78,9 @@ const prepareAudioFileForAnalysis = async ({ filePath, workspace, signal } = {})
   };
 };
 
-const extractVideoAudioForAnalysis = async ({ videoPath, workspace, signal } = {}) => {
+const extractVideoAudioForAnalysis = async ({ videoPath, streamIndex, workspace, signal } = {}) => {
   const outputPath = path.join(workspace, 'analysis-video-audio.mp3');
-  await transcodeToAnalysisMp3({ inputPath: videoPath, outputPath, signal });
+  await transcodeToAnalysisMp3({ inputPath: videoPath, outputPath, streamIndex, signal });
   return {
     audioBuffer: await readPreparedMp3({ outputPath, signal }),
     audioFileName: 'audio.mp3',

@@ -54,11 +54,12 @@ const withPreparedAnalysisInput = async (
   let operationError = null;
   try {
     if (kind === 'video') {
-      const video = await prepareVideoSource({ filePath, workspace, signal });
+      const video = await prepareVideoSource({ filePath, workspace, streamType: 'video', signal });
       if (!video) return null;
       return await callback(
         await extractVideoFramesForAnalysis({
           videoPath: video.videoPath,
+          streamIndex: video.streamIndex,
           duration: video.duration,
           workspace,
           signal,
@@ -70,11 +71,12 @@ const withPreparedAnalysisInput = async (
       return await callback(await prepareAudioFileForAnalysis({ filePath, workspace, signal }));
     }
 
-    const video = await prepareVideoSource({ filePath, workspace, signal });
-    if (!video || video.audioStreamCount !== 1) return null;
+    const video = await prepareVideoSource({ filePath, workspace, streamType: 'audio', signal });
+    if (!video) return null;
     return await callback(
       await extractVideoAudioForAnalysis({
         videoPath: video.videoPath,
+        streamIndex: video.streamIndex,
         workspace,
         signal,
       })
