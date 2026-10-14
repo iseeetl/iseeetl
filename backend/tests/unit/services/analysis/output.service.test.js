@@ -6,6 +6,8 @@ const {
 
 const snapshot = (overrides = {}) => ({
   sourceType: 'post',
+  chatId: 'post-1',
+  replyId: null,
   settingId: 'setting-1',
   settingRevision: 3,
   kind: 'conversation',
@@ -27,6 +29,26 @@ const snapshot = (overrides = {}) => ({
 const logger = () => ({ info: jest.fn(), warn: jest.fn(), error: jest.fn() });
 
 describe('AI解析結果の整形', () => {
+  test('翻訳例外は安全なWARNだけを記録し、解析本文を残す', async () => {
+    const log = logger();
+    const value = await buildAnalysisSupplement({
+      snapshot: snapshot(),
+      providerOutput: 'fixture answer',
+      translateContent: jest.fn().mockRejectedValue(Object.assign(new Error('private fixture translation'), {
+        code: 8, metadata: { token: 'private-fixture' },
+      })),
+      logger: log,
+    });
+    expect(value.content).toBe('#Advice fixture answer');
+    expect(value.translations).toEqual([]);
+    expect(log.error).not.toHaveBeenCalled();
+    expect(log.warn).toHaveBeenCalledTimes(1);
+    expect(log.warn).toHaveBeenCalledWith('AI_ANALYSIS_TRANSLATION_FAILED', expect.objectContaining({
+      post_id: 'post-1', stage: 'translation', reason: 'translation_failed', error_code: 8,
+    }));
+    expect(JSON.stringify(log.warn.mock.calls)).not.toContain('private');
+  });
+
   test('タイトルの原文言語を使って本文と別に翻訳し、長い翻訳も省略しない', async () => {
     const translatedTitle = '翻訳'.repeat(30);
     const translateContent = jest.fn(async (_user, text) => [{ lang: 'en', content: text === '見出し' ? translatedTitle : 'body' }]);
@@ -92,7 +114,7 @@ describe('AI解析結果の整形', () => {
 
     expect(accepted).not.toBeNull();
     expect(rejected).toBeNull();
-    expect(log.warn).toHaveBeenCalledWith(
+    expect(log.error).toHaveBeenCalledWith(
       'AI_ANALYSIS_OUTPUT_INVALID',
       expect.objectContaining({ reason: 'provider_code_points' })
     );
@@ -139,6 +161,7 @@ describe('AI解析結果の整形', () => {
   });
 
   test('翻訳だけが上限を超えた場合はその翻訳を省き、有効な本文と他の翻訳を残す', async () => {
+    const log = logger();
     const translateContent = jest.fn(async () => [
       { lang: 'en', content: 'x'.repeat(500) },
       { lang: 'fr-FR', content: 'court' },
@@ -150,13 +173,18 @@ describe('AI解析結果の整形', () => {
       }),
       providerOutput: 'valid',
       translateContent,
-      logger: logger(),
+      logger: log,
     });
 
     expect(value.content).toBe('#相談 valid');
     expect(value.translations).toEqual([
       expect.objectContaining({ lang: 'fr-FR', content: '#Conseil court' }),
     ]);
+    expect(log.error).not.toHaveBeenCalled();
+    expect(log.warn).toHaveBeenCalledTimes(1);
+    expect(log.warn).toHaveBeenCalledWith('AI_ANALYSIS_OUTPUT_INVALID', expect.objectContaining({
+      stage: 'translation', reason: 'translation_utf16_units',
+    }));
   });
 
   test('接頭辞付きの文字起こしを切り詰めてもサロゲートペアを分割しない', () => {

@@ -1,4 +1,7 @@
 const { createAnalysisExecutor } = require('../../../../services/analysis/executor.service');
+const { buildAnalysisSupplement } = require('../../../../services/analysis/output.service');
+const { normalizeProviderText } = require('../../../../services/analysis/provider.service');
+const { toOpenAIError } = require('../../../../integrations/openai/errors');
 
 const buildSnapshotValue = (overrides = {}) => ({
   sourceType: 'post',
@@ -42,6 +45,147 @@ const createDependencies = (overrides = {}) => ({
 });
 
 describe('AI解析の実行制御', () => {
+  afterEach(() => jest.restoreAllMocks());
+
+  test.each([
+    ['vision', 'post', null],
+    ['video', 'reply', 'reply-1'],
+  ])('本番の%s解析がタイムアウトしたら%sのIDと診断情報を1回だけ出力する', async (kind, sourceType, replyId) => {
+    const originalMode = process.env.NODE_ENV;
+    let logger;
+    try {
+      process.env.NODE_ENV = 'production';
+      jest.isolateModules(() => { logger = require('../../../../utils/logger'); });
+    } finally {
+      if (originalMode === undefined) delete process.env.NODE_ENV;
+      else process.env.NODE_ENV = originalMode;
+    }
+    const errorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
+    const warnSpy = jest.spyOn(console, 'warn').mockImplementation(() => {});
+    let now = 1000;
+    jest.spyOn(Date, 'now').mockImplementation(() => now);
+    const dependencies = createDependencies({
+      logger,
+      buildSnapshot: jest.fn(async () => buildSnapshotValue({ kind, sourceType, replyId })),
+      analyze: jest.fn(async () => {
+        now += 20000;
+        throw toOpenAIError({
+          code: 'ECONNABORTED', message: 'private fixture message',
+          config: { data: 'private fixture media', headers: { Authorization: 'Bearer private-fixture' } },
+        }, 'OpenAI chat failed');
+      }),
+    });
+
+    await expect(createAnalysisExecutor(dependencies).runSourceAnalyses({
+      chatId: 'post-1', sourceType, replyId,
+    })).resolves.toEqual([{ status: 'failed' }]);
+
+    expect(errorSpy).toHaveBeenCalledTimes(1);
+    expect(errorSpy).toHaveBeenCalledWith('[ERROR]', 'AI_ANALYSIS_SETTING_FAILED', {
+      source_type: sourceType, source_id: replyId || 'post-1', post_id: 'post-1', reply_id: replyId,
+      setting_id: 'setting-1', kind, stage: 'provider', elapsed_ms: 20000,
+      error_code: 'ECONNABORTED', error_type: 'Error', http_status: null, request_id: null,
+    });
+    expect(warnSpy).not.toHaveBeenCalled();
+    expect(dependencies.analyze).toHaveBeenCalledTimes(1);
+    expect(dependencies.persistResult).not.toHaveBeenCalled();
+  });
+
+  test('外部APIの失敗にHTTPステータスとリクエストIDを付ける', async () => {
+    const dependencies = createDependencies({
+      analyze: jest.fn(async () => {
+        throw toOpenAIError({ response: {
+          status: 429, headers: { 'x-request-id': 'req-fixture' },
+          data: { error: { type: 'rate_limit_error', code: 'rate_limit_exceeded', message: 'private fixture' } },
+        } }, 'OpenAI chat failed');
+      }),
+    });
+    await createAnalysisExecutor(dependencies).runSourceAnalyses({ chatId: 'post-1', sourceType: 'post' });
+    expect(dependencies.logger.error).toHaveBeenCalledTimes(1);
+    expect(dependencies.logger.error).toHaveBeenCalledWith('AI_ANALYSIS_SETTING_FAILED', expect.objectContaining({
+      stage: 'provider', http_status: 429, request_id: 'req-fixture', error_code: 'rate_limit_exceeded',
+    }));
+    expect(JSON.stringify(dependencies.logger.error.mock.calls)).not.toContain('private fixture');
+  });
+
+  test.each([
+    ['buildSnapshot', 'snapshot'],
+    ['prepareInput', 'media_prepare'],
+    ['inspectResult', 'before_send'],
+    ['buildSupplement', 'output'],
+    ['persistResult', 'persist'],
+  ])('%sの例外を処理段階%sとして記録する', async (dependency, stage) => {
+    const dependencies = createDependencies({
+      [dependency]: jest.fn().mockRejectedValue(Object.assign(new Error('private fixture'), { code: 'FIXTURE_FAILED' })),
+    });
+    await expect(createAnalysisExecutor(dependencies).runSourceAnalyses({ chatId: 'post-1', sourceType: 'post' }))
+      .resolves.toEqual([{ status: 'failed' }]);
+    expect(dependencies.logger.error).toHaveBeenCalledTimes(1);
+    expect(dependencies.logger.error).toHaveBeenCalledWith('AI_ANALYSIS_SETTING_FAILED', expect.objectContaining({
+      stage, error_code: 'FIXTURE_FAILED', elapsed_ms: expect.any(Number),
+    }));
+    expect(JSON.stringify(dependencies.logger.error.mock.calls)).not.toContain('private fixture');
+  });
+
+  test('一時ファイルの削除失敗を解析結果の保存失敗と区別する', async () => {
+    const dependencies = createDependencies({
+      prepareInput: jest.fn(async (_options, callback) => {
+        await callback(null);
+        throw Object.assign(new Error('cleanup failed'), { code: 'AI_ANALYSIS_MEDIA_CLEANUP_FAILED' });
+      }),
+    });
+    await createAnalysisExecutor(dependencies).runSourceAnalyses({ chatId: 'post-1', sourceType: 'post' });
+    expect(dependencies.persistResult).toHaveBeenCalledTimes(1);
+    expect(dependencies.logger.error).toHaveBeenCalledWith('AI_ANALYSIS_SETTING_FAILED', expect.objectContaining({ stage: 'media_cleanup' }));
+  });
+
+  test('設定検索の失敗もエラーとして記録し、解析は実行しない', async () => {
+    const dependencies = createDependencies({ listSettingIds: jest.fn().mockRejectedValue(new Error('private fixture')) });
+    await expect(createAnalysisExecutor(dependencies).runSourceAnalyses({ chatId: 'post-1', sourceType: 'post' }))
+      .resolves.toEqual([{ status: 'failed' }]);
+    expect(dependencies.analyze).not.toHaveBeenCalled();
+    expect(dependencies.logger.error).toHaveBeenCalledTimes(1);
+    expect(dependencies.logger.error).toHaveBeenCalledWith('AI_ANALYSIS_SOURCE_FAILED', expect.objectContaining({
+      post_id: 'post-1', stage: 'settings_lookup',
+    }));
+  });
+
+  test.each(['', '界'.repeat(301)])('外部APIの応答が無効な場合は本文を残さず理由を記録する（%#.）', async (output) => {
+    const dependencies = createDependencies({ analyze: jest.fn(async () => normalizeProviderText(output)) });
+    await createAnalysisExecutor(dependencies).runSourceAnalyses({ chatId: 'post-1', sourceType: 'post' });
+    expect(dependencies.persistResult).not.toHaveBeenCalled();
+    expect(dependencies.logger.error).toHaveBeenCalledTimes(1);
+    expect(dependencies.logger.error).toHaveBeenCalledWith('AI_ANALYSIS_OUTPUT_INVALID', expect.objectContaining({
+      stage: 'output_validation', reason: output ? 'too_long' : 'empty',
+    }));
+    expect(dependencies.logger.warn).not.toHaveBeenCalled();
+  });
+
+  test('付加情報の文字数超過はERRORを重複させず、結果を保存しない', async () => {
+    const dependencies = createDependencies({
+      buildSnapshot: jest.fn(async () => buildSnapshotValue({ triggerTag: { _id: 'tag-1', name: '界'.repeat(100) } })),
+      analyze: jest.fn(async () => '界'.repeat(300)),
+      buildSupplement: buildAnalysisSupplement,
+    });
+    await expect(createAnalysisExecutor(dependencies).runSourceAnalyses({ chatId: 'post-1', sourceType: 'post' }))
+      .resolves.toEqual([{ status: 'invalid-output' }]);
+    expect(dependencies.persistResult).not.toHaveBeenCalled();
+    expect(dependencies.logger.error).toHaveBeenCalledTimes(1);
+    expect(dependencies.logger.error).toHaveBeenCalledWith('AI_ANALYSIS_OUTPUT_INVALID', expect.objectContaining({
+      stage: 'output_validation', reason: 'base_utf16_units', post_id: 'post-1', elapsed_ms: expect.any(Number),
+    }));
+  });
+
+  test.each(['created', 'skipped', 'idempotent', 'stale', 'deleted', 'missing-source'])('%sを失敗として記録しない', async (status) => {
+    const dependencies = createDependencies({
+      ...(status === 'skipped' ? { buildSnapshot: jest.fn(async () => null) } : {}),
+      inspectResult: jest.fn(async () => status === 'created' ? 'create' : status),
+    });
+    await createAnalysisExecutor(dependencies).runSourceAnalyses({ chatId: 'post-1', sourceType: 'post' });
+    expect(dependencies.logger.error).not.toHaveBeenCalled();
+    expect(dependencies.logger.warn).not.toHaveBeenCalled();
+  });
+
   test('機能が無効または準備未完了なら設定検索も外部サービスの処理も行わない', async () => {
     const dependencies = createDependencies({ executionEnabled: jest.fn(() => false) });
     const executor = createAnalysisExecutor(dependencies);
@@ -96,7 +240,7 @@ describe('AI解析の実行制御', () => {
       executor.runSourceAnalyses({ chatId: 'post-1', sourceType: 'post' })
     ).resolves.toEqual([{ status: 'failed' }, { status: 'created' }]);
     expect(dependencies.analyze).toHaveBeenCalledTimes(2);
-    expect(dependencies.logger.warn).toHaveBeenCalledWith(
+    expect(dependencies.logger.error).toHaveBeenCalledWith(
       'AI_ANALYSIS_SETTING_FAILED',
       expect.objectContaining({ setting_id: 'bad', error_code: 'PROVIDER_FAILED' })
     );
@@ -118,6 +262,7 @@ describe('AI解析の実行制御', () => {
     ).resolves.toEqual([]);
     expect(dependencies.analyze).toHaveBeenCalledTimes(1);
     expect(dependencies.logger.warn).not.toHaveBeenCalled();
+    expect(dependencies.logger.error).not.toHaveBeenCalled();
   });
 
   test('メディア準備中に解析対象か設定が変わったら外部サービスへ送信しない', async () => {

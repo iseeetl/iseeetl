@@ -66,6 +66,16 @@ pm2 restart ecosystem.config.js --env production --update-env
 
 PM2で`iseeetl`が`online`となることに加え、公開URLで画面表示・ログイン・メディア送受信を確認します。ログのローテーションと保存期間は運用環境で設定します。
 
+## ログの確認
+
+本番の共通ロガーはERRORだけを出力し、INFOとWARNを抑止します。このPM2設定では、ERRORは標準エラー出力として`/var/log/iseeetl/backend.err.log`へ保存されます。アプリの実行ユーザとして直近のログを確認します。
+
+```bash
+pm2 logs iseeetl --err --lines 200
+```
+
+AI解析の失敗は`AI_ANALYSIS_SOURCE_FAILED`、`AI_ANALYSIS_SETTING_FAILED`、`AI_ANALYSIS_OUTPUT_INVALID`を手掛かりに、対象の`post_id`・`reply_id`と前後のログを確認します。項目とレベルの意味は[AI解析のログ](../spec/ai-analysis.md#失敗時のログ)を参照してください。
+
 ## サーバ再起動後の自動起動
 
 同じ実行ユーザ・管理領域で[PM2の自動起動手順](https://pm2.keymetrics.io/docs/usage/startup/)に従ってOSへ登録し、動作確認後にプロセス一覧を保存します。
