@@ -4,6 +4,8 @@ ISeee TimeLineは、スポーツイベントに参加してリアルで観戦し
 
 最初はスポーツ観戦への応用から始まりましたが、ISeee TimeLineは博物館の観覧やカフェでのイベントなど、さまざまな場面にも応用することができます。
 
+タイムライン本文のリンクは、暗い背景で読める水色と下線を使い、スマートフォンでは長いURLを折り返します。表示仕様は[UI規約](docs/spec/frontend/style-and-i18n.md#タイムライン本文のリンク)を参照してください。
+
 ## 必要な環境
 
 Node.js、npm、MongoDB、FFmpeg／ffprobeを使用します。バージョンは[運用事例の稼働環境](docs/deployment/production.md#稼働環境)を参考にし、Node.js・npmの対応範囲は各`package.json`の`engines`で確認してください。メール送信などの外部機能は、利用する場合に接続先と設定を用意します。
