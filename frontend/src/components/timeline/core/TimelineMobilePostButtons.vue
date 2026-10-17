@@ -61,7 +61,7 @@ export default {
 .smartphone-send-button {
   display: flex;
   position: absolute;
-  bottom: 16px;
+  bottom: 52px;
   inset-inline-end: 16px;
   z-index: 99;
   justify-content: flex-end;
