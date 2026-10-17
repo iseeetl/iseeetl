@@ -112,6 +112,14 @@ Analyticsの失敗でログイン、閲覧、投稿などの通常機能は停�
 - ホーム、フロア、ルームで使用するマニフェストの選択とOneSignal Workerの配信は[ビルド・設定](build-and-config.md)を参照する
 - 画面ルートは[ルーティング](routing.md)と[画面一覧](screens/README.md)を参照する
 
+### 画面の高さとスクロール
+
+- `html`、`body`、`#app_container`は同じ高さを使う。動的viewport単位に対応するブラウザでは`100dvh`でバーの開閉に追随し、未対応時は`--vh`を使う
+- `App.vue`はマウント直後に`window.innerHeight`から`--vh`を設定し、`load`、`resize`、`pageshow`でも更新する。非同期初期化中に`load`が終了した場合も、初回計測を実行する
+- `body`の最小高さで表示領域を押し広げない。通常画面の長い内容は`main#app_content`、タイムラインの投稿一覧は各カラム内でスクロールする
+- `#app_container`をabsolute要素の配置基準にして、モバイルの投稿ボタンをアプリの下端へ配置する。ダイアログは従来どおりbodyへTeleportする
+- 動的viewport単位はブラウザバーの可変領域に対応する。ソフトウェアキーボードや拡大表示で変わる可視領域への追随とは区別する
+
 ### 開発・検証
 
 - 起動とブラウザでの手動確認: [ローカル開発の準備](../../testing/local-development.md)

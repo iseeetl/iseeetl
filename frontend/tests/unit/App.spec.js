@@ -386,6 +386,97 @@ describe('アプリ全体の表示と操作（App）', () => {
     ).to.equal(true);
   });
 
+  describe('表示領域の高さの同期', () => {
+    let wrapper;
+    let originalInnerHeight;
+    let originalReadyState;
+    let originalVh;
+    let originalVhPriority;
+
+    const setInnerHeight = (height) => {
+      Object.defineProperty(window, 'innerHeight', {
+        value: height,
+        configurable: true,
+        writable: true,
+      });
+    };
+    const currentVh = () => document.documentElement.style.getPropertyValue('--vh');
+
+    beforeEach(() => {
+      wrapper = null;
+      originalInnerHeight = Object.getOwnPropertyDescriptor(window, 'innerHeight');
+      originalReadyState = Object.getOwnPropertyDescriptor(document, 'readyState');
+      originalVh = currentVh();
+      originalVhPriority = document.documentElement.style.getPropertyPriority('--vh');
+      setInnerHeight(800);
+      document.documentElement.style.removeProperty('--vh');
+    });
+
+    afterEach(() => {
+      wrapper?.unmount();
+      if (originalInnerHeight) {
+        Object.defineProperty(window, 'innerHeight', originalInnerHeight);
+      } else {
+        delete window.innerHeight;
+      }
+      if (originalReadyState) {
+        Object.defineProperty(document, 'readyState', originalReadyState);
+      } else {
+        delete document.readyState;
+      }
+      if (originalVh) {
+        document.documentElement.style.setProperty('--vh', originalVh, originalVhPriority);
+      } else {
+        document.documentElement.style.removeProperty('--vh');
+      }
+    });
+
+    it('load完了後にマウントしても次のイベントを待たず高さを反映する', () => {
+      Object.defineProperty(document, 'readyState', { value: 'complete', configurable: true });
+      window.dispatchEvent(new Event('load'));
+
+      wrapper = createWrapper();
+
+      expect(document.readyState).to.equal('complete');
+      expect(currentVh()).to.equal('8px');
+    });
+
+    it('windowのresizeで現在の高さへ更新する', () => {
+      wrapper = createWrapper();
+      setInnerHeight(600);
+
+      window.dispatchEvent(new Event('resize'));
+
+      expect(currentVh()).to.equal('6px');
+    });
+
+    it('BFCacheからのpageshowで高さを再計算し計画的離脱状態も解除する', () => {
+      wrapper = createWrapper();
+      window.dispatchEvent(new window.PageTransitionEvent('pagehide', { persisted: true }));
+      expect(isPlannedPageLeave()).to.equal(true);
+      setInnerHeight(900);
+
+      window.dispatchEvent(new window.PageTransitionEvent('pageshow', { persisted: true }));
+
+      expect(currentVh()).to.equal('9px');
+      expect(isPlannedPageLeave()).to.equal(false);
+    });
+
+    it('アンマウント後はload・resize・pageshowで高さを書き換えない', () => {
+      wrapper = createWrapper();
+      wrapper.unmount();
+      wrapper = null;
+      document.documentElement.style.setProperty('--vh', '3px');
+      setInnerHeight(1000);
+
+      window.dispatchEvent(new Event('load'));
+      window.dispatchEvent(new Event('resize'));
+      window.dispatchEvent(new window.PageTransitionEvent('pageshow', { persisted: true }));
+
+      expect(currentVh()).to.equal('3px');
+    });
+  });
+
   it('クローラ判定時は日本語に固定する', () => {
     const restore = applyNavigator({
       userAgent: 'Googlebot',

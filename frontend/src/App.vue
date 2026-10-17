@@ -166,6 +166,7 @@ export default {
   },
   mounted() {
     this.synchronizeDocumentLocale(this.$i18n.locale);
+    this.setFillHeight();
 
     window.addEventListener('load', this.setFillHeight);
     window.addEventListener('resize', this.setFillHeight);
@@ -280,6 +281,7 @@ export default {
       beginPlannedPageLeave();
     },
     handlePageShow() {
+      this.setFillHeight();
       resetPlannedPageLeave();
     },
     showProfileDialog() {
