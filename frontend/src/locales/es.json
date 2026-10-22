@@ -1,4 +1,9 @@
 {
+  "roomGuides": {
+    "title": "Guías fijadas",
+    "unavailable": "No se pudo cargar la guía. Comprueba la conexión e inténtalo de nuevo.",
+    "languageNote": "Abrir la guía no cambia el idioma de entrada. Antes de escribir, selecciona y guarda el idioma en tu perfil."
+  },
   "supplementTitle": {
     "label": "Título",
     "settingLabel": "Título de la información adicional",

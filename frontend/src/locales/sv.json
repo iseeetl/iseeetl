@@ -1,4 +1,9 @@
 {
+  "roomGuides": {
+    "title": "Fästa guider",
+    "unavailable": "Guiden kunde inte laddas. Kontrollera anslutningen och försök igen.",
+    "languageNote": "Att öppna guiden ändrar inte inmatningsspråket. Välj och spara språket i din profil innan du skriver."
+  },
   "supplementTitle": {
     "label": "Titel",
     "settingLabel": "Titel för tilläggsinformation",

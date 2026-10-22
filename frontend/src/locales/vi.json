@@ -1,4 +1,9 @@
 {
+  "roomGuides": {
+    "title": "Hướng dẫn đã ghim",
+    "unavailable": "Không thể tải hướng dẫn. Hãy kiểm tra kết nối và thử lại.",
+    "languageNote": "Mở hướng dẫn không thay đổi ngôn ngữ nhập. Trước khi nhập, hãy chọn và lưu ngôn ngữ trong hồ sơ."
+  },
   "supplementTitle": {
     "label": "Tiêu đề",
     "settingLabel": "Tiêu đề thông tin bổ sung",

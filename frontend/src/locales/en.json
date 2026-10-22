@@ -1,4 +1,9 @@
 {
+  "roomGuides": {
+    "title": "Pinned guides",
+    "unavailable": "We could not load the guide. Check your connection and try again.",
+    "languageNote": "Opening this guide does not change your input language. Set and save your language in your profile before typing."
+  },
   "supplementTitle": {
     "label": "Title",
     "settingLabel": "Supplement title",

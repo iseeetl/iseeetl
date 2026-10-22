@@ -38,6 +38,8 @@
         :currentTabIndex="ui.currentTabIndex"
         :localTagIds="ui.localTagIds"
         :headerProps="headerProps"
+        :room-id="$store.getters.roomId || ''"
+        :is-guest="!$store.getters.userIsLogin"
         :headerEvents="headerEvents"
         :getTranslatedTagName="getTranslatedTagName"
         :isSpeechActive="isSpeechActive"
