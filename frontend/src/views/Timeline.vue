@@ -23,6 +23,7 @@
       :filters="timeline.filters"
       :isMobile="isMobile"
       :isArAll="isArAll"
+      :currentTabIndex="ui.currentTabIndex"
       :commonColumnProps="commonColumnProps"
       :commonColumnEvents="commonColumnEvents"
     />
@@ -69,6 +70,7 @@
 <script>
 import { getEmptyTimelineMessage, refreshTimelineEmptyState, markTimelineHasPosts } from '@/features/timeline/emptyState';
 import chatApi from '@/api/chat';
+import { parseColumnOptions, columnOptionsSignature, columnIdentity, initialColumnIndex } from '@/features/timeline/postDefaults';
 import roomApi from '@/api/room';
 import { appendApiErrorMessage } from '@/api/apiClient';
 
@@ -453,7 +455,28 @@ export default {
         },
       });
     },
+    closePostConfirmation() { this.dialogs.confirmation.visible = false; },
+    viewSavedPost(postId) {
+      const editor = this.$refs.dialogsRef?.$refs.EditPostDialog;
+      if (this.infra.timelineDisposed || editor?.sending || editor?.recording || editor?.transcribing) return;
+      this.dialogs.confirmation.postId = postId;
+      this.dialogs.confirmation.visible = true;
+    },
     postSaved(payload) {
+      if (payload?.actionType === 'create' && payload.postId && payload.roomId === this.$store.getters.roomId) {
+        this.dialogs.lastPostId = payload.postId;
+        const roomId = payload.roomId;
+        const postId = payload.postId;
+        const sourceFilter = this.timeline.filters[this.dialogs.post.edit.sourceColumnIndex];
+        const outside = payload.savedPost && sourceFilter && !this.matchesAny(payload.savedPost, sourceFilter.conditions);
+        const messageKey = payload.tagsChanged ? 'postDefaults.tagsChanged' : outside ? 'postDefaults.sentOutside' : 'postDefaults.sent';
+        this.$store.dispatch('doShowSnackbar', {
+          message: this.$t(messageKey),
+          action: { label: this.$t('postDefaults.viewPost'), run: () => {
+            if (this.$store.getters.roomId === roomId) this.viewSavedPost(postId);
+          } },
+        });
+      }
       return this.reportSavedContent(this.dialogs.post.edit.operationToken, payload);
     },
     replySaved(payload) {
@@ -498,6 +521,27 @@ export default {
         settings,
       });
     },
+    applyColumnOptions({ initial = false } = {}) {
+      const options = parseColumnOptions(this.$route.query);
+      let invalid = options.warnings.length > 0;
+      Object.entries(options.modes).forEach(([number, mode]) => {
+        const filter = this.timeline.filters.find(item => item.queryColumnNumber === Number(number));
+        if (filter) filter.postTagMode = mode;
+        else invalid = true;
+      });
+      if (initial) {
+        const index = initialColumnIndex(this.timeline.filters, options.initialTab, !!this.ui.focusedPostId);
+        if (index < 0 || (this.ui.focusedPostId && options.initialTab !== 'first')) invalid = true;
+        this.ui.currentTabIndex = Math.max(0, index);
+        this.ui.initialTabApplied = true;
+        this.$nextTick(() => document.getElementById('tab-button-' + this.ui.currentTabIndex)?.scrollIntoView({ block: 'nearest', inline: 'nearest' }));
+      }
+      if (invalid) this.setSnackbar(this.$t('postDefaults.invalidOptions'), 'alert');
+    },
+    restoreColumnSelection(identity) {
+      if (!this.ui.initialTabApplied) this.applyColumnOptions({ initial: true });
+      else this.ui.currentTabIndex = Math.max(0, this.timeline.filters.findIndex(filter => columnIdentity(filter) === identity));
+    },
     applyTimelineQueryFilters(query = {}) {
       const queryFilters = parseTimelineQueryFilters({
         query,
@@ -519,6 +563,7 @@ export default {
       const nextPostId = typeof postId === 'string' && postId ? postId : null;
       this.ui.focusedPostId = nextPostId;
       if (!nextPostId || !this.timelineResourcesReady) return;
+      this.ui.currentTabIndex = initialColumnIndex(this.timeline.filters, 'first', true);
       void this.fetchFocusPostAndAppend(nextPostId);
     },
 
@@ -528,15 +573,27 @@ export default {
       this.applyPresentationQuery(query);
       const localeChanged = this.$i18n.locale !== previousLocale;
       const filtersChanged = getTimelineFilterQuerySignature(query) !== getTimelineFilterQuerySignature(previousQuery);
-      if (!localeChanged && !filtersChanged) return;
+      const optionsChanged = columnOptionsSignature(query) !== columnOptionsSignature(previousQuery);
+      if (!localeChanged && !filtersChanged) {
+        if (optionsChanged) {
+          // Removed overrides revert to defaults; search data is left intact.
+          this.timeline.filters.filter(filter => filter.queryColumnNumber).forEach(filter => { filter.postTagMode = 'auto'; });
+          this.applyColumnOptions({ initial: query.initialTab !== previousQuery.initialTab });
+        }
+        return;
+      }
 
+      if (localeChanged && optionsChanged && !filtersChanged) {
+        this.timeline.filters.filter(filter => filter.queryColumnNumber).forEach(filter => { filter.postTagMode = 'auto'; });
+        this.applyColumnOptions({ initial: query.initialTab !== previousQuery.initialTab });
+      }
       if (localeChanged) {
         this.setTargetLangs();
         void this.refreshTranslatedRoomPresentation();
       }
       if (filtersChanged) {
         this.applyTimelineQueryFilters(query);
-        this.ui.currentTabIndex = 0;
+        this.ui.initialTabApplied = false;
       }
       void this.requestSocketReconnect({ force: true, reason: 'query-change' }).catch(() => undefined);
     },
@@ -845,11 +902,11 @@ export default {
         const k = event.key || '';
         switch (k.toLowerCase()) {
           case 'm':
-            this.showEditPostDialog(null, true);
+            this.showEditPostDialog(null, true, [], null);
             break;
           case 'n':
             if (this.isGuestReactionOnly) break;
-            this.showEditPostDialog(null, false);
+            this.showEditPostDialog(null, false, [], null);
             break;
           case 'r':
             const focusedElement = document.activeElement;

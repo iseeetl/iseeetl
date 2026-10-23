@@ -26,6 +26,8 @@ const EditKickedUserDialogStub = {
 };
 
 const createDialogs = () => ({
+  confirmation: { visible: false, postId: null },
+  lastPostId: null,
   filter: { visible: false, editIndex: 0, editFilter: null },
   post: {
     edit: { visible: false, isAnimationPost: false, value: null, presetTagIds: [] },

@@ -326,7 +326,7 @@ describe('投稿の作成・編集', () => {
 
   it('新規投稿では自分の直前の投稿のタグを初期選択する', () => {
     const wrapper = createWrapper({
-      props: { previousOwnPostTagIds: ['prev'] },
+      props: { propsRoomTags: [{ _id: 'prev' }], previousOwnPostTagIds: ['prev'] },
       store: createStoreMock({ getters: { tagList: ['store'] } }),
     });
     wrapper.vm.openedDialog();
@@ -336,7 +336,7 @@ describe('投稿の作成・編集', () => {
 
   it('新規投稿では自分の直前の投稿のタグより絞り込みカラムのタグを優先する', () => {
     const wrapper = createWrapper({
-      props: { presetTagIds: ['preset'], previousOwnPostTagIds: ['prev'] },
+      props: { propsRoomTags: [{ _id: 'preset' }, { _id: 'prev' }], presetTagIds: ['preset'], previousOwnPostTagIds: ['prev'] },
       store: createStoreMock({ getters: { tagList: ['store'] } }),
     });
     wrapper.vm.openedDialog();
@@ -369,7 +369,7 @@ describe('投稿の作成・編集', () => {
 
   it('新規投稿で前回のタグを選ぶ候補には自分の直前の投稿のタグを使う', () => {
     const wrapper = createWrapper({
-      props: { previousOwnPostTagIds: ['prev'] },
+      props: { propsRoomTags: [{ _id: 'prev' }], previousOwnPostTagIds: ['prev'] },
       store: createStoreMock({ getters: { tagList: ['store'] } }),
     });
 
@@ -429,7 +429,7 @@ describe('投稿の作成・編集', () => {
       wrapper.vm.imageName = 'uploaded.png';
     };
     wrapper.vm.editPost = () =>
-      Promise.resolve({ data: { animation: null, room_tags: ['tag-response'] } });
+      Promise.resolve({ data: { _id: 'post-1', animation: null, room_tags: ['tag-response'] } });
 
     await wrapper.vm.submit(false);
 
@@ -438,6 +438,8 @@ describe('投稿の作成・編集', () => {
         {
           contentType: 'post',
           actionType: 'update',
+          postId: 'post-1', roomId: 'room-1', tagSource: null, tagsChanged: true,
+          savedPost: { _id: 'post-1', animation: null, room_tags: ['tag-response'] },
           presentationAnimation: null,
           mediaType: 'image',
           previousTagIds: ['tag-before'],
@@ -872,4 +874,66 @@ describe('投稿の作成・編集', () => {
     expect(snackbarCalls).to.have.lengthOf(1);
     expect(snackbarCalls[0].role).to.equal('alert');
   });
+});
+
+
+describe('Confirmed continuous-post tags', () => {
+  it('keeps empty confirmed tags and their source above column defaults', () => {
+    const wrapper = createWrapper({ props: { propsRoomTags: [{ _id: 'guide' }], presetTagIds: ['guide'], continuation: { tags: [], source: 'clear' } } });
+    wrapper.vm.openedDialog(); expect(wrapper.vm.roomTags).toEqual([]); expect(wrapper.vm.tagSource).toBe('clear');
+  });
+  it('does not advance or clear the draft when the server response is incomplete', async () => {
+    const wrapper = createWrapper(); wrapper.vm.openedDialog(); await wrapper.setData({ content: 'keep this draft', roomTags: [] });
+    wrapper.vm.editPost = () => Promise.resolve({ data: { room_tags: [] } });
+    await wrapper.vm.submit(true); expect(wrapper.vm.content).toBe('keep this draft'); expect(wrapper.emitted().doneContinuousPost).toBeUndefined();
+  });
+  it('carries exactly the confirmed tags rather than the preselected tags', async () => {
+    const wrapper = createWrapper({ props: { propsRoomTags: [{ _id: 'guide' }, { _id: 'question' }], presetTagIds: ['guide'] } });
+    wrapper.vm.openedDialog(); await wrapper.setData({ content: 'a question', roomTags: ['question'], tagSource: null });
+    wrapper.vm.editPost = () => Promise.resolve({ data: { _id: 'saved', room_tags: ['question'], animation: null } });
+    await wrapper.vm.submit(true); expect(wrapper.emitted().doneContinuousPost[0][0]).toMatchObject({ postId: 'saved', nextTagIds: ['question'], tagSource: null });
+  });
+});
+
+
+describe('投稿編集の選択元表示', () => {
+  it.each([[['t1']], [[]]])('保存済みタグ %j を元投稿として表示し、個別変更後に戻せる', async (tags) => {
+    const wrapper = createWrapper({ stubs: { TagSelector: false }, props: {
+      propsPost: { _id: 'post', content: 'body', room_tags: tags },
+      propsRoomTags: [{ _id: 't1', name: 'Tag' }],
+    } });
+    wrapper.vm.openedDialog(); await wrapper.vm.$nextTick();
+    const original = wrapper.find('button[aria-label="元投稿"]');
+    expect(original.attributes('aria-pressed')).toBe('true');
+    expect(original.attributes('disabled')).toBeUndefined();
+    expect(wrapper.find('[data-testid="tag-selector-this-tab"]').exists()).toBe(true);
+    expect(wrapper.find('[data-testid="tag-selector-this-tab"]').attributes('disabled')).toBeDefined();
+    await wrapper.find('input[data-tag-id="t1"]').setValue(!tags.length);
+    expect(wrapper.findAll('button[aria-pressed="true"]')).toHaveLength(0);
+    expect(wrapper.vm.roomTags).toEqual(tags.length ? [] : ['t1']);
+    await original.trigger('click');
+    expect(wrapper.vm.roomTags).toEqual(tags);
+    expect(original.attributes('aria-pressed')).toBe('true');
+    wrapper.unmount();
+  });
+});
+
+
+it('keeps saved tags until This tab is explicitly selected, then clears feedback on manual change', async () => {
+  const wrapper = createWrapper({ stubs: { TagSelector: false }, props: {
+    propsPost: { _id: 'post', room_tags: ['saved'] },
+    propsRoomTags: [{ _id: 'saved', name: 'Saved' }, { _id: 'guide', name: 'Guide' }], columnTagIds: ['guide'],
+  } });
+  wrapper.vm.openedDialog(); await wrapper.vm.$nextTick();
+  expect(wrapper.vm.roomTags).toEqual(['saved']);
+  expect(wrapper.findAll('.tag-action-button')).toHaveLength(5);
+  const button = wrapper.find('[data-testid="tag-selector-this-tab"]');
+  expect(button.attributes('disabled')).toBeUndefined();
+  await button.trigger('click');
+  expect(wrapper.vm.roomTags).toEqual(['guide']);
+  expect(button.attributes('aria-pressed')).toBe('true');
+  await wrapper.find('input[data-tag-id="saved"]').setValue(true);
+  expect(wrapper.vm.roomTags).toEqual(['guide', 'saved']);
+  expect(wrapper.findAll('.tag-action-button[aria-pressed="true"]')).toHaveLength(0);
+  wrapper.unmount();
 });

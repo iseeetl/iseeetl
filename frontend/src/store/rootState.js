@@ -45,6 +45,7 @@ export const createRootState = () => ({
     assertiveMessage: '',
     snackbarVisible: false,
     snackbarMessage: '',
+    snackbarAction: null,
     snackbarPosition: 'center',
     snackbarDuration: 3000,
     snackbarIsInfinity: false,

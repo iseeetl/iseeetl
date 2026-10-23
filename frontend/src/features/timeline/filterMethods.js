@@ -46,6 +46,7 @@ export const timelineFilterMethods = {
       webPush,
       showUserIcon: payload.showUserIcon,
       conditions: payload.conditions,
+      postTagMode: payload.postTagMode === 'empty' ? 'empty' : 'auto',
       posts: [],
     });
     this.persistFilters();
@@ -70,6 +71,7 @@ export const timelineFilterMethods = {
     const operationToken = captureOperation(this);
 
     if (this.ui.queryFilters.active) {
+      target.postTagMode = payload.postTagMode === 'empty' ? 'empty' : 'auto';
       target.conditions = payload.conditions;
       target.showUserIcon = payload.showUserIcon;
       this.dialogs.filter.visible = false;
@@ -100,6 +102,7 @@ export const timelineFilterMethods = {
       }
 
       Object.assign(target, {
+        postTagMode: payload.postTagMode === 'empty' ? 'empty' : 'auto',
         conditions: payload.conditions,
         webPush: payload.webPush,
         showUserIcon: payload.showUserIcon,

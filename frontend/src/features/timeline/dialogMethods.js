@@ -1,3 +1,4 @@
+import { getPresetTagIdsFromFilter } from '@/features/timeline/filters';
 import tagApi from '@/api/tag';
 import { appendApiErrorMessage } from '@/api/apiClient';
 import { handleAuthError } from '@/utils/authError';
@@ -14,10 +15,17 @@ const reportOperation = (context, token, operation) =>
     : false;
 
 export const timelineDialogMethods = {
-  async showEditPostDialog(post = null, isAnimationPost = false, tagIds = []) {
+  async showEditPostDialog(post = null, isAnimationPost = false, tagIds = [], columnIndex = this.ui?.currentTabIndex ?? 0) {
+    if (this.dialogs.post.edit.visible) return;
     if (!(await this.ensureGuestRules())) return;
 
-    this.dialogs.post.edit.presetTagIds = Array.isArray(tagIds) ? tagIds : [];
+    const filter = this.timeline?.filters?.[columnIndex];
+    this.dialogs.post.edit.sourceColumnIndex = columnIndex;
+    this.dialogs.post.edit.postTagMode = filter?.postTagMode || 'auto';
+    this.dialogs.post.edit.continuation = null;
+    this.dialogs.post.edit.columnTagIds = this.$route?.params?.post_id ? []
+      : filter ? getPresetTagIdsFromFilter(filter, { includeExcluded: true }) : [...(tagIds || [])];
+    this.dialogs.post.edit.presetTagIds = filter ? getPresetTagIdsFromFilter(filter) : (Array.isArray(tagIds) ? tagIds : []);
     this.dialogs.post.edit.previousOwnPostTagIds = post === null ? this.getPreviousOwnPostTagIds() : [];
     this.dialogs.post.edit.value = post;
     this.dialogs.post.edit.isAnimationPost = isAnimationPost;
@@ -32,11 +40,15 @@ export const timelineDialogMethods = {
       value: null,
       isAnimationPost: false,
       presetTagIds: [],
+      columnTagIds: [],
       previousOwnPostTagIds: [],
+      continuation: null,
       operationToken: null,
     });
   },
-  handleContinuousPost() {
+  handleContinuousPost(payload) {
+    if (!payload?.postId || !Array.isArray(payload.nextTagIds)) return;
+    this.dialogs.post.edit.continuation = { tags: [...payload.nextTagIds], source: payload.tagSource };
     Object.assign(this.dialogs.post.edit, {
       visible: false,
       value: null,
@@ -57,9 +69,11 @@ export const timelineDialogMethods = {
   closeDeletePostDialog() {
     Object.assign(this.dialogs.post.delete, { visible: false, value: null, operationToken: null });
   },
-  async showEditReplyDialog(post, reply) {
+  async showEditReplyDialog(post, reply, _event = null, columnIndex = null) {
     if (!(await this.ensureGuestRules())) return;
+    const filter = this.$route?.params?.post_id ? null : this.timeline?.filters?.[columnIndex];
     Object.assign(this.dialogs.reply.edit, {
+      columnTagIds: filter ? getPresetTagIdsFromFilter(filter, { includeExcluded: true }) : [],
       postValue: post,
       value: reply,
       operationToken: captureOperation(this),
@@ -73,6 +87,7 @@ export const timelineDialogMethods = {
       visible: false,
       postValue: null,
       value: null,
+      columnTagIds: [],
       operationToken: null,
     });
   },

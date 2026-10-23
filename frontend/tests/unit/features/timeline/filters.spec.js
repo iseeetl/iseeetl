@@ -268,6 +268,7 @@ describe('タイムラインの絞り込み処理', () => {
 
     expect(result[0]).to.deep.equal({
       id: 'f1',
+      postTagMode: 'auto',
       size: 5,
       conditions: null,
       showUserIcon: false,

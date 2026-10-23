@@ -78,6 +78,8 @@
       data-testid="app-snackbar"
       v-model="snackbarActiveProxy"
       :message="$store.getters.snackbarMessage"
+      :action-label="$store.getters.snackbarAction?.label || ''"
+      @action="$store.getters.snackbarAction?.run?.()"
       :position="$store.getters.snackbarPosition"
       :duration="$store.getters.snackbarDuration"
       :is-infinity="$store.getters.snackbarIsInfinity"

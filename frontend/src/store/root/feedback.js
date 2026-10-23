@@ -4,6 +4,7 @@ export const feedbackDomain = {
     politeMessage: (state) => state.message.politeMessage,
     assertiveMessage: (state) => state.message.assertiveMessage,
     snackbarVisible: (state) => state.message.snackbarVisible,
+    snackbarAction: (state) => state.message.snackbarAction,
     snackbarMessage: (state) => state.message.snackbarMessage,
     snackbarPosition: (state) => state.message.snackbarPosition,
     snackbarDuration: (state) => state.message.snackbarDuration,
@@ -13,7 +14,8 @@ export const feedbackDomain = {
     setErrorMessage(state, data) {
       state.error.message = data.message;
     },
-    setSnackbar(state, { message, role = 'status' }) {
+    setSnackbar(state, { message, role = 'status', action = null }) {
+      state.message.snackbarAction = action;
       state.message.snackbarMessage = message;
       state.message.snackbarVisible = true;
       if (role === 'alert') {
@@ -27,13 +29,14 @@ export const feedbackDomain = {
     hideSnackbar(state) {
       state.message.snackbarVisible = false;
       state.message.snackbarMessage = '';
+      state.message.snackbarAction = null;
       state.message.assertiveMessage = '';
       state.message.politeMessage = '';
     },
   },
   actions: {
     doUpdateErrorMessage: ({ commit }, data) => commit('setErrorMessage', data),
-    doShowSnackbar: ({ commit }, { message, role = 'status' }) => commit('setSnackbar', { message, role }),
+    doShowSnackbar: ({ commit }, { message, role = 'status', action = null }) => commit('setSnackbar', { message, role, action }),
     doHideSnackbar: ({ commit }) => commit('hideSnackbar'),
   },
 };

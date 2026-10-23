@@ -54,8 +54,8 @@ describe('タイムラインのカラム', () => {
     wrapper.vm.onShowEditPostDialog(post, false);
 
     expect(wrapper.emitted().showEditPostDialog).to.deep.equal([
-      [post, true, ['tag-1']],
-      [post, false, []],
+      [post, true, ['tag-1'], 0],
+      [post, false, [], 0],
     ]);
   });
 
@@ -365,4 +365,14 @@ describe('投稿がないときの案内表示', () => {
     expect(wrapper.find('[data-testid="timeline-empty-message"]').exists()).toBe(false);
     wrapper.unmount();
   });
+});
+
+
+it('passes the clicked column through reply creation and editing', () => {
+  const wrapper = createWrapper({ props: { index: 2 } });
+  wrapper.vm.onShowEditReplyDialog({ _id: 'p' }, null, null);
+  wrapper.vm.onShowEditReplyDialog({ _id: 'p' }, { _id: 'r' }, null);
+  expect(wrapper.emitted().showEditReplyDialog).toEqual([
+    [{ _id: 'p' }, null, null, 2], [{ _id: 'p' }, { _id: 'r' }, null, 2],
+  ]);
 });

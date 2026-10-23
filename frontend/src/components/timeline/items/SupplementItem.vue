@@ -5,7 +5,7 @@
         <button
           v-if="showUserIcon"
           type="button"
-          class="user-link-button"
+          class="user-link-button" :disabled="readOnly"
           @click.stop="onClickUserBySupplement(supplement)"
           :aria-label="$t('{name}で絞り込み', { name: getUsernameOrGuestname(supplement) })"
         >
@@ -19,7 +19,7 @@
 
         <UiTooltip
           v-if="
-            canManageFloor &&
+            !readOnly && canManageFloor &&
             supplement.user !== undefined &&
             supplement.user !== null &&
             $store.getters.displayUserKickButton
@@ -89,7 +89,7 @@
       </div>
 
       <div v-if="supplement.reactions">
-        <ReactionItem
+        <ReactionItem v-if="!readOnly"
           :postId="postId"
           :replyId="replyId"
           :supplementId="supplement._id"
@@ -98,7 +98,7 @@
         />
       </div>
 
-      <div class="action" v-if="$store.getters.displayActionButton">
+      <div class="action" v-if="!readOnly && $store.getters.displayActionButton">
         <div class="reaction-container">
           <div class="reaction-picker-wrapper" v-if="reactionPickerVisible">
             <ReactionPicker
@@ -191,6 +191,7 @@ export default {
     'showGalleryDialog',
   ],
   name: 'SupplementItem',
+  inject: { readOnly: { from: 'timelineReadOnly', default: false } },
   components: {
     ReactionItem,
     ReactionPicker,

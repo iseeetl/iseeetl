@@ -164,6 +164,17 @@
         </label>
       </fieldset>
     </section>
+    <section class="filter-section" aria-labelledby="posting_settings_title">
+      <h3 id="posting_settings_title" class="filter-section-title">{{ $t('postDefaults.settings') }}</h3>
+      <fieldset class="filter-group">
+        <legend>{{ $t('postDefaults.startTags') }}</legend>
+        <div class="filter-options">
+          <label class="filter-choice"><input v-model="postTagMode" type="radio" value="auto" name="postTagMode" />{{ $t('postDefaults.auto') }}</label>
+          <label class="filter-choice"><input v-model="postTagMode" type="radio" value="empty" name="postTagMode" />{{ $t('postDefaults.empty') }}</label>
+        </div>
+        <p>{{ $t('postDefaults.startHelp') }}</p>
+      </fieldset>
+    </section>
   </BaseEditDialog>
 
   <ConfirmDialog
@@ -227,6 +238,7 @@ export default {
   },
   data() {
     return {
+      postTagMode: 'auto',
       displayOrder: [],
       filterMode: 'include',
       showRange: 'all',
@@ -264,6 +276,7 @@ export default {
   },
   methods: {
     openedDialog() {
+      this.postTagMode = this.filter?.postTagMode === 'empty' ? 'empty' : 'auto';
       if (this.filter !== null) {
         if (this.filter.conditions !== undefined && this.filter.conditions !== null) {
           const conditions = this.filter.conditions;
@@ -376,6 +389,7 @@ export default {
       };
 
       const payload = {
+        postTagMode: this.postTagMode,
         conditions,
         webPush: this.webPushForSave(true),
         showUserIcon: this.showUserIcon,
@@ -418,6 +432,7 @@ export default {
 
     getEditSnapshot() {
       return JSON.stringify({
+        postTagMode: this.postTagMode,
         displayOrder: this.displayOrder,
         filterMode: this.filterMode,
         showRange: this.showRange,
@@ -463,6 +478,7 @@ export default {
 
       // 条件が空の場合はnullを保存し、OneSignalが有効ならWebプッシュ通知も無効にする。
       const payload = {
+        postTagMode: this.postTagMode,
         conditions: null,
         webPush: this.webPushForSave(false),
         showUserIcon: this.showUserIcon,

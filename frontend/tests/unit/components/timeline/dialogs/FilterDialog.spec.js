@@ -91,7 +91,7 @@ describe('タイムラインの絞り込み設定', () => {
   it('検索条件と表示設定を区分し、タグ無しと流すはタグとは別の小分類に置く', () => {
     const wrapper = createWrapper();
     expect(wrapper.findAll('h3').map((heading) => heading.text())).to.deep.equal([
-      'filterDialog.searchConditions', 'filterDialog.displaySettings',
+      'filterDialog.searchConditions', 'filterDialog.displaySettings', 'postDefaults.settings',
     ]);
     const noTagsGroup = wrapper.get('#input_notags').element.closest('fieldset');
     expect(noTagsGroup.querySelector('legend').textContent).to.equal('filterDialog.otherConditions');
@@ -175,6 +175,7 @@ describe('タイムラインの絞り込み設定', () => {
     expect(wrapper.emitted().create).to.have.lengthOf(1);
     expect(wrapper.emitted().create[0][0]).to.deep.equal({
       conditions: null,
+      postTagMode: 'auto',
       webPush: false,
       showUserIcon: false,
     });

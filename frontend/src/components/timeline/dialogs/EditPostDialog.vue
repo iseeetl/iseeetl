@@ -15,6 +15,8 @@
       @opened="openedDialog"
       @closed="closedDialog"
     >
+      <UiButton v-if="lastPostId && !propsPost" :disabled="sending || recording || transcribing"
+        data-testid="view-last-post" @click="$emit('view-post', lastPostId)">{{ $t('postDefaults.viewLast') }}</UiButton>
       <template #mobile-actions>
         <UiButton
           v-if="!isAnimationPost"
@@ -235,18 +237,22 @@
               data-testid="dialog-edit-post-tags-title-toggle"
               @click="toggleAccordion('tags')"
             >
-              {{ $t('タグ') }}
+              {{ propsPost ? $t('タグ') : $t('postDefaults.tagsForPost') }}
             </button>
           </legend>
 
+          <p v-if="!propsPost" class="post-tags-summary" data-testid="post-tags-summary">{{ roomTags.length ? $t('postDefaults.selectedCount', { count: roomTags.length }) : $t('postDefaults.none') }}</p>
           <div class="acc-panel" :id="accIds.tags" v-show="isAccordionOpen('tags')">
             <TagSelector
               v-model="roomTags"
+              :showSource="true" :source="tagSource" :columnTags="columnTagIds"
+              :originalTags="propsPost ? propsPost.room_tags : []" :originalAvailable="!!propsPost"
+              @source-change="tagSource = $event"
               :tags="selectableRoomTags"
               :locale="$i18n.locale"
               :previousTags="previousTagSelectorTags"
               :copiedTags="$store.getters.tagClipboardList"
-              :sending="sending"
+              :sending="sending || transcribing"
               :recording="recording"
             />
           </div>
@@ -399,6 +405,7 @@
 
 <script>
 import { useId } from 'vue';
+import { initialPostTags } from '@/features/timeline/postDefaults';
 import chatApi from '@/api/chat';
 import { buildPostCreate, buildPostPatch } from '@/api/postPayload';
 import uploadApi from '@/api/upload';
@@ -445,7 +452,7 @@ import UiIcon from '@/components/ui/UiIcon.vue';
 import UiTooltip from '@/components/ui/UiTooltip.vue';
 
 export default {
-  emits: ['close', 'doneContinuousPost', 'content-saved', 'quick-text-inserted'],
+  emits: ['view-post', 'close', 'doneContinuousPost', 'content-saved', 'quick-text-inserted'],
   name: 'EditPostDialog',
   setup() {
     const accordionId = useId();
@@ -477,6 +484,10 @@ export default {
     propsPost: Object,
     targetLangs: Array,
     isGuestReactionOnly: Boolean, // 「ゲストはリアクションのみ」のルームでは、ゲストはリアクションを「流す」操作だけを行える。
+    lastPostId: { type: String, default: null },
+    columnTagIds: { type: Array, default: () => [] },
+    postTagMode: { type: String, default: 'auto' },
+    continuation: { type: Object, default: null },
     presetTagIds: { type: Array, default: () => [] },
     previousOwnPostTagIds: { type: Array, default: () => [] },
     roomQuickTextGroups: { type: Array, default: () => [] },
@@ -559,6 +570,7 @@ export default {
   data() {
     return {
       postId: null,
+      tagSource: null,
       roomTags: [],
       content: null,
       contentSelectionStart: null,
@@ -623,7 +635,8 @@ export default {
 
       if (this.propsPost !== null) {
         this.postId = this.propsPost._id;
-        this.roomTags = this.propsPost.room_tags;
+        this.roomTags = [...(this.propsPost.room_tags || [])];
+        this.tagSource = 'original';
         this.content = this.propsPost.content;
         this.animation = this.propsPost.animation;
         this.imageName = this.propsPost.image_name;
@@ -655,12 +668,10 @@ export default {
             '/media/' + this.$store.getters.floorId + '/' + this.$store.getters.roomId + '/' + this.videoSubtitleName;
         }
       } else {
-        // 絞り込みカラムから渡されたタグを、初期選択で優先する。
-        if (this.presetTagIds && this.presetTagIds.length) {
-          this.roomTags = this.presetTagIds.slice();
-        } else if (this.previousOwnPostTagIds && this.previousOwnPostTagIds.length) {
-          this.roomTags = this.previousOwnPostTagIds.slice();
-        }
+        const initial = initialPostTags({ mode: this.postTagMode, column: this.presetTagIds,
+          previous: this.previousOwnPostTagIds, continuation: this.continuation, tags: this.selectableRoomTags });
+        this.roomTags = initial.tags;
+        this.tagSource = initial.source;
       }
 
       // 初期フォーカスは共通ダイアログに任せ、入力状態の設定ではフォーカスを動かさない。
@@ -870,7 +881,16 @@ export default {
           response = await this.editGuestPost(this.makeScaledProgress(0, 100));
         }
 
+        if (!response?.data?._id || !Array.isArray(response.data.room_tags)) {
+          this.setSnackbar(this.$t('postDefaults.unconfirmed'), 'alert');
+          return;
+        }
         successPayload = {
+          savedPost: response.data,
+          tagsChanged: JSON.stringify(response.data.room_tags) !== JSON.stringify(this.roomTags),
+          postId: response.data._id,
+          roomId: this.$store.getters.roomId,
+          tagSource: JSON.stringify(response.data.room_tags) === JSON.stringify(this.roomTags) ? this.tagSource : null,
           contentType: 'post',
           actionType,
           presentationAnimation: response?.data?.animation,
@@ -902,7 +922,7 @@ export default {
         this.$emit('content-saved', successPayload);
         this.clearValue();
         if (nextAction === 'reopen') {
-          this.$emit('doneContinuousPost');
+          this.$emit('doneContinuousPost', successPayload);
         } else if (nextAction === 'close') {
           this.visible = false;
         }

@@ -263,6 +263,19 @@ describe('タイムラインのSocketイベント処理', () => {
     expect(ctx.timeline.filters[1].posts).to.deep.equal([]);
     expect(dispatchCalls).to.deep.equal([]);
   });
+
+  it.each([false, true])('reconnect preserves independent column defaults (URL columns=%s)', queryColumns => {
+    const socket = createSocket();
+    const filters = [{ conditions: null, postTagMode: 'auto' }, { conditions: { keyword: 'test' }, postTagMode: 'empty', ...(queryColumns ? { queryColumnNumber: 2 } : {}) }];
+    const ctx = {
+      infra: {}, room: {}, dialogs: { sound: { tags: [] } }, timeline: { filters },
+      ui: { initialTabApplied: true, currentTabIndex: 1, queryFilters: { active: queryColumns, hasColumnQueries: queryColumns, filters: [filters[1]] } },
+      $refs: {}, $store: { getters: { roomId: 'r', filters: { r: filters } }, dispatch: vi.fn() }, $t: key => key,
+      initialFetchAllColumns: vi.fn(), applyStoredTimelineSettings: vi.fn(), restoreColumnSelection: vi.fn(),
+    };
+    bindSocketHandlers(socket, ctx); socket.handlers.connect();
+    expect(ctx.timeline.filters.map(filter => filter.postTagMode)).toEqual(['auto', 'empty']);
+  });
   it('POST_CREATE は音再生・読み上げ・filters追加を行う', () => {
     const socket = createSocket();
     const audioRef = {

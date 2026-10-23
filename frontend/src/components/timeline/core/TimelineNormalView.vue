@@ -24,6 +24,7 @@
       />
 
       <TimelineMobilePostButtons
+        :disabled="!isSocketConnect"
         :isGuestReactionOnly="isGuestReactionOnly"
         :defaultTagIds="currentFilterTagIds"
         :onShowEditPostDialog="onShowEditPostDialog"

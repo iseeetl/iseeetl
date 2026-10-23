@@ -14,6 +14,8 @@ export const createTimelineDialogEventHandlers = (context) =>
     closeFilterDialog: context.closeFilterDialog,
     closeEditPostDialog: context.closeEditPostDialog,
     postSaved: context.postSaved,
+    viewSavedPost: context.viewSavedPost,
+    closePostConfirmation: context.closePostConfirmation,
     postQuickTextInserted: context.postQuickTextInserted,
     closeDeletePostDialog: context.closeDeletePostDialog,
     postDeleted: context.postDeleted,

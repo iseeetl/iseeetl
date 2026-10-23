@@ -881,5 +881,33 @@
   "timelineSettingDialog": {
     "speech": "Text to speech",
     "displayItems": "Display items"
+  },
+  "postDefaults": {
+    "settings": "Posting settings",
+    "startTags": "Tags when starting a post",
+    "auto": "Select tags automatically",
+    "empty": "Start with no tags",
+    "startHelp": "Applies when you start a new post. When you keep posting, tags from the last sent post are kept.",
+    "thisTab": "This tab",
+    "thisTabHelp": "Select the tags used in this tab’s filter.",
+    "originalShort": "Original",
+    "previousShort": "Previous",
+    "source": "Source: {source}",
+    "tagsForPost": "Tags for this post",
+    "selectedCount": "Selected tags: {count}",
+    "none": "No tags selected.",
+    "invalidOptions": "Some URL display or posting settings could not be applied.",
+    "unconfirmed": "Could not confirm the saved post. Your draft is kept. Check the result before sending again.",
+    "viewPost": "View post",
+    "viewLast": "View your last post",
+    "loading": "Loading…",
+    "answerNote": "Replies or AI information may arrive later. Use Refresh to check.",
+    "refresh": "Refresh",
+    "unavailable": "This post cannot be shown.",
+    "loadFailed": "Could not load the post. Please try Refresh.",
+    "sent": "Post sent.",
+    "sentOutside": "Post sent. It does not match this tab’s filters.",
+    "tagsChanged": "Post sent. The saved tags changed, so the source highlight was cleared.",
+    "noTabTags": "This tab has no tags to select."
   }
 }
