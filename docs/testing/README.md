@@ -15,3 +15,5 @@
 | Google Analyticsの設定・収集結果を照合する | [Google Analytics検証](google-analytics.md) | テスト用の非本番環境プロパティ |
 
 各文書の前提、影響、中止条件、成功判定を確認してから実行してください。本番環境や共有データを、ローカル・E2E用の手順へ流用しません。
+
+文字起こし空結果：provider・output・audio clientのUnitテスト、AI解析executorの投稿／返信保存・配信テスト、recordingの通知／本文保持テストで確認する。仕様は[発話が検出されない場合](../spec/ai-analysis.md#発話が検出されない場合)。

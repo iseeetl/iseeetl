@@ -155,6 +155,7 @@ const analyzeWithProvider = async ({
       prompt: additionalPrompt || undefined,
       signal,
     });
+    if (typeof text === 'string' && !text.trim()) return { status: 'no-speech' };
     return normalizeProviderText(text, { enforceLimit: false });
   }
 

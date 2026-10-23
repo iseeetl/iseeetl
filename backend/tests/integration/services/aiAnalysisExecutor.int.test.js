@@ -90,6 +90,24 @@ const sourceSupplements = async ({ postId, replyId = null }) => {
 };
 
 describe('設定に基づくAI解析の結合動作（外部サービスはモック）', () => {
+  test.each(['post', 'reply'])('%sの発話未検出を日英で保存・配信し、再実行で重複しない', async (sourceType) => {
+    const context = await setup({ kinds: ['speech'], withReply: sourceType === 'reply' });
+    const { emit, io } = createIo();
+    const analyze = jest.fn(async () => ({ status: 'no-speech' }));
+    const executor = createAnalysisExecutor({ executionEnabled: () => true, prepareInput, analyze });
+    const args = { chatId: context.post._id, sourceType, replyId: sourceType === 'reply' ? context.replyId : null,
+      settingId: context.settings[0]._id, io, mediaPath: '/mocked' };
+    await expect(executor.executeSetting(args)).resolves.toMatchObject({ status: 'created' });
+    const saved = await sourceSupplements({ postId: context.post._id, replyId: args.replyId });
+    expect(saved).toHaveLength(1);
+    expect(saved[0].content).toBe('#Custom analysis No speech was detected.');
+    expect(saved[0].translations[0].content).toBe('#独自解析 発話を検出できませんでした');
+    expect(emit).toHaveBeenCalledTimes(1);
+    await expect(executor.executeSetting(args)).resolves.toMatchObject({ status: 'idempotent' });
+    expect(analyze).toHaveBeenCalledTimes(1);
+    expect(emit).toHaveBeenCalledTimes(1);
+  });
+
   describe('共通翻訳処理の失敗後も解析結果を保存する', () => {
     const { translateText } = require('../../../integrations/google/translate.client');
     const flags = require('../../../config/featureFlags');

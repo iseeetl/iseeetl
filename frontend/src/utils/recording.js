@@ -1,3 +1,5 @@
+import { showSnackbar } from './snackbar';
+
 const DEFAULT_RECORDING_TIMEOUT_MS = 29 * 1000;
 
 const clearRecordingTimeout = (ctx) => {
@@ -100,7 +102,10 @@ export const transcribeAudio = async (ctx, { file, transcribeApi, onText, onErro
     formData.append('room_id', ctx.$store.getters.roomId);
 
     const res = await transcribeApi(formData);
-    if (res && res.data && res.data.text) {
+    if (typeof res?.data?.text !== 'string') throw new Error('Invalid transcription response');
+    if (!res.data.text.trim()) {
+      showSnackbar(ctx.$store, ctx.$t('発話を検出できませんでした'));
+    } else {
       if (onText) {
         onText(res.data.text);
       } else {

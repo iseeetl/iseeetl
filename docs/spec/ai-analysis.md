@@ -198,3 +198,9 @@ AI解析結果も、通常の付加情報と同じ表示・編集・削除・リ
 - `backend/tests/integration/services/aiAnalysisSettingInheritance.int.test.js`
 - `backend/tests/integration/services/aiAnalysisExecutor.int.test.js`
 - `frontend/tests/unit/views/management/AIAnalysisSettingManagement.spec.js`
+
+### 発話が検出されない場合
+
+文字起こしAPIの正常応答に空文字または空白だけのtextが含まれる場合、解析処理は内部結果 `{ status: 'no-speech' }` を返す。自動解析の付加情報には「発話を検出できませんでした」または「No speech was detected.」を表示し、発話本文と区別する。原文は投稿言語が日本語なら日本語、それ以外なら英語とし、日英の定型訳は外部翻訳が無効でも保存する。他の必要言語は既存の翻訳経路を使う。録音に発話が絶対に存在しないことを意味しない。
+
+録音入力の手動文字起こしでは、同じ案内を通知して既存の入力本文を保持する。案内を認識した発話として本文に挿入しない。欠落・null・非文字列のtext、HTTPエラー、中断、タイムアウトは空結果として扱わず、再試行や他モデルへの自動切替を行わない。モデル設定自体は変更しない。

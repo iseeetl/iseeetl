@@ -3,6 +3,11 @@ const defaultLogger = require('../../utils/logger');
 const { errorLogDetails } = require('../../utils/errorLogDetails');
 const { makeLabelByLangFromTag, prefixWithLabel } = require('./labels');
 
+const NO_SPEECH_MESSAGES = Object.freeze({
+  ja: '発話を検出できませんでした',
+  en: 'No speech was detected.',
+});
+
 const MAX_PROVIDER_CODE_POINTS = 300;
 const MAX_SUPPLEMENT_UTF16_UNITS = 400;
 
@@ -46,7 +51,9 @@ const truncateSpeechWithPrefix = ({ label, text }) => {
 };
 
 const buildBaseContent = ({ snapshot, providerOutput, logger, startedAt = Date.now() }) => {
-  const text = normalizeProviderOutput(providerOutput);
+  const noSpeech = snapshot.kind === 'speech' && providerOutput?.status === 'no-speech';
+  const noticeLang = snapshot.source.lang === 'ja' ? 'ja' : 'en';
+  const text = noSpeech ? NO_SPEECH_MESSAGES[noticeLang] : normalizeProviderOutput(providerOutput);
   if (!text) {
     logger.error('AI_ANALYSIS_OUTPUT_INVALID', analysisLogContext(snapshot, 'empty', startedAt));
     return null;
@@ -56,7 +63,7 @@ const buildBaseContent = ({ snapshot, providerOutput, logger, startedAt = Date.n
     return null;
   }
 
-  const baseLang = ['vision', 'audioScene', 'video'].includes(snapshot.kind)
+  const baseLang = noSpeech ? noticeLang : ['vision', 'audioScene', 'video'].includes(snapshot.kind)
     ? 'ja'
     : snapshot.source.lang;
   const label = makeLabelByLangFromTag(snapshot.triggerTag)(baseLang);
@@ -73,12 +80,19 @@ const buildBaseContent = ({ snapshot, providerOutput, logger, startedAt = Date.n
     }
     logger.warn('AI_ANALYSIS_OUTPUT_TRUNCATED', analysisLogContext(snapshot, 'base_utf16_units', startedAt));
   }
-  return { baseLang, content, text };
+  return { baseLang, content, text, noSpeech };
 };
 
 const buildTranslations = async ({ snapshot, base, translateContent, logger, startedAt }) => {
-  const targets = [...new Set(snapshot.targetLangs)].filter((lang) => lang && lang !== base.baseLang);
-  if (targets.length === 0) return [];
+  const targets = [...new Set(base.noSpeech
+    ? [...snapshot.targetLangs, snapshot.source.lang, 'ja', 'en']
+    : snapshot.targetLangs)].filter((lang) => lang && lang !== base.baseLang);
+  const fixedTranslations = base.noSpeech ? targets.filter((lang) => NO_SPEECH_MESSAGES[lang]).map((lang) => ({
+    user: snapshot.resultUserId, guest_id: null, lang,
+    content: prefixWithLabel(makeLabelByLangFromTag(snapshot.triggerTag)(lang), NO_SPEECH_MESSAGES[lang]),
+  })) : [];
+  const translationTargets = base.noSpeech ? targets.filter((lang) => !NO_SPEECH_MESSAGES[lang]) : targets;
+  if (translationTargets.length === 0) return fixedTranslations;
 
   let translated;
   try {
@@ -86,21 +100,21 @@ const buildTranslations = async ({ snapshot, base, translateContent, logger, sta
       snapshot.resultUserId,
       base.text,
       base.baseLang,
-      targets,
+      translationTargets,
       translationLogContext(snapshot, 'body')
     );
   } catch (error) {
     logger.error('AI_ANALYSIS_TRANSLATION_FAILED', {
       ...analysisLogContext(snapshot, 'translation_failed', startedAt),
       field: 'body',
-      target_languages: targets,
+      target_languages: translationTargets,
       ...errorLogDetails(error),
     });
-    return [];
+    return fixedTranslations;
   }
 
   const labelByLang = makeLabelByLangFromTag(snapshot.triggerTag);
-  return (Array.isArray(translated) ? translated : []).flatMap((translation) => {
+  return [...fixedTranslations, ...(Array.isArray(translated) ? translated : []).flatMap((translation) => {
     const text = normalizeProviderOutput(translation?.content);
     if (!translation?.lang || !text || translation.lang === base.baseLang) return [];
     const content = prefixWithLabel(labelByLang(translation.lang), text);
@@ -110,7 +124,7 @@ const buildTranslations = async ({ snapshot, base, translateContent, logger, sta
       lang: translation.lang,
       content,
     }];
-  });
+  })];
 };
 
 const buildTitleTranslations = async ({ snapshot, translateContent, logger, startedAt }) => {
