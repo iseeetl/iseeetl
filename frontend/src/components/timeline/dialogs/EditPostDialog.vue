@@ -245,7 +245,8 @@
           <div class="acc-panel" :id="accIds.tags" v-show="isAccordionOpen('tags')">
             <TagSelector
               v-model="roomTags"
-              :showSource="!propsPost" :source="tagSource" :columnTags="columnTagIds"
+              :showSource="true" :showColumnSource="!propsPost" :source="tagSource" :columnTags="columnTagIds"
+              :originalTags="propsPost ? propsPost.room_tags : []" :originalAvailable="!!propsPost"
               @source-change="tagSource = $event"
               :tags="selectableRoomTags"
               :locale="$i18n.locale"
@@ -634,7 +635,8 @@ export default {
 
       if (this.propsPost !== null) {
         this.postId = this.propsPost._id;
-        this.roomTags = this.propsPost.room_tags;
+        this.roomTags = [...(this.propsPost.room_tags || [])];
+        this.tagSource = 'original';
         this.content = this.propsPost.content;
         this.animation = this.propsPost.animation;
         this.imageName = this.propsPost.image_name;

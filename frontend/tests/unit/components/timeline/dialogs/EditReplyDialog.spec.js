@@ -833,3 +833,32 @@ describe('返信の作成・編集', () => {
     expect(snackbarCalls[0].role).to.equal('alert');
   });
 });
+
+
+describe('返信の選択元表示', () => {
+  it.each([null, { _id: 'reply', content: 'reply', room_tags: ['t2'] }])('作成と編集で操作元を強調し、個別変更で解除する: %j', async (reply) => {
+    const wrapper = createWrapper({ stubs: { TagSelector: false }, props: {
+      postValue: { _id: 'parent', room_tags: ['t1'] }, replyValue: reply,
+      roomTags: [{ _id: 't1', name: 'Parent' }, { _id: 't2', name: 'Previous' }],
+    }, store: createStoreMock({ getters: { tagList: ['t2'], tagClipboardList: ['t1', 't2'] } }) });
+    wrapper.vm.openedDialog(); await wrapper.vm.$nextTick();
+    expect(wrapper.vm.tagSource).toBe(reply ? null : 'clear');
+    expect(wrapper.vm.roomTagsSelected).toEqual(reply ? ['t2'] : []);
+    expect(wrapper.find('[data-testid="tag-selector-this-tab"]').exists()).toBe(false);
+    for (const [selector, source, expected] of [
+      ['button[aria-label="元投稿"]', 'original', ['t1']],
+      ['button[aria-label="前回投稿"]', 'previous', ['t2']],
+      ['[data-testid="tag-selector-paste-button"]', 'paste', ['t1', 't2']],
+    ]) {
+      await wrapper.find(selector).trigger('click');
+      expect(wrapper.vm.tagSource).toBe(source);
+      expect(wrapper.find(selector).attributes('aria-pressed')).toBe('true');
+      expect(wrapper.vm.roomTagsSelected).toEqual(expected);
+      await wrapper.find('input[data-tag-id="t1"]').setValue(!expected.includes('t1'));
+      expect(wrapper.vm.tagSource).toBe(null);
+      expect(wrapper.findAll('button[aria-pressed="true"]')).toHaveLength(0);
+      expect(wrapper.find('[data-testid="post-tag-source"]').exists()).toBe(false);
+    }
+    wrapper.unmount();
+  });
+});

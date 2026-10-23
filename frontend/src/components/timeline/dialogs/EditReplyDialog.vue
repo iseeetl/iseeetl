@@ -298,6 +298,8 @@
           <div class="acc-panel" :id="accIds.tags" v-show="isAccordionOpen('tags')">
             <tag-selector
               v-model="roomTagsSelected"
+              :showSource="true" :showColumnSource="false" :source="tagSource"
+              @source-change="tagSource = $event"
               :tags="selectableRoomTags"
               :locale="$i18n.locale"
               :originalTags="post ? post.room_tags : []"
@@ -622,6 +624,7 @@ export default {
       contentSelectionStart: null,
       contentSelectionEnd: null,
       roomTagsSelected: [],
+      tagSource: null,
       animation: null,
       keyup: [],
       mutationBaseline: null,
@@ -699,7 +702,9 @@ export default {
       if (this.replyValue !== null) {
         this.replyId = this.replyValue._id;
         this.content = this.replyValue.content;
-        this.roomTagsSelected = this.replyValue.room_tags;
+        this.roomTagsSelected = [...(this.replyValue.room_tags || [])];
+        // Saved reply tags are not the parent post or a previous-post preset.
+        this.tagSource = null;
         this.animation = this.replyValue.animation;
         this.imageName = this.replyValue.image_name;
         this.imageThumbnailName = this.replyValue.image_thumbnail_name;
@@ -732,6 +737,7 @@ export default {
       } else {
         // 新規返信では、以前の投稿や返信のタグを自動で引き継がない。
         this.roomTagsSelected = [];
+        this.tagSource = 'clear';
       }
 
       // 初期フォーカスは共通ダイアログに任せ、入力状態の設定ではフォーカスを動かさない。

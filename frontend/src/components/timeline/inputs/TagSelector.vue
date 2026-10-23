@@ -7,7 +7,7 @@
           {{ $t('クリア') }}
         </button>
 
-        <button v-if="showSource" type="button" class="tag-action-button"
+        <button v-if="showSource && showColumnSource" type="button" class="tag-action-button"
           :disabled="!selectAvailableTags(columnTags).length || sending || recording"
           :aria-pressed="source === 'tab'" :title="$t(selectAvailableTags(columnTags).length ? 'postDefaults.thisTabHelp' : 'postDefaults.noTabTags')"
           data-testid="tag-selector-this-tab" @click="setColumn">{{ $t('postDefaults.thisTab') }}</button>
@@ -80,6 +80,8 @@ export default {
   },
   props: {
     showSource: { type: Boolean, default: false },
+    showColumnSource: { type: Boolean, default: true },
+    originalAvailable: { type: Boolean, default: false },
     source: { type: String, default: null },
     columnTags: { type: Array, default: () => [] },
     tags: {
@@ -137,7 +139,7 @@ export default {
       return this.selectAvailableTags(this.previousTags);
     },
     hasOriginal() {
-      return this.selectableOriginalTags.length > 0;
+      return this.originalAvailable || this.selectableOriginalTags.length > 0;
     },
     hasPrevious() {
       return this.selectablePreviousTags.length > 0;

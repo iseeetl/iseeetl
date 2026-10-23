@@ -41,3 +41,5 @@
 - `frontend/src/router.js`
 - `frontend/src/store/`
 - `frontend/src/api/`
+
+タグの選択元表示は投稿作成・編集・返信で共通です。初期値と「元投稿」の参照先は[tag-selection.md](tag-selection.md)に定義しています。

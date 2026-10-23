@@ -894,3 +894,25 @@ describe('Confirmed continuous-post tags', () => {
     await wrapper.vm.submit(true); expect(wrapper.emitted().doneContinuousPost[0][0]).toMatchObject({ postId: 'saved', nextTagIds: ['question'], tagSource: null });
   });
 });
+
+
+describe('投稿編集の選択元表示', () => {
+  it.each([[['t1']], [[]]])('保存済みタグ %j を元投稿として表示し、個別変更後に戻せる', async (tags) => {
+    const wrapper = createWrapper({ stubs: { TagSelector: false }, props: {
+      propsPost: { _id: 'post', content: 'body', room_tags: tags },
+      propsRoomTags: [{ _id: 't1', name: 'Tag' }],
+    } });
+    wrapper.vm.openedDialog(); await wrapper.vm.$nextTick();
+    const original = wrapper.find('button[aria-label="元投稿"]');
+    expect(original.attributes('aria-pressed')).toBe('true');
+    expect(original.attributes('disabled')).toBeUndefined();
+    expect(wrapper.find('[data-testid="tag-selector-this-tab"]').exists()).toBe(false);
+    await wrapper.find('input[data-tag-id="t1"]').setValue(!tags.length);
+    expect(wrapper.findAll('button[aria-pressed="true"]')).toHaveLength(0);
+    expect(wrapper.vm.roomTags).toEqual(tags.length ? [] : ['t1']);
+    await original.trigger('click');
+    expect(wrapper.vm.roomTags).toEqual(tags);
+    expect(original.attributes('aria-pressed')).toBe('true');
+    wrapper.unmount();
+  });
+});
