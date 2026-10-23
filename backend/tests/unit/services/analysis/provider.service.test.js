@@ -65,6 +65,36 @@ describe('AI解析用の外部サービス呼出', () => {
     expect(mockTranscribeFromBuffer).not.toHaveBeenCalled();
   });
 
+  test.each([
+    [{ kind: 'digital-silence' }, '無音'],
+    [{ kind: 'steady-tone', frequencyHz: 880 }, '約880 Hz'],
+  ])('波形で確認した単純な音を外部モデルに推測させない', async (acousticProfile, expected) => {
+    const result = await analyzeWithProvider({
+      kind: 'audioScene', additionalPrompt: 'Imagine people talking.',
+      media: { audioBuffer: Buffer.from('synthetic encoded audio'), acousticProfile },
+    });
+    expect(result).toContain(expected);
+    expect(mockChatCompletions).not.toHaveBeenCalled();
+  });
+
+  test('波形で判定できても中止済みなら説明を返さない', async () => {
+    const controller = new AbortController();
+    controller.abort();
+    await expect(analyzeWithProvider({ kind: 'audioScene', signal: controller.signal,
+      media: { audioBuffer: Buffer.from('synthetic audio'), acousticProfile: { kind: 'digital-silence' } },
+    })).rejects.toMatchObject({ name: 'AbortError', code: 'ABORT_ERR' });
+    expect(mockChatCompletions).not.toHaveBeenCalled();
+  });
+
+  test('不明な波形から無音や声なしと推定せず既存の外部解析へ渡す', async () => {
+    const audioBuffer = Buffer.from('synthetic complex audio');
+    await analyzeWithProvider({ kind: 'audioScene', media: { audioBuffer, acousticProfile: { kind: 'unknown' } } });
+    const request = mockChatCompletions.mock.calls[0][0];
+    const audio = request.messages[1].content.find(item => item.type === 'input_audio').input_audio;
+    expect(Buffer.from(audio.data, 'base64')).toEqual(audioBuffer);
+    expect(audio.format).toBe('mp3');
+  });
+
   test('会話解析は対象1件をユーザメッセージへ分離し、設定されたモデルで送る', async () => {
     await analyzeWithProvider({
       kind: 'conversation',
@@ -113,6 +143,35 @@ describe('AI解析用の外部サービス呼出', () => {
       })).rejects.toMatchObject({ code: 'AI_ANALYSIS_OUTPUT_INVALID' });
     }
   );
+
+  test.each([
+    ['<|im_sep|>話し声が聞こえます。', 'control_token'],
+    ['{"result":"<|im_sep|>一定音です。"}', 'control_token'],
+    ['ANSWER', 'placeholder'],
+    ['{"name":"analyze_audio","parameters":{"input":"recording"}}', 'non_answer_metadata'],
+    [' "start" ', 'placeholder'],
+    ['{"value":"listen"}', 'placeholder'],
+    ['{"analysis":"聞いてから説明します","action":"listen"}', 'non_answer_metadata'],
+    ['{"analyzed":"少々お待ちください"}', 'non_answer_metadata'],
+    ['{"answer":"一定音","result":"話し声"}', 'ambiguous_answer'],
+    ['{"final_answer":true}', 'non_string_answer'],
+  ])('音解析の非回答を保存処理へ渡さない: %s', async (output, reason) => {
+    mockChatCompletions.mockResolvedValue(output);
+    await expect(analyzeWithProvider({
+      kind: 'audioScene', media: { audioBuffer: Buffer.from('synthetic audio') },
+    })).rejects.toMatchObject({ code: 'AI_ANALYSIS_OUTPUT_INVALID', reason });
+    expect(mockChatCompletions).toHaveBeenCalledTimes(1);
+  });
+
+  test('音解析はJSONの推論文を連結せず明示された最終回答だけを返す', async () => {
+    mockChatCompletions.mockResolvedValue(JSON.stringify({
+      analysis: 'Internal processing notes. '.repeat(100),
+      final_answer: '短い高音が繰り返し聞こえます。',
+    }));
+    await expect(analyzeWithProvider({
+      kind: 'audioScene', media: { audioBuffer: Buffer.from('synthetic audio') },
+    })).resolves.toBe('短い高音が繰り返し聞こえます。');
+  });
 
   test('他の解析と文字起こしのJSON風本文は変換しない', async () => {
     const output = '{"記録":"本文"}';

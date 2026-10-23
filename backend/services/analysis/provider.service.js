@@ -1,4 +1,5 @@
 const { getOpenAIClients, PROMPTS } = require('./runtime');
+const { describeAcousticProfile } = require('./acousticProfile');
 
 const MAX_PROVIDER_CODE_POINTS = 300;
 const MAX_COMPLETION_TOKENS = 500;
@@ -26,16 +27,39 @@ const joinPrompt = (...parts) =>
     .map((part) => part.trim())
     .join('\n\n');
 
-// 音解析がJSONで返った場合だけ、キー名によらず文章の値を取り出す。
+// 音解析の制御用トークン・処理状態を解析結果として表示しない。
+const validateAudioSceneText = (value) => {
+  if (typeof value !== 'string') return value;
+  if (/<\|[a-zA-Z0-9_:-]+\|>/.test(value)) throw invalidOutput('control_token');
+  if (/^(?:answer|start|listen)[.!]?$/i.test(value.trim())) {
+    throw invalidOutput('placeholder');
+  }
+  return value;
+};
+
+// JSONに明示的な最終回答があれば、その値だけを採用する。
+// 説明用のJSONは従来どおり抽出するが、推論や処理指示だけのJSONは拒否する。
 const extractAudioSceneText = (value) => {
   if (typeof value !== 'string') return value;
-  const text = value.trim();
+  const text = validateAudioSceneText(value).trim();
   const fenced = text.match(/^```(?:json)?\s*\n?([\s\S]*?)\n?```$/i);
   let parsed;
   try {
     parsed = JSON.parse(fenced ? fenced[1] : text);
   } catch {
     return value;
+  }
+  if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) {
+    const entries = Object.entries(parsed);
+    const answers = entries.filter(([key]) => /^(?:final_answer|final|answer|response|result)$/i.test(key));
+    if (answers.length > 1) throw invalidOutput('ambiguous_answer');
+    if (answers.length === 1) {
+      if (typeof answers[0][1] !== 'string') throw invalidOutput('non_string_answer');
+      return validateAudioSceneText(answers[0][1]);
+    }
+    if (entries.some(([key]) => /^(?:analysis|reasoning|action|hearing|analyze_audio|analyzed|analysis_request)$/i.test(key)) || ('name' in parsed && ('parameters' in parsed || 'arguments' in parsed))) {
+      throw invalidOutput('non_answer_metadata');
+    }
   }
   const values = [];
   const pending = [parsed];
@@ -44,7 +68,7 @@ const extractAudioSceneText = (value) => {
     if (typeof item === 'string' && item.trim()) values.push(item.trim());
     else if (item && typeof item === 'object') pending.push(...Object.values(item).reverse());
   }
-  return values.join('\n');
+  return validateAudioSceneText(values.join('\n'));
 };
 
 const requireMedia = (condition) => {
@@ -144,6 +168,18 @@ const analyzeWithProvider = async ({
 } = {}) => {
   const clients = getOpenAIClients();
   if (!clients) return null;
+
+  if (kind === 'audioScene') {
+    if (signal?.aborted) {
+      const error = new Error('Audio analysis aborted');
+      error.name = 'AbortError';
+      error.code = 'ABORT_ERR';
+      throw error;
+    }
+    requireMedia(Buffer.isBuffer(media?.audioBuffer) && media.audioBuffer.length > 0);
+    const measured = describeAcousticProfile(media?.acousticProfile);
+    if (measured) return measured;
+  }
 
   if (kind === 'speech') {
     requireMedia(Buffer.isBuffer(media?.audioBuffer) && media.audioBuffer.length > 0);

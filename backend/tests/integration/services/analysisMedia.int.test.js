@@ -47,6 +47,14 @@ describe('動画からAI解析用の映像・音声を抽出する', () => {
       '-timecode', '00:00:00:00', multiPath,
     ]);
     originalVideo = await fs.promises.readFile(multiPath);
+    for (const [name, filter] of [
+      ['tone', 'sine=frequency=880:sample_rate=16000:duration=3'],
+      ['zero', 'anullsrc=r=16000:cl=mono'],
+      ['mixed-tones', 'aevalsrc=0.1*sin(2*PI*880*t)+0.1*sin(2*PI*521*t):s=16000:d=3'],
+    ]) {
+      await runFfmpeg(['-f', 'lavfi', '-i', filter, '-t', '3', '-c:a', 'libmp3lame', '-b:a', '128k', path.join(roomDir, `${name}.mp3`)]);
+    }
+
     await runFfmpeg([
       '-f', 'lavfi', '-i', 'color=c=green:s=32x32:r=4',
       '-f', 'lavfi', '-i', 'sine=frequency=500:sample_rate=16000',
@@ -130,6 +138,27 @@ describe('動画からAI解析用の映像・音声を抽出する', () => {
     callback.mockClear();
     await expect(prepare('video', 'audio-only.mov', callback)).resolves.toBeNull();
     expect(callback).not.toHaveBeenCalled();
+  });
+
+  test.each([
+    ['tone.mp3', { kind: 'steady-tone', frequencyHz: 880 }],
+    ['zero.mp3', { kind: 'digital-silence' }],
+    ['mixed-tones.mp3', { kind: 'unknown' }],
+  ])('MP3の実変換後に%sの波形を確認する', async (audioName, expected) => {
+    const before = await fs.promises.readFile(path.join(roomDir, audioName));
+    await withPreparedAnalysisInput({
+      kind: 'audioScene', mediaRoot, source: { ...source, audio_name: audioName },
+    }, async (media) => {
+      expect(media.acousticProfile).toEqual(expected);
+      expect(media.audioBuffer.length).toBeGreaterThan(0);
+    });
+    expect(await fs.promises.readFile(path.join(roomDir, audioName))).toEqual(before);
+  });
+
+  test('文字起こしは波形による説明へ置き換えない', async () => {
+    await withPreparedAnalysisInput({
+      kind: 'speech', mediaRoot, source: { ...source, audio_name: 'tone.mp3' },
+    }, async (media) => { expect(media.acousticProfile).toBeUndefined(); });
   });
 
   test('破損した動画を処理できなければ失敗を返し、一時ファイルを残さない', async () => {

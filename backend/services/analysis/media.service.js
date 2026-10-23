@@ -68,13 +68,14 @@ const withPreparedAnalysisInput = async (
     }
 
     if (source?.audio_name) {
-      return await callback(await prepareAudioFileForAnalysis({ filePath, workspace, signal }));
+      return await callback(await prepareAudioFileForAnalysis({ filePath, workspace, signal, includeAcousticProfile: kind === 'audioScene' }));
     }
 
     const video = await prepareVideoSource({ filePath, workspace, streamType: 'audio', signal });
     if (!video) return null;
     return await callback(
       await extractVideoAudioForAnalysis({
+        includeAcousticProfile: kind === 'audioScene',
         videoPath: video.videoPath,
         streamIndex: video.streamIndex,
         workspace,
