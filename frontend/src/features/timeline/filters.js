@@ -38,6 +38,7 @@ export const sanitizeFiltersForStore = (filters = []) =>
       size: typeof size === 'number' ? size : undefined,
       conditions: typeof filter.conditions === 'undefined' ? null : filter.conditions,
       showUserIcon: typeof filter.showUserIcon === 'boolean' ? filter.showUserIcon : true,
+      postTagMode: filter.postTagMode === 'empty' ? 'empty' : 'auto',
       speech: !!filter.speech,
       webPush: !!filter.webPush,
       pushFilterId: filter.pushFilterId || null,
@@ -54,9 +55,9 @@ export const getConditionlessIndexes = (filters = []) => {
 
 export const getDefaultIndex = (filters = []) => filters.findIndex((filter) => filter && filter.conditions === null);
 
-export const getPresetTagIdsFromFilter = (filter) => {
+export const getPresetTagIdsFromFilter = (filter, { includeExcluded = false } = {}) => {
   const conditions = filter && filter.conditions;
-  if (!conditions || conditions.filterMode === 'exclude' || !Array.isArray(conditions.displayOrder)) return [];
+  if (!conditions || (!includeExcluded && conditions.filterMode === 'exclude') || !Array.isArray(conditions.displayOrder)) return [];
 
   return conditions.displayOrder
     .filter((condition) => condition && typeof condition.key === 'string' && !NON_PRESET_TAG_KEYS.has(condition.key))

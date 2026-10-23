@@ -74,6 +74,8 @@ describe('共通のフォーカス表示', () => {
         { file: path.join('components', 'timeline', 'items', file), property: 'outline', value: '2px solid currentColor' },
         { file: path.join('components', 'timeline', 'items', file), property: 'outline-offset', value: '-2px' },
       ]),
+      { file: path.join('components', 'timeline', 'TimelineText.vue'), property: 'outline', value: '2px solid currentColor' },
+      { file: path.join('components', 'timeline', 'TimelineText.vue'), property: 'outline-offset', value: '2px' },
       {
         file: path.join('styles', 'tokens.css'),
         property: 'outline',

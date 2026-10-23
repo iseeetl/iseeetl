@@ -24,7 +24,7 @@
 - [Cookie・ブラウザ保存・外部送信](cookies-and-external-transmissions.md): Cookie、ブラウザ保存、Google Analytics、第三者サービス
 - [メディア入力制約](media-input.md): 画像・動画・音声の形式、サイズ、再生時間
 - [AI解析設定・実行仕様](../ai-analysis.md): 3階層設定、解析種別、通常の付加情報としての結果
-- [タグの引き継ぎ仕様](tag-selection.md): タグの持ち越しと絞り込み優先度
+- [タグの引き継ぎ仕様](tag-selection.md): タグの持ち越し、列の自動選択、選択元表示、投稿確認
 - [タグコピー貼り付け仕様](tag-copy-paste.md): 投稿・返信タグのコピー&貼り付け
 - [画面仕様](screens/README.md): 画面・ダイアログの仕様
 - [画面横断の操作フロー](flows/README.md): 複数画面にまたがるフロー

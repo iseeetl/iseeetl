@@ -1,5 +1,7 @@
 <template>
   <div>
+    <PostConfirmationDialog :open="dialogs.confirmation.visible" :post-id="dialogs.confirmation.postId"
+      :room-id="dialogShared.roomId" :tags="dialogShared.roomTags" @close="emitEvent('closePostConfirmation')" />
     <FilterDialog
       :dialogVisible="dialogs.filter.visible"
       :filterIndex="dialogs.filter.editIndex"
@@ -22,11 +24,16 @@
       :roomQuickTextGroups="dialogShared.quickTextGroups"
       :roomQuickTextItemsByGroup="dialogShared.quickTextItemsByGroup"
       :presetTagIds="dialogs.post.edit.presetTagIds"
+      :postTagMode="dialogs.post.edit.postTagMode"
+      :columnTagIds="dialogs.post.edit.columnTagIds"
+      :lastPostId="dialogs.lastPostId"
+      @view-post="(id) => emitEvent('viewSavedPost', id)"
+      :continuation="dialogs.post.edit.continuation"
       :previousOwnPostTagIds="dialogs.post.edit.previousOwnPostTagIds"
       @content-saved="(payload) => emitEvent('postSaved', payload)"
       @quick-text-inserted="(payload) => emitEvent('postQuickTextInserted', payload)"
       @close="(...args) => emitEvent('closeEditPostDialog', ...args)"
-      @doneContinuousPost="emitEvent('doneContinuousPost')"
+      @doneContinuousPost="(payload) => emitEvent('doneContinuousPost', payload)"
     />
 
     <DeletePostDialog
@@ -166,6 +173,7 @@
 <script>
 import LeaveRoomMemberDialog from '@/components/room-member/LeaveRoomMemberDialog.vue';
 
+import PostConfirmationDialog from '@/components/timeline/dialogs/PostConfirmationDialog.vue';
 import FilterDialog from '@/components/timeline/dialogs/FilterDialog.vue';
 import EditPostDialog from '@/components/timeline/dialogs/EditPostDialog.vue';
 import DeletePostDialog from '@/components/timeline/dialogs/DeletePostDialog.vue';
@@ -188,6 +196,7 @@ export default {
   emits: ['dialog-event'],
   name: 'TimelineDialogs',
   components: {
+    PostConfirmationDialog,
     FilterDialog,
     EditPostDialog,
     DeletePostDialog,

@@ -763,7 +763,7 @@ describe('ストアのユーザ情報と設定管理', () => {
     );
 
     expect(committed).to.equal('setSnackbar');
-    expect(payload).to.deep.equal({ message: 'hello', role: 'status' });
+    expect(payload).to.deep.equal({ message: 'hello', role: 'status', action: null });
   });
 
   it('hideSnackbar は表示中のメッセージをクリアする', () => {

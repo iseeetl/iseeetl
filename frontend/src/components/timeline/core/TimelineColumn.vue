@@ -698,7 +698,7 @@ export default {
     },
 
     onShowEditPostDialog(post, isAnimation, tagIds = []) {
-      this.$emit('showEditPostDialog', post, isAnimation, tagIds);
+      this.$emit('showEditPostDialog', post, isAnimation, tagIds, this.index);
     },
 
     onShowGalleryDialog(data, event) {

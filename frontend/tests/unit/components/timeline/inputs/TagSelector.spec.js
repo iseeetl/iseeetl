@@ -165,3 +165,31 @@ describe('タグの選択', () => {
     expect(button.attributes('disabled')).to.equal(undefined);
   });
 });
+
+
+describe('Source highlight', () => {
+  it('initial source is pressed before a user clicks', () => {
+    const wrapper = createWrapper({ props: { showSource: true, source: 'tab', columnTags: ['t1'], modelValue: ['t1'] } });
+    expect(wrapper.get('[data-testid="tag-selector-this-tab"]').attributes('aria-pressed')).toBe('true');
+    expect(wrapper.findAll('[aria-pressed="true"]')).toHaveLength(1);
+  });
+  it('manual changes remove all highlights and source text, including manual clear', async () => {
+    const wrapper = createWrapper({ props: { showSource: true, source: 'tab', columnTags: ['t1'], modelValue: ['t1'] } });
+    await wrapper.get('[data-tag-id="t1"]').setValue(false);
+    expect(wrapper.emitted()['source-change'].at(-1)).toEqual([null]);
+    await wrapper.setProps({ source: null, modelValue: [] });
+    expect(wrapper.findAll('[aria-pressed="true"]')).toHaveLength(0);
+    expect(wrapper.find('[data-testid="post-tag-source"]').exists()).toBe(false);
+  });
+  it('This tab replaces tags rather than adding them', async () => {
+    const wrapper = createWrapper({ props: { showSource: true, columnTags: ['t1', 'deleted'], modelValue: ['t2'] } });
+    await wrapper.get('[data-testid="tag-selector-this-tab"]').trigger('click');
+    expect(wrapper.emitted()['update:modelValue'].at(-1)).toEqual([['t1']]);
+    expect(wrapper.emitted()['source-change'].at(-1)).toEqual(['tab']);
+  });
+  it('explicit clear and empty This tab have distinct states', async () => {
+    const wrapper = createWrapper({ props: { showSource: true, source: 'clear', columnTags: [] } });
+    expect(wrapper.get('[data-testid="tag-selector-this-tab"]').attributes('disabled')).toBeDefined();
+    expect(wrapper.findAll('[aria-pressed="true"]')).toHaveLength(1);
+  });
+});

@@ -881,5 +881,33 @@
   "timelineSettingDialog": {
     "speech": "読み上げ",
     "displayItems": "表示項目"
+  },
+  "postDefaults": {
+    "settings": "投稿設定",
+    "startTags": "投稿開始時のタグ",
+    "auto": "自動選択する",
+    "empty": "自動選択しない",
+    "startHelp": "新しく投稿を始めるときの設定です。連続投稿では、直前に送信したタグを引き継ぎます。",
+    "thisTab": "このタブ",
+    "thisTabHelp": "このタブの絞り込みで指定したタグを選びます。",
+    "originalShort": "元投稿",
+    "previousShort": "前回投稿",
+    "source": "選択元：{source}",
+    "tagsForPost": "投稿に付くタグ",
+    "selectedCount": "選択中：{count}件",
+    "none": "タグは未選択です",
+    "invalidOptions": "URLの表示・投稿設定の一部を適用できませんでした。",
+    "unconfirmed": "保存結果を確認できませんでした。入力は保持しています。再送前に結果を確認してください。",
+    "viewPost": "投稿を表示",
+    "viewLast": "直前の投稿を表示",
+    "loading": "読み込み中…",
+    "answerNote": "返信やAIの付加情報は後から届く場合があります。「更新」で確認できます。",
+    "refresh": "更新",
+    "unavailable": "この投稿を表示できません。",
+    "loadFailed": "投稿を取得できませんでした。「更新」で再試行してください。",
+    "sent": "投稿しました。",
+    "sentOutside": "投稿しました。このタブの表示条件には一致しません。",
+    "tagsChanged": "投稿しました。保存されたタグが変更されたため、選択元の強調を解除しました。",
+    "noTabTags": "このタブには選択できるタグがありません。"
   }
 }

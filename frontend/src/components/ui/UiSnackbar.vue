@@ -8,14 +8,16 @@
     :aria-atomic="ariaAtomic"
   >
     <span>{{ message }}</span>
+    <button v-if="actionLabel" type="button" class="snackbar-action" @click="$emit('action')">{{ actionLabel }}</button>
   </div>
 </template>
 
 <script>
 export default {
   name: 'UiSnackbar',
-  emits: ['update:modelValue'],
+  emits: ['update:modelValue', 'action'],
   props: {
+    actionLabel: { type: String, default: '' },
     modelValue: {
       type: Boolean,
       default: false,
@@ -121,4 +123,5 @@ export default {
   left: 50%;
   transform: translateX(-50%);
 }
+.snackbar-action { margin-inline-start: 12px; color: inherit; background: transparent; border: 1px solid currentColor; border-radius: 4px; padding: 6px 10px; cursor: pointer; font: inherit; }
 </style>

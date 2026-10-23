@@ -250,6 +250,10 @@ export const bindSocketHandlers = (socket, ctx, deps = {}) => {
       ctx.infra.socketRecoveryPending = false;
       hideSocketStatus();
 
+      const modeKey = (filter, index) => filter.queryColumnNumber ? `query:${filter.queryColumnNumber}` : filter.id || filter.pushFilterId || `saved:${index}`;
+      const existingModes = new Map(ctx.ui.initialTabApplied ? ctx.timeline.filters.map((filter, index) => [modeKey(filter, index), filter.postTagMode]) : []);
+      const selectedIdentity = ctx.timeline.filters[ctx.ui.currentTabIndex];
+      const selectedKey = selectedIdentity?.queryColumnNumber ? `query:${selectedIdentity.queryColumnNumber}` : selectedIdentity?.id || selectedIdentity?.pushFilterId || JSON.stringify(selectedIdentity?.conditions ?? null);
       const queryFilters = ctx.ui.queryFilters || { active: false, hasColumnQueries: false, filters: [] };
       // 旧形式の空エントリを除外し、条件なしの既定列を維持する。
       const rawFilters = queryFilters.hasColumnQueries
@@ -282,6 +286,8 @@ export const bindSocketHandlers = (socket, ctx, deps = {}) => {
         });
       }
 
+      ctx.timeline.filters.forEach((filter, index) => { if (existingModes.has(modeKey(filter, index))) filter.postTagMode = existingModes.get(modeKey(filter, index)); });
+      ctx.restoreColumnSelection?.(selectedKey);
       ctx.refreshTimelineEmptyState?.();
       ctx.initialFetchAllColumns();
 

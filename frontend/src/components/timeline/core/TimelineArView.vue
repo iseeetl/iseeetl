@@ -4,7 +4,7 @@
       <div class="view-content">
         <template v-if="isMobile || !isArAll">
           <TimelineColumn
-            v-bind="commonColumnProps(primaryFilter, 0)"
+            v-bind="commonColumnProps(primaryFilter, currentTabIndex)"
             v-if="primaryFilter"
             :key="'ar-mode-single-0'"
             v-on="commonColumnEvents"
@@ -45,6 +45,7 @@ export default {
     pane: Pane,
   },
   props: {
+    currentTabIndex: { type: Number, default: 0 },
     filters: {
       type: Array,
       default: () => [],
@@ -68,7 +69,7 @@ export default {
   },
   computed: {
     primaryFilter() {
-      return this.filters && this.filters.length ? this.filters[0] : null;
+      return this.filters && this.filters.length ? this.filters[this.currentTabIndex] : null;
     },
     arFilters() {
       return this.filters && this.filters.length ? this.filters : [{ conditions: null }];

@@ -46,6 +46,11 @@ describe('スマートフォンの投稿ボタン', () => {
     expect(calls[0]).to.deep.equal([null, false, ['t1']]);
   });
 
+  it('接続前は投稿と流すを無効にする', () => {
+    const { wrapper } = createWrapper({ props: { disabled: true } });
+    expect(wrapper.findAll('button').every(button => button.attributes('disabled') !== undefined)).toBe(true);
+  });
+
   it('ゲストリアクションのみの場合は投稿ボタンを表示しない', () => {
     const { wrapper } = createWrapper({ props: { isGuestReactionOnly: true } });
     expect(wrapper.findAll('button').length).to.equal(1);

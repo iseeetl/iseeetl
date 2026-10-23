@@ -610,6 +610,7 @@ describe('タイムライン画面', () => {
     await wrapper.vm.showEditPostDialog(null, false, []);
     expect(wrapper.vm.dialogs.post.edit.previousOwnPostTagIds).to.deep.equal(['prev']);
 
+    wrapper.vm.closeEditPostDialog();
     await wrapper.vm.showEditPostDialog({ _id: 'post-1' }, false, []);
     expect(wrapper.vm.dialogs.post.edit.previousOwnPostTagIds).to.deep.equal([]);
   });
@@ -727,7 +728,8 @@ describe('タイムライン画面', () => {
       },
     });
 
-    wrapper.vm.handleContinuousPost();
+    wrapper.vm.handleContinuousPost({ postId: 'saved', nextTagIds: ['confirmed'], tagSource: null });
+    expect(wrapper.vm.dialogs.post.edit.continuation).to.deep.equal({ tags: ['confirmed'], source: null });
 
     expect(wrapper.vm.dialogs.post.edit.previousOwnPostTagIds).to.deep.equal(['visible-prev']);
   });
@@ -742,7 +744,8 @@ describe('タイムライン画面', () => {
       },
     });
 
-    wrapper.vm.handleContinuousPost();
+    wrapper.vm.handleContinuousPost({ postId: 'saved', nextTagIds: ['confirmed'], tagSource: null });
+    expect(wrapper.vm.dialogs.post.edit.continuation).to.deep.equal({ tags: ['confirmed'], source: null });
 
     expect(wrapper.vm.dialogs.post.edit.previousOwnPostTagIds).to.deep.equal([]);
   });
@@ -755,7 +758,8 @@ describe('タイムライン画面', () => {
     });
     wrapper.vm.dialogs.post.edit.presetTagIds = ['preset'];
 
-    wrapper.vm.handleContinuousPost();
+    wrapper.vm.handleContinuousPost({ postId: 'saved', nextTagIds: ['confirmed'], tagSource: null });
+    expect(wrapper.vm.dialogs.post.edit.continuation).to.deep.equal({ tags: ['confirmed'], source: null });
 
     expect(wrapper.vm.dialogs.post.edit.presetTagIds).to.deep.equal(['preset']);
     expect(wrapper.vm.dialogs.post.edit.previousOwnPostTagIds).to.deep.equal(['visible-prev']);
@@ -1667,7 +1671,7 @@ describe('タイムライン画面', () => {
     wrapper.vm.showEditPostDialog = (...args) => calls.push(args);
     wrapper.vm.shortcutPushNkey({ key: 'n' });
 
-    expect(calls).to.deep.equal([[null, false]]);
+    expect(calls).to.deep.equal([[null, false, [], null]]);
   });
 
   describe('文字入力中のショートカット抑止', () => {
@@ -1723,7 +1727,7 @@ describe('タイムライン画面', () => {
         for (const key of ['m', 'n', 'r']) {
           document.body.dispatchEvent(new KeyboardEvent('keyup', { key, bubbles: true }));
         }
-        expect(wrapper.vm.showEditPostDialog.mock.calls).to.deep.equal([[null, true], [null, false]]);
+        expect(wrapper.vm.showEditPostDialog.mock.calls).to.deep.equal([[null, true, [], null], [null, false, [], null]]);
         expect(wrapper.vm.showEditReplyDialog).toHaveBeenCalledWith({ _id: 'post-1' }, null, null);
       } finally {
         document.removeEventListener('keyup', listener);
@@ -1778,7 +1782,7 @@ describe('タイムライン画面', () => {
       for (const key of ['M', 'N', 'R']) {
         wrapper.vm.shortcutPushNkey({ key, shiftKey: true });
       }
-      expect(wrapper.vm.showEditPostDialog.mock.calls).to.deep.equal([[null, true], [null, false]]);
+      expect(wrapper.vm.showEditPostDialog.mock.calls).to.deep.equal([[null, true, [], null], [null, false, [], null]]);
       expect(wrapper.vm.showEditReplyDialog).toHaveBeenCalledWith({ _id: 'post-1' }, null, null);
     });
   });

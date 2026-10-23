@@ -6,7 +6,7 @@
           <button
             v-if="showUserIcon"
             type="button"
-            class="user-link-button"
+            class="user-link-button" :disabled="readOnly"
             @click.stop="onClickUserByPost(post)"
             :aria-label="$t('{name}で絞り込み', { name: getUsernameOrGuestname(post) })"
           >
@@ -20,7 +20,7 @@
 
           <UiTooltip
             v-if="
-              canManageFloor &&
+              !readOnly && canManageFloor &&
               post.user !== undefined &&
               post.user !== null &&
               $store.getters.displayUserKickButton
@@ -62,7 +62,7 @@
             <button
               v-if="isTagInRoomTags(tagId)"
               type="button"
-              class="tag-button"
+              class="tag-button" :disabled="readOnly"
               dir="auto"
               @click.stop="onClickTag(tagId)"
             >
@@ -109,7 +109,7 @@
           </button>
         </div>
         <div v-if="post.reactions">
-          <ReactionItem
+          <ReactionItem v-if="!readOnly"
             :postId="post._id"
             :replyId="null"
             :supplementId="null"
@@ -117,7 +117,7 @@
             :isGuestRulesAgreed="isGuestRulesAgreed"
           />
         </div>
-        <div class="action" v-if="$store.getters.displayActionButton">
+        <div class="action" v-if="!readOnly && $store.getters.displayActionButton">
           <div class="reply-container">
             <UiTooltip :text="$t('返信')">
               <UiButton
@@ -332,6 +332,7 @@ export default {
     'showGalleryDialog',
   ],
   name: 'PostItem',
+  inject: { readOnly: { from: 'timelineReadOnly', default: false } },
   components: {
     SupplementItem,
     ReactionItem,

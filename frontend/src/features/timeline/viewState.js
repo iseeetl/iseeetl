@@ -11,6 +11,7 @@ const createUiState = (windowObject) => ({
   localTagIds: [],
   localTagOperator: '',
   queryFilters: createEmptyTimelineQueryState(),
+  initialTabApplied: false,
   currentTabIndex: 0,
   windowWidth: windowObject?.innerWidth ?? 0,
   audio: {
@@ -94,11 +95,17 @@ const createDialogState = () => ({
     editIndex: null,
     editFilter: null,
   },
+  lastPostId: null,
+  confirmation: { visible: false, postId: null },
   post: {
     edit: {
       visible: false,
       value: null,
       isAnimationPost: false,
+      postTagMode: 'auto',
+      columnTagIds: [],
+      continuation: null,
+      sourceColumnIndex: 0,
       presetTagIds: [],
       previousOwnPostTagIds: [],
       operationToken: null,

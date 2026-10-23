@@ -1,27 +1,32 @@
 <template>
   <div role="group" class="tag-group">
+    <p v-if="showSource && sourceLabel" class="tag-source" data-testid="post-tag-source">{{ $t('postDefaults.source', { source: sourceLabel }) }}</p>
     <div class="legend-with-buttons">
-      <div class="tag-actions">
-        <button type="button" class="tag-action-button" @click="clearAll" :disabled="sending || recording">
+      <div :class="['tag-actions', { 'tag-actions--sources': showSource }]">
+        <button type="button" class="tag-action-button" :aria-pressed="showSource ? source === 'clear' : undefined" @click="clearAll" :disabled="sending || recording">
           {{ $t('クリア') }}
         </button>
 
+        <button v-if="showSource" type="button" class="tag-action-button"
+          :disabled="!selectAvailableTags(columnTags).length || sending || recording"
+          :aria-pressed="source === 'tab'" :title="$t(selectAvailableTags(columnTags).length ? 'postDefaults.thisTabHelp' : 'postDefaults.noTabTags')"
+          data-testid="tag-selector-this-tab" @click="setColumn">{{ $t('postDefaults.thisTab') }}</button>
         <button
           type="button"
           class="tag-action-button"
-          :disabled="!hasOriginal || sending || recording"
-          @click="setOriginal"
+          :aria-label="$t('元投稿')" :disabled="!hasOriginal || sending || recording"
+          :aria-pressed="showSource ? source === 'original' : undefined" @click="setOriginal"
         >
-          {{ $t('元投稿') }}
+          {{ showSource ? $t('postDefaults.originalShort') : $t('元投稿') }}
         </button>
 
         <button
           type="button"
           class="tag-action-button"
-          :disabled="!hasPrevious || sending || recording"
-          @click="setPrevious"
+          :aria-label="$t('前回投稿')" :disabled="!hasPrevious || sending || recording"
+          :aria-pressed="showSource ? source === 'previous' : undefined" @click="setPrevious"
         >
-          {{ $t('前回投稿') }}
+          {{ showSource ? $t('postDefaults.previousShort') : $t('前回投稿') }}
         </button>
 
         <button
@@ -29,7 +34,7 @@
           class="tag-action-button"
           :disabled="!hasCopiedTags || sending || recording"
           data-testid="tag-selector-paste-button"
-          @click="pasteCopied"
+          :aria-pressed="showSource ? source === 'paste' : undefined" @click="pasteCopied"
         >
           {{ $t('貼り付け') }}
         </button>
@@ -66,7 +71,7 @@ import { showSnackbar } from '@/utils/snackbar';
 
 export default {
   name: 'TagSelector',
-  emits: ['update:modelValue'],
+  emits: ['update:modelValue', 'source-change'],
   setup() {
     const tagCheckboxPrefix = useId();
     return {
@@ -74,6 +79,9 @@ export default {
     };
   },
   props: {
+    showSource: { type: Boolean, default: false },
+    source: { type: String, default: null },
+    columnTags: { type: Array, default: () => [] },
     tags: {
       type: Array,
       default: () => [],
@@ -106,6 +114,10 @@ export default {
     recording: { type: Boolean, default: false },
   },
   computed: {
+    sourceLabel() {
+      const labels = { clear: 'クリア', tab: 'postDefaults.thisTab', original: '元投稿', previous: '前回投稿', paste: '貼り付け' };
+      return labels[this.source] ? this.$t(labels[this.source]) : '';
+    },
     sortedTags: function () {
       if (!this.tags) {
         return [];
@@ -170,16 +182,24 @@ export default {
         if (idx !== -1) next.splice(idx, 1);
       }
       this.$emit('update:modelValue', next);
+      this.$emit('source-change', null);
+    },
+    setColumn() {
+      this.$emit('update:modelValue', this.selectAvailableTags(this.columnTags));
+      this.$emit('source-change', 'tab');
     },
     clearAll() {
+      this.$emit('source-change', 'clear');
       this.$emit('update:modelValue', this.withPreservedTags([]));
     },
     setOriginal() {
+      this.$emit('source-change', 'original');
       if (this.hasOriginal) {
         this.$emit('update:modelValue', this.withPreservedTags(this.selectableOriginalTags));
       }
     },
     setPrevious() {
+      this.$emit('source-change', 'previous');
       if (this.hasPrevious) {
         this.$emit('update:modelValue', this.withPreservedTags(this.selectablePreviousTags));
       }
@@ -187,6 +207,7 @@ export default {
     pasteCopied() {
       if (!this.hasCopiedTags || this.sending || this.recording) return;
       this.$emit('update:modelValue', this.withPreservedTags(this.copyableCopiedTags));
+      this.$emit('source-change', 'paste');
       showSnackbar(this.$store, this.$t('タグを貼り付けました'), 'status');
     },
   },
@@ -228,6 +249,11 @@ export default {
   background: #ccc;
   cursor: default;
 }
+
+.tag-source { font-size: 13px; margin: 0 0 6px; }
+.tag-actions--sources { display: flex; flex-wrap: nowrap; gap: 4px; overflow-x: auto; padding: 2px; }
+.tag-actions--sources .tag-action-button { flex: 1 0 auto; width: auto; padding: 5px 2px; font-size: 14px; white-space: nowrap; min-height: 38px; }
+.tag-actions--sources .tag-action-button[aria-pressed='true'] { background: var(--ui-color-primary); color: white; border-color: #3030a9; box-shadow: inset 0 0 0 1px white; font-weight: 600; }
 </style>
 
 <style scoped src="@/styles/tag-options.css"></style>

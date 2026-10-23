@@ -4,6 +4,7 @@
       class="button-position-right"
       appearance="filled"
       tone="primary"
+      :disabled="disabled"
       @click="emitShowEditPostDialog(true)"
     >
       <div class="timeline-menu-icon-wrapper">
@@ -15,6 +16,7 @@
       v-if="!isGuestReactionOnly"
       appearance="filled"
       tone="primary"
+      :disabled="disabled"
       @click="emitShowEditPostDialog(false)"
     >
       <div class="timeline-menu-icon-wrapper">
@@ -36,6 +38,7 @@ export default {
     UiIcon,
   },
   props: {
+    disabled: { type: Boolean, default: false },
     isGuestReactionOnly: {
       type: Boolean,
       default: false,

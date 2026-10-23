@@ -54,8 +54,8 @@ describe('タイムラインのカラム', () => {
     wrapper.vm.onShowEditPostDialog(post, false);
 
     expect(wrapper.emitted().showEditPostDialog).to.deep.equal([
-      [post, true, ['tag-1']],
-      [post, false, []],
+      [post, true, ['tag-1'], 0],
+      [post, false, [], 0],
     ]);
   });
 
