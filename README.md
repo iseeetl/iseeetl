@@ -73,3 +73,5 @@ CC BY 4.0対象文書を再利用する場合は、`ISeee Project`、公開元�
 共有URLの `initialTab` と `colN_postTagMode` で、最初のタブと投稿開始時のタグを別々に指定できます。[共有URLの手順](docs/manual/features/timeline-query-parameters.md#最初に開くタブと投稿開始時のタグ)と[タグ選択・連続投稿・投稿確認の仕様](docs/spec/frontend/tag-selection.md)を参照してください。
 
 投稿編集・返信でも、タグ操作ボタンの選択元を色とテキストで示します。個別のタグ変更で強調を解除します。編集前のタグと返信先のタグの区別は[タグ選択仕様](docs/spec/frontend/tag-selection.md)を参照してください。
+
+投稿編集・返信も同じ5個のタグ操作ボタンを表示します。「このタブ」は操作した列のタグ条件を明示的に適用し、列を特定できない場合は無効になります。初期値の規則は[タグ選択仕様](docs/spec/frontend/tag-selection.md)を参照してください。

@@ -298,7 +298,7 @@
           <div class="acc-panel" :id="accIds.tags" v-show="isAccordionOpen('tags')">
             <tag-selector
               v-model="roomTagsSelected"
-              :showSource="true" :showColumnSource="false" :source="tagSource"
+              :showSource="true" :source="tagSource" :columnTags="columnTagIds"
               @source-change="tagSource = $event"
               :tags="selectableRoomTags"
               :locale="$i18n.locale"
@@ -538,6 +538,7 @@ export default {
   props: {
     dialogVisible: Boolean,
     roomTags: Array,
+    columnTagIds: { type: Array, default: () => [] },
     postValue: Object,
     replyValue: Object,
     targetLangs: Array,

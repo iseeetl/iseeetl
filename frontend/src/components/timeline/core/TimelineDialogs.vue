@@ -49,6 +49,7 @@
       :roomTags="dialogShared.roomTags"
       :postValue="dialogs.reply.edit.postValue"
       :replyValue="dialogs.reply.edit.value"
+      :columnTagIds="dialogs.reply.edit.columnTagIds"
       :targetLangs="dialogShared.targetLangs"
       :isGuestReactionOnly="dialogShared.isGuestReactionOnly"
       :roomQuickTextGroups="dialogShared.quickTextGroups"

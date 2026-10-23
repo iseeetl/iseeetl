@@ -906,7 +906,8 @@ describe('投稿編集の選択元表示', () => {
     const original = wrapper.find('button[aria-label="元投稿"]');
     expect(original.attributes('aria-pressed')).toBe('true');
     expect(original.attributes('disabled')).toBeUndefined();
-    expect(wrapper.find('[data-testid="tag-selector-this-tab"]').exists()).toBe(false);
+    expect(wrapper.find('[data-testid="tag-selector-this-tab"]').exists()).toBe(true);
+    expect(wrapper.find('[data-testid="tag-selector-this-tab"]').attributes('disabled')).toBeDefined();
     await wrapper.find('input[data-tag-id="t1"]').setValue(!tags.length);
     expect(wrapper.findAll('button[aria-pressed="true"]')).toHaveLength(0);
     expect(wrapper.vm.roomTags).toEqual(tags.length ? [] : ['t1']);
@@ -915,4 +916,24 @@ describe('投稿編集の選択元表示', () => {
     expect(original.attributes('aria-pressed')).toBe('true');
     wrapper.unmount();
   });
+});
+
+
+it('keeps saved tags until This tab is explicitly selected, then clears feedback on manual change', async () => {
+  const wrapper = createWrapper({ stubs: { TagSelector: false }, props: {
+    propsPost: { _id: 'post', room_tags: ['saved'] },
+    propsRoomTags: [{ _id: 'saved', name: 'Saved' }, { _id: 'guide', name: 'Guide' }], columnTagIds: ['guide'],
+  } });
+  wrapper.vm.openedDialog(); await wrapper.vm.$nextTick();
+  expect(wrapper.vm.roomTags).toEqual(['saved']);
+  expect(wrapper.findAll('.tag-action-button')).toHaveLength(5);
+  const button = wrapper.find('[data-testid="tag-selector-this-tab"]');
+  expect(button.attributes('disabled')).toBeUndefined();
+  await button.trigger('click');
+  expect(wrapper.vm.roomTags).toEqual(['guide']);
+  expect(button.attributes('aria-pressed')).toBe('true');
+  await wrapper.find('input[data-tag-id="saved"]').setValue(true);
+  expect(wrapper.vm.roomTags).toEqual(['guide', 'saved']);
+  expect(wrapper.findAll('.tag-action-button[aria-pressed="true"]')).toHaveLength(0);
+  wrapper.unmount();
 });

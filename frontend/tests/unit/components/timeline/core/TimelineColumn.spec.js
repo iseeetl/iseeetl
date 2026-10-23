@@ -366,3 +366,13 @@ describe('投稿がないときの案内表示', () => {
     wrapper.unmount();
   });
 });
+
+
+it('passes the clicked column through reply creation and editing', () => {
+  const wrapper = createWrapper({ props: { index: 2 } });
+  wrapper.vm.onShowEditReplyDialog({ _id: 'p' }, null, null);
+  wrapper.vm.onShowEditReplyDialog({ _id: 'p' }, { _id: 'r' }, null);
+  expect(wrapper.emitted().showEditReplyDialog).toEqual([
+    [{ _id: 'p' }, null, null, 2], [{ _id: 'p' }, { _id: 'r' }, null, 2],
+  ]);
+});

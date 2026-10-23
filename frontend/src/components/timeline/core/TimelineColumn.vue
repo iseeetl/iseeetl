@@ -680,7 +680,7 @@ export default {
     },
 
     onShowEditReplyDialog(post, reply, event) {
-      this.$emit('showEditReplyDialog', post, reply, event);
+      this.$emit('showEditReplyDialog', post, reply, event, this.index);
     },
     onShowDeleteReplyDialog(postId, reply, event) {
       this.$emit('showDeleteReplyDialog', postId, reply, event);

@@ -121,6 +121,7 @@ const createDialogState = () => ({
       visible: false,
       postValue: null,
       value: null,
+      columnTagIds: [],
       operationToken: null,
     },
     delete: {

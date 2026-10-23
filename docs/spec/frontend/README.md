@@ -43,3 +43,5 @@
 - `frontend/src/api/`
 
 タグの選択元表示は投稿作成・編集・返信で共通です。初期値と「元投稿」の参照先は[tag-selection.md](tag-selection.md)に定義しています。
+
+投稿作成・編集・返信の5ボタンは同じ順序です。「このタブ」の発生元の列と無効条件も[tag-selection.md](tag-selection.md)に定義しています。
