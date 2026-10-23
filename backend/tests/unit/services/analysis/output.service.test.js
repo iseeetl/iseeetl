@@ -29,6 +29,22 @@ const snapshot = (overrides = {}) => ({
 const logger = () => ({ info: jest.fn(), warn: jest.fn(), error: jest.fn() });
 
 describe('AI解析結果の整形', () => {
+  test.each(['ja', 'en', 'fr'])('発話未検出は翻訳サービスが使えなくても日英を残す: %s', async (lang) => {
+    const translateContent = jest.fn().mockRejectedValue(new Error('unavailable'));
+    const value = await buildAnalysisSupplement({ snapshot: snapshot({ kind: 'speech', source: { lang }, targetLangs: [] }),
+      providerOutput: { status: 'no-speech' }, translateContent, logger: logger() });
+    expect(value.lang).toBe(lang === 'ja' ? 'ja' : 'en');
+    const contents = [value.content, ...value.translations.map((entry) => entry.content)];
+    expect(contents.some((text) => text.endsWith('発話を検出できませんでした'))).toBe(true);
+    expect(contents.some((text) => text.endsWith('No speech was detected.'))).toBe(true);
+    if (lang !== 'fr') expect(translateContent).not.toHaveBeenCalled();
+  });
+
+  test.each(['conversation', 'vision', 'video', 'audioScene'])('他の種別に未検出結果を流用しない: %s', async (kind) => {
+    await expect(buildAnalysisSupplement({ snapshot: snapshot({ kind }), providerOutput: { status: 'no-speech' }, logger: logger() }))
+      .resolves.toBeNull();
+  });
+
   test('翻訳例外は安全なERRORだけを記録し、解析本文を残す', async () => {
     const log = logger();
     const value = await buildAnalysisSupplement({

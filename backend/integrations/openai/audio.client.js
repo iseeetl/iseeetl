@@ -40,7 +40,13 @@ function createOpenAIAudioClient({
         timeout,
         signal,
       });
-      return response?.data?.text ?? '';
+      const text = response?.data?.text;
+      if (typeof text !== 'string') {
+        const error = new Error('Invalid transcription response');
+        error.code = 'OPENAI_TRANSCRIPTION_RESPONSE_INVALID';
+        throw error;
+      }
+      return text;
     } catch (error) {
       throw toOpenAIError(error, 'OpenAI transcription failed');
     }

@@ -151,6 +151,26 @@ describe('AI解析用の外部サービス呼出', () => {
     expect(mockChatCompletions).not.toHaveBeenCalled();
   });
 
+  test.each(['', ' \n '])('正常な空の文字起こしは発話未検出として扱う', async (text) => {
+    mockTranscribeFromBuffer.mockResolvedValue(text);
+    await expect(analyzeWithProvider({ kind: 'speech', media: { audioBuffer: Buffer.from('audio') } }))
+      .resolves.toEqual({ status: 'no-speech' });
+    expect(mockTranscribeFromBuffer).toHaveBeenCalledTimes(1);
+  });
+
+  test.each([null, undefined, {}, 0])('壊れた文字起こしを発話未検出にしない', async (text) => {
+    mockTranscribeFromBuffer.mockResolvedValue(text);
+    await expect(analyzeWithProvider({ kind: 'speech', media: { audioBuffer: Buffer.from('audio') } }))
+      .rejects.toMatchObject({ code: 'AI_ANALYSIS_OUTPUT_INVALID', reason: 'non_string' });
+  });
+
+  test('文字起こしの通信失敗を未検出にしない', async () => {
+    mockTranscribeFromBuffer.mockRejectedValue(new Error('unavailable'));
+    await expect(analyzeWithProvider({ kind: 'speech', media: { audioBuffer: Buffer.from('audio') } }))
+      .rejects.toThrow('unavailable');
+    expect(mockTranscribeFromBuffer).toHaveBeenCalledTimes(1);
+  });
+
   test('文字起こし以外で300文字を超える結果を保存処理へ渡さない', async () => {
     mockChatCompletions.mockResolvedValue('😀'.repeat(MAX_PROVIDER_CODE_POINTS + 1));
     await expect(

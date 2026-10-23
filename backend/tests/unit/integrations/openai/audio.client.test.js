@@ -29,14 +29,14 @@ describe('OpenAIの音声クライアント', () => {
   });
 
   test.each([undefined, '', '   '])('モデル未設定・空値を拒否する: %s', (model) => {
-    expect(() => createOpenAIAudioClient({ apiKey: 'dummy-key', model }))
+    expect(() => createOpenAIAudioClient({ apiKey: 'placeholder', model }))
       .toThrow('OpenAI transcription model is required');
     expect(axios.post).not.toHaveBeenCalled();
   });
 
   test('MP3 Bufferを指定モデルで1回だけ送信しプロンプトとsignalを渡す', async () => {
     const client = createOpenAIAudioClient({
-      apiKey: 'dummy-key',
+      apiKey: 'placeholder',
       model: 'test-transcription-model',
       baseURL: 'https://example.com/v1',
       timeout: 9876,
@@ -59,7 +59,7 @@ describe('OpenAIの音声クライアント', () => {
     const [url, form, config] = axios.post.mock.calls[0];
     expect(url).toBe('https://example.com/v1/audio/transcriptions');
     expect(config).toMatchObject({
-      headers: expect.objectContaining({ Authorization: 'Bearer dummy-key' }),
+      headers: expect.objectContaining({ Authorization: 'Bearer placeholder' }),
       maxBodyLength: Infinity,
       signal: controller.signal,
       timeout: 9876,
@@ -77,14 +77,28 @@ describe('OpenAIの音声クライアント', () => {
     );
   });
 
+  test.each(['', ' \n '])('空文字のtextは正常なAPI結果として保持する', async (text) => {
+    axios.post.mockResolvedValue({ data: { text } });
+    const client = createOpenAIAudioClient({ apiKey: 'placeholder', model: 'test-transcription-model' });
+    await expect(client.transcribeFromBuffer({ buffer: Buffer.from('fixture') })).resolves.toBe(text);
+  });
+
+  test.each([{}, { text: null }, { text: 0 }, { text: [] }])('不正なAPI応答を空文字へ変換しない', async (data) => {
+    axios.post.mockResolvedValue({ data });
+    const client = createOpenAIAudioClient({ apiKey: 'placeholder', model: 'test-transcription-model' });
+    await expect(client.transcribeFromBuffer({ buffer: Buffer.from('fixture') }))
+      .rejects.toMatchObject({ code: 'OPENAI_TRANSCRIPTION_RESPONSE_INVALID' });
+    expect(axios.post).toHaveBeenCalledTimes(1);
+  });
+
   test('空bufferをHTTP送信前に拒否する', async () => {
-    const client = createOpenAIAudioClient({ apiKey: 'dummy-key', model: 'test-transcription-model' });
+    const client = createOpenAIAudioClient({ apiKey: 'placeholder', model: 'test-transcription-model' });
     await expect(client.transcribeFromBuffer({ buffer: Buffer.alloc(0) })).rejects.toThrow('buffer is required');
     expect(axios.post).not.toHaveBeenCalled();
   });
 
   test('処理開始前の中断をAbortErrorとして扱う', async () => {
-    const client = createOpenAIAudioClient({ apiKey: 'dummy-key', model: 'test-transcription-model' });
+    const client = createOpenAIAudioClient({ apiKey: 'placeholder', model: 'test-transcription-model' });
     const controller = new AbortController();
     controller.abort();
     await expect(
@@ -94,7 +108,7 @@ describe('OpenAIの音声クライアント', () => {
   });
 
   test('外部サービスのエラーに含まれる秘密情報を除外し、再試行しない', async () => {
-    const client = createOpenAIAudioClient({ apiKey: 'dummy-key', model: 'test-transcription-model' });
+    const client = createOpenAIAudioClient({ apiKey: 'placeholder', model: 'test-transcription-model' });
     axios.post.mockRejectedValue({
       response: { status: 500, data: { error: { message: 'provider failed' } } },
       config: { headers: { Authorization: 'Bearer should-not-leak' }, data: 'private audio' },
@@ -110,7 +124,7 @@ describe('OpenAIの音声クライアント', () => {
   });
 
   test('ファイルパス APIも指定モデルで送信する', async () => {
-    const client = createOpenAIAudioClient({ apiKey: 'dummy-key', model: 'test-transcription-model' });
+    const client = createOpenAIAudioClient({ apiKey: 'placeholder', model: 'test-transcription-model' });
     fs.existsSync.mockReturnValue(true);
     axios.post.mockResolvedValue({ data: { text: 'fixture' } });
     await client.transcribeFromFilePath({
@@ -133,7 +147,7 @@ describe('OpenAIの音声クライアント', () => {
     ['audio/x-m4a', 'voice.m4a', 'audio/x-m4a'],
     ['audio/wav', 'voice.wav', 'audio/wav'],
   ])('通常文字起こしの既存MIMEを維持する: %s', async (mimetype, filename, contentType) => {
-    const client = createOpenAIAudioClient({ apiKey: 'dummy-key', model: 'test-transcription-model' });
+    const client = createOpenAIAudioClient({ apiKey: 'placeholder', model: 'test-transcription-model' });
     axios.post.mockResolvedValue({ data: { text: 'fixture' } });
     await client.transcribeFromBuffer({
       buffer: Buffer.from('fixture'),

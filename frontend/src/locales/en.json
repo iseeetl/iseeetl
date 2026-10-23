@@ -393,6 +393,7 @@
   "対象ファイルではありません": "Not a target file",
   "リアクション追加": "Add reaction",
   "連続投稿": "Continuous Posting",
+  "発話を検出できませんでした": "No speech was detected.",
   "録音開始": "Start Recording",
   "録音停止": "Stop Recording",
   "録音を開始できませんでした": "Could not start recording.",
