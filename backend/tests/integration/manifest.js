@@ -19,6 +19,7 @@ const EXTERNAL_MOCKED_SPECS = [
   'routes/user.route.int.test.js',
   'routes/v1.mutation-main-service.int.test.js',
   'routes/v1.route.int.test.js',
+  'services/aiAnalysisExecutor.int.test.js',
   'services/onesignal.notification.int.test.js',
   'services/timelinePostSave.int.test.js',
   'services/transcription.service.int.test.js',

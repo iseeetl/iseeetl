@@ -3,6 +3,7 @@ const path = require('path');
 const ffmpeg = require('fluent-ffmpeg');
 
 const { analyzeWithProvider } = require('./provider.service');
+const { classifyPcm } = require('./acousticProfile');
 const {
   copySafeRegularFile,
   mediaError,
@@ -66,7 +67,17 @@ const readPreparedMp3 = async ({ outputPath, signal } = {}) => {
   return readSafeRegularFile({ filePath: outputPath, maxBytes: AUDIO_MAX_BYTES, signal });
 };
 
-const prepareAudioFileForAnalysis = async ({ filePath, workspace, signal } = {}) => {
+const prepareAcousticProfile = async ({ inputPath, workspace, signal }) => {
+  const outputPath = path.join(workspace, 'analysis-profile.pcm');
+  const command = ffmpeg(inputPath).noVideo().audioChannels(1).audioFrequency(AUDIO_SAMPLE_RATE)
+    .audioCodec('pcm_s16le').outputOptions(['-map', '0:a:0', '-map_metadata', '-1', '-vn', '-sn', '-dn'])
+    .format('s16le').output(outputPath);
+  await runFfmpegCommand(command, { signal });
+  const pcm = await readSafeRegularFile({ filePath: outputPath, maxBytes: AUDIO_MAX_BYTES * 4, signal });
+  return classifyPcm(pcm);
+};
+
+const prepareAudioFileForAnalysis = async ({ filePath, workspace, signal, includeAcousticProfile = false } = {}) => {
   const inputPath = path.join(workspace, 'source-audio.mp3');
   const outputPath = path.join(workspace, 'analysis-audio.mp3');
   await copySafeRegularFile({ filePath, destination: inputPath, maxBytes: AUDIO_MAX_BYTES, signal });
@@ -75,15 +86,17 @@ const prepareAudioFileForAnalysis = async ({ filePath, workspace, signal } = {})
   return {
     audioBuffer: await readPreparedMp3({ outputPath, signal }),
     audioFileName: 'audio.mp3',
+    ...(includeAcousticProfile ? { acousticProfile: await prepareAcousticProfile({ inputPath: outputPath, workspace, signal }) } : {}),
   };
 };
 
-const extractVideoAudioForAnalysis = async ({ videoPath, streamIndex, workspace, signal } = {}) => {
+const extractVideoAudioForAnalysis = async ({ videoPath, streamIndex, workspace, signal, includeAcousticProfile = false } = {}) => {
   const outputPath = path.join(workspace, 'analysis-video-audio.mp3');
   await transcodeToAnalysisMp3({ inputPath: videoPath, outputPath, streamIndex, signal });
   return {
     audioBuffer: await readPreparedMp3({ outputPath, signal }),
     audioFileName: 'audio.mp3',
+    ...(includeAcousticProfile ? { acousticProfile: await prepareAcousticProfile({ inputPath: outputPath, workspace, signal }) } : {}),
   };
 };
 
@@ -96,11 +109,11 @@ const transcribePreparedAudio = ({ audioBuffer, audioFileName = 'audio.mp3' }, {
     signal,
   });
 
-const describePreparedAudioScene = ({ audioBuffer, audioFileName = 'audio.mp3' }, { additionalPrompt, signal } = {}) =>
+const describePreparedAudioScene = ({ audioBuffer, audioFileName = 'audio.mp3', acousticProfile }, { additionalPrompt, signal } = {}) =>
   analyzeWithProvider({
     kind: 'audioScene',
     additionalPrompt,
-    media: { audioBuffer, audioFileName },
+    media: { audioBuffer, audioFileName, acousticProfile },
     signal,
   });
 
