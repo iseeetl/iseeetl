@@ -92,7 +92,7 @@ describe('AI解析用の外部サービス呼出', () => {
   test('providerがgeminiなら音解析だけをGemini経路へ渡し、他の種別はOpenAIのまま', async () => {
     mockGetAudioSceneProvider.mockReturnValue('gemini');
     const controller = new AbortController();
-    const media = { audioBuffer: Buffer.from('synthetic audio'), acousticProfile: { kind: 'unknown', lowLevel: true } };
+    const media = { audioBuffer: Buffer.from('synthetic audio'), acousticProfile: { kind: 'unknown', lowLevel: false } };
     const logger = { error: jest.fn() };
     await expect(analyzeWithProvider({
       kind: 'audioScene', additionalPrompt: 'trusted additional prompt', media, signal: controller.signal, logger,
@@ -301,6 +301,27 @@ describe('AI解析用の外部サービス呼出', () => {
     await expect(analyzeWithProvider({ kind: 'other' })).rejects.toMatchObject({
       code: 'AI_ANALYSIS_KIND_INVALID',
     });
+    expect(mockChatCompletions).not.toHaveBeenCalled();
+  });
+});
+
+describe('音解析の波形判定の追加分', () => {
+  test('録音レベルが非常に低い入力は外部モデルを呼ばず low-level を返す', async () => {
+    const media = { audioBuffer: Buffer.from('synthetic audio'), acousticProfile: { kind: 'unknown', peakDbfs: -62.5, rmsDbfs: -80.1, lowLevel: true } };
+    await expect(analyzeWithProvider({ kind: 'audioScene', media })).resolves.toEqual({ status: 'low-level' });
+    expect(mockDescribeAudioSceneWithGemini).not.toHaveBeenCalled();
+    expect(mockChatCompletions).not.toHaveBeenCalled();
+  });
+
+  test('短い電子音の繰り返しは測定に基づく固定文を返し、外部モデルを呼ばない', async () => {
+    const media = {
+      audioBuffer: Buffer.from('synthetic audio'),
+      acousticProfile: { kind: 'pulsed-tone', frequencyHz: 1200, pulses: 6, intervalSec: 1, peakDbfs: -10, rmsDbfs: -20, lowLevel: false },
+    };
+    await expect(analyzeWithProvider({ kind: 'audioScene', media })).resolves.toBe(
+      '波形を確認すると、約1200 Hzの短い電子音が6回、約1秒間隔で鳴っています。この特徴だけでは音源を特定できません。'
+    );
+    expect(mockDescribeAudioSceneWithGemini).not.toHaveBeenCalled();
     expect(mockChatCompletions).not.toHaveBeenCalled();
   });
 });

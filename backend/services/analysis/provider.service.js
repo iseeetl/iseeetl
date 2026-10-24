@@ -145,8 +145,9 @@ const buildConversationMessages = ({ sourceText, language, additionalPrompt }) =
 // conversationではsourceTextを使う。languageはspeechの音声言語とconversationの出力言語を指定する。
 // 検証済みの追加指示はadditionalPromptで渡し、signalで中止できる。
 // 解析結果の文字列を返す。OpenAIが無効な場合はnullを返す。
-// speechは{ status: 'no-speech' }、audioSceneは{ status: 'no-sound' }（デジタル無音）または
-// { status: 'no-description' }（空応答・使えない出力・Gemini経路の失敗）を返す場合がある。
+// speechは{ status: 'no-speech' }、audioSceneは{ status: 'no-sound' }（デジタル無音）、
+// { status: 'low-level' }（録音レベルが非常に低い）、{ status: 'no-description' }（空応答・使えない出力・
+// Gemini経路の失敗）を返す場合がある。
 const analyzeWithProvider = async ({
   kind,
   sourceText,
@@ -167,6 +168,8 @@ const analyzeWithProvider = async ({
     if (profile?.kind === 'digital-silence') return { status: 'no-sound' };
     const measured = describeAcousticProfile(profile);
     if (measured) return measured;
+    // 録音レベルが非常に低い入力は、外部モデルが存在しない発話を創作しやすいため送らない。
+    if (profile?.lowLevel) return { status: 'low-level' };
     if (getAudioSceneProvider() === 'gemini') {
       return describeAudioSceneWithGemini({ media, additionalPrompt, signal, logger });
     }

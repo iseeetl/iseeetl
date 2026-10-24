@@ -17,11 +17,15 @@ const NOTICE_MESSAGES = Object.freeze({
     ja: '音の説明を生成できませんでした。',
     en: 'Could not generate a description of the sounds.',
   }),
+  'low-level': Object.freeze({
+    ja: '録音レベルが非常に低く、はっきり聞き取れる音はありません。',
+    en: 'The recording level is very low and no sound can be clearly heard.',
+  }),
 });
 // 解析種別ごとに受け付ける内部結果。他の種別や未知のstatusは無効な出力として扱う。
 const NOTICE_STATUSES_BY_KIND = Object.freeze({
   speech: Object.freeze(['no-speech']),
-  audioScene: Object.freeze(['no-sound', 'no-description']),
+  audioScene: Object.freeze(['no-sound', 'low-level', 'no-description']),
 });
 
 const resolveNotice = (snapshot, providerOutput) => {
