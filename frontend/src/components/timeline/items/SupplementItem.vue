@@ -51,6 +51,7 @@
           {{ getLocalDateTime(supplement.created_at) }}
         </div>
       </div>
+      <div v-if="supplement.ai_origin" class="ai-origin">{{ $t('aiVisibility.origin', { tag: originTagName }) }}</div>
       <div class="supplement-content text"><TimelineText :content="supplement.content" /></div>
       <div class="supplement-content translate" dir="auto" v-if="needsTranslation(supplement)">
         {{ getContent(supplement) }}
@@ -207,6 +208,7 @@ export default {
     postId: String || null,
     replyId: String || null,
     supplement: Object,
+    tags: { type: Array, default: () => [] },
     isGuestRulesAgreed: Boolean,
     showUserIcon: {
       type: Boolean,
@@ -221,6 +223,12 @@ export default {
     };
   },
   computed: {
+    originTagName() {
+      const id = this.supplement.ai_origin?.tag_id;
+      const tag = this.tags.find((entry) => entry._id === id);
+      return tag ? TranslationUtil.getTagName(tag, this.$i18n.locale)
+        : id ? this.$t('aiVisibility.unavailable', { id }) : this.$t('aiVisibility.unknown');
+    },
     supplementHeading() {
       return getSupplementTitle(this.supplement, this.$i18n.locale) || this.$t('{name}の付加情報', { name: this.resolveUserDisplayName(this.supplement.user) });
     },

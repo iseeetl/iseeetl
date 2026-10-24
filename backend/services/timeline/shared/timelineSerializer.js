@@ -17,6 +17,13 @@ const cloneValue = (value) => {
 const serializeSupplement = (supplement) => {
   const result = cloneValue(supplement);
   if (!result || typeof result !== 'object') return result;
+  delete result.ai_origin;
+  if (['vision', 'speech', 'video', 'audioScene', 'conversation'].includes(result.meta?.analysis_kind)) {
+    result.ai_origin = {
+      kind: result.meta.analysis_kind,
+      tag_id: result.meta.analysis_trigger_tag ? String(result.meta.analysis_trigger_tag) : null,
+    };
+  }
   delete result.meta;
   return result;
 };

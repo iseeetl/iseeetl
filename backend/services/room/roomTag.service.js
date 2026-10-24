@@ -6,6 +6,7 @@ const FloorTag = require('../../models/FloorTag');
 const Floor = require('../../models/Floor');
 const Room = require('../../models/Room');
 const RoomTag = require('../../models/RoomTag');
+const RoomAIAnalysisSetting = require('../../models/RoomAIAnalysisSetting');
 
 const { findActiveUser, findActiveRoom, findActiveFloor, findRoomWithFloor } = require('../_shared/activeResource');
 const { canManageFloor } = require('../_shared/floorAccess');
@@ -44,7 +45,10 @@ exports.list = async (body, identity) => {
     .sort({ order: 1, created_at: -1 })
     .lean();
 
-  return foundRoomTags;
+  const settings = await RoomAIAnalysisSetting.find({ room: roomId, floor: foundRoom.floor, delete_flg: false })
+    .select('room_tag').lean();
+  const enabled = new Set(settings.map((setting) => String(setting.room_tag)));
+  return foundRoomTags.map((tag) => ({ ...tag, ai_enabled: enabled.has(String(tag._id)) }));
 };
 
 exports.create = async (body, jwtPayload) => {

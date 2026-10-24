@@ -58,8 +58,10 @@
         </label>
         <label class="setting-choice" for="display_supplement">
           <input type="checkbox" id="display_supplement" v-model="displaySupplement" />
-          <span>{{ $t('「付加情報」を表示する') }}</span>
+          <span>{{ $t('「付加情報」を表示する') }} <small>({{ $t('aiVisibility.allRooms') }})</small></span>
         </label>
+        <AIVisibilitySettings v-if="visible && editingRoomId" :key="editingRoomId"
+          :room-id="editingRoomId" :room-title="roomTitle" :tags="roomTags" :enabled="displaySupplement" v-model="aiPreference" />
         <label class="setting-choice" for="display_actionbutton">
           <input type="checkbox" id="display_actionbutton" v-model="displayActionButton" />
           <span>{{ $t('「アクションボタン」を表示する') }}</span>
@@ -111,6 +113,8 @@
 </template>
 
 <script>
+import AIVisibilitySettings from '@/components/timeline/inputs/AIVisibilitySettings.vue';
+import { normalizeAIVisibility } from '@/features/timeline/aiVisibility';
 import { canManageFloor } from '@/utils/floorPermissions';
 import BaseEditDialog from '@/components/common/BaseEditDialog.vue';
 import ConfirmDialog from '@/components/common/ConfirmDialog.vue';
@@ -119,11 +123,15 @@ export default {
   emits: ['close', 'success'],
   name: 'TimelineSettingDialog',
   components: {
+    AIVisibilitySettings,
     BaseEditDialog,
     ConfirmDialog,
   },
   props: {
     dialogVisible: Boolean,
+    roomId: String,
+    roomTitle: String,
+    roomTags: { type: Array, default: () => [] },
   },
   computed: {
     canManageFloor() {
@@ -138,6 +146,8 @@ export default {
       discardConfirmVisible: false,
       closeAfterDiscard: false,
 
+      editingRoomId: null,
+      aiPreference: normalizeAIVisibility(),
       speechSpeed: null,
       displayName: null,
       displayDate: null,
@@ -150,12 +160,20 @@ export default {
     };
   },
   watch: {
+    roomId() {
+      if (this.visible && this.editingRoomId && this.editingRoomId !== this.roomId) {
+        this.initialSnapshot = null;
+        this.visible = false;
+      }
+    },
     dialogVisible() {
       this.visible = this.dialogVisible;
     },
   },
   methods: {
     openedDialog() {
+      this.editingRoomId = this.roomId;
+      this.aiPreference = normalizeAIVisibility(this.$store.getters.roomAIVisibility?.(this.roomId));
       this.speechSpeed = this.$store.getters.speechSpeed;
       this.displayName = this.$store.getters.displayName;
       this.displayDate = this.$store.getters.displayDate;
@@ -179,6 +197,7 @@ export default {
 
     getEditSnapshot() {
       return JSON.stringify({
+        aiPreference: this.aiPreference,
         speechSpeed: this.speechSpeed,
         displayName: this.displayName,
         displayDate: this.displayDate,
@@ -225,7 +244,7 @@ export default {
     },
 
     async onPressDoneButton() {
-      if (this.sending) return;
+      if (this.sending || (this.editingRoomId || null) !== (this.roomId || null)) return;
       this.sending = true;
       try {
         await this.$store.dispatch('doUpdateTimeLineSetting', {
@@ -239,6 +258,8 @@ export default {
           animationSpeed: this.animationSpeed,
           displayUserKickButton: this.displayUserKickButton,
         });
+        if ((this.editingRoomId || null) !== (this.roomId || null)) return;
+        if (this.editingRoomId) this.$store.commit('setRoomAIVisibility', { roomId: this.editingRoomId, preference: this.aiPreference });
         this.$emit('success', this.getCommittedSettingSnapshot());
         this.visible = false;
       } finally {

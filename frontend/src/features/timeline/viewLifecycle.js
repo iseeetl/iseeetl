@@ -1,3 +1,4 @@
+import { clearTimelineSpeech } from './audio';
 export const mountTimelineView = (context) => {
   context.handleResize = context.checkMobile.bind(context);
   window.addEventListener('resize', context.handleResize);
@@ -12,7 +13,7 @@ export const disposeTimelineView = (context, { disposeSocket }) => {
   disposeSocket(context);
 
   document.removeEventListener('keyup', context.shortcutPushNkey);
-  window.speechSynthesis.cancel();
+  clearTimelineSpeech();
 
   if (context.handleResize) {
     window.removeEventListener('resize', context.handleResize);

@@ -22,6 +22,7 @@ const BaseEditDialogStub = {
 };
 
 const baseStubs = {
+  TagName: false,
   BaseEditDialog: BaseEditDialogStub,
   ConfirmDialog: true,
   UiButton: true,

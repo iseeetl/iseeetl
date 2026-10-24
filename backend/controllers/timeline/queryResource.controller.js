@@ -21,3 +21,11 @@ exports.roomTags = async (req, res, next) => {
     return res.json(await roomTags.list(input, { jwtPayload: req.jwtPayload, guest: req.guest, errors }));
   } catch (error) { return next(error); }
 };
+
+exports.aiSources = async (req, res, next) => {
+  try {
+    const input = mapRoomTagsRequest(req.params, req.query);
+    return res.json(await require('../../services/room/aiSources.service').list(input,
+      { jwtPayload: req.jwtPayload, guest: req.guest, errors }));
+  } catch (error) { return next(error); }
+};

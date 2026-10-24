@@ -75,7 +75,7 @@
               dir="auto"
               @click.stop="onClickTag(tagId)"
             >
-              #{{ getTagNameById(tagId) }}
+              #{{ getTagNameById(tagId) }}<span v-if="tags?.find((tag) => tag._id === tagId)?.ai_enabled" class="ai-tag-badge" :aria-label="$t('aiVisibility.enabled')">{{ $t('aiVisibility.badge') }}</span>
             </button>
           </template>
         </div>
@@ -260,14 +260,15 @@
             </UiButton>
           </UiTooltip>
         </div>
-        <div class="supplementaries" v-if="$store.getters.displaySupplement && !hideInfo">
+        <div class="supplementaries" v-if="visibleSupplements.length && !hideInfo">
           <SupplementItem
-            v-for="supplement in reply.supplementaries"
+            v-for="supplement in visibleSupplements"
             :key="supplement._id"
             :idPrefix="idPrefix"
             :postId="post._id"
             :replyId="reply._id"
             :supplement="supplement"
+            :tags="tags"
             :isGuestRulesAgreed="isGuestRulesAgreed"
             :showUserIcon="showUserIcon"
             @showEditSupplementDialog="showEditSupplementDialog"
@@ -351,6 +352,9 @@ export default {
     };
   },
   computed: {
+    visibleSupplements() {
+      return (this.reply.supplementaries || []).filter((item) => this.$store.getters.isSupplementVisible?.(item, this.post.room) ?? this.$store.getters.displaySupplement);
+    },
     canManageFloor() {
       return canManageFloor(this.$store.getters.userRole, this.$store.getters.roomRole);
     },
@@ -532,6 +536,7 @@ export default {
 </script>
 
 <style scoped>
+.ai-tag-badge { color: #6b21a8; background: #f3e8ff; padding: 1px 4px; border-radius: 4px; margin-left: 4px; font-size: .75em; }
 .wrapper {
   width: 100%;
   position: relative;

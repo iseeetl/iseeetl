@@ -1,3 +1,5 @@
+import { sanitizeRoomAIVisibility } from '@/features/timeline/aiVisibility';
+
 const STORAGE_KEY = 'iseeetl_store';
 const SCHEMA_VERSION = 1;
 const USER_ROLES = new Set(['Administrator', 'Editor', 'Author', 'developer']);
@@ -186,6 +188,7 @@ const sanitizeGuestSoundTags = (value) => {
 
 const buildPersistedState = (state) => ({
   schemaVersion: SCHEMA_VERSION,
+  roomAIVisibility: sanitizeRoomAIVisibility(state.roomAIVisibility),
   user: pick(state.user, USER_FIELDS),
   guestCache: pick(state.guestCache, GUEST_CACHE_FIELDS),
   floor: pick(state.floor, FLOOR_FIELDS),
@@ -201,6 +204,7 @@ const buildPersistedState = (state) => ({
 
 const applyStoredState = (state, storage) => {
   applyUser(state.user, storage.user);
+  state.roomAIVisibility = sanitizeRoomAIVisibility(storage.roomAIVisibility);
 
   assignNullableStrings(state.guestCache, storage.guestCache, GUEST_CACHE_FIELDS);
   assignNullableStrings(state.floor, storage.floor, ['id', 'title']);

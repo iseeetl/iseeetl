@@ -47,7 +47,7 @@
               :value="roomTag._id"
               v-model="tags"
             />
-            <span dir="auto">{{ getTagName(roomTag) }}</span>
+            <TagName :tag="roomTag" />
           </label>
         </div>
       </fieldset>
@@ -73,6 +73,7 @@
 </template>
 
 <script>
+import TagName from '@/components/timeline/inputs/TagName.vue';
 import { useId } from 'vue';
 import tagApi from '@/api/tag';
 import { appendApiErrorMessage } from '@/api/apiClient';
@@ -87,6 +88,7 @@ export default {
   emits: ['close', 'success'],
   name: 'SoundTagDialog',
   components: {
+    TagName,
     BaseEditDialog,
     ConfirmDialog,
     UiButton,

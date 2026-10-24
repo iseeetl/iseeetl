@@ -40,15 +40,44 @@ export const playAudioIfMatch = ({
   return playNotificationAudio({ audioRef, onSuccess, onError });
 };
 
-export const speakIfNeeded = ({ text, lang, filters, matchFn, speed }) => {
-  if (!Array.isArray(filters)) return;
+const speechQueue = [];
+let activeSpeech = null;
+const pumpSpeech = () => {
+  if (activeSpeech) return;
+  while (speechQueue.length) {
+    const entry = speechQueue.shift();
+    if (!entry.allowed()) continue;
+    activeSpeech = entry;
+    entry.utterance.onend = entry.utterance.onerror = () => { activeSpeech = null; pumpSpeech(); };
+    window.speechSynthesis.speak(entry.utterance);
+    return;
+  }
+};
+export const refreshSpeechVisibility = () => {
+  for (let i = speechQueue.length - 1; i >= 0; i--) if (!speechQueue[i].allowed()) speechQueue.splice(i, 1);
+  if (activeSpeech && !activeSpeech.allowed()) {
+    activeSpeech.utterance.onend = activeSpeech.utterance.onerror = null;
+    activeSpeech = null;
+    window.speechSynthesis.cancel();
+  }
+  pumpSpeech();
+};
+export const clearTimelineSpeech = () => {
+  speechQueue.length = 0;
+  if (activeSpeech) activeSpeech.utterance.onend = activeSpeech.utterance.onerror = null;
+  activeSpeech = null;
+  window.speechSynthesis.cancel();
+};
+export const speakIfNeeded = ({ text, lang, filters, matchFn, speed, isAllowed = () => true }) => {
+  if (!Array.isArray(filters) || !isAllowed()) return;
   filters.forEach((filter) => {
     if (!filter || !filter.speech) return;
     if (filter.conditions !== null && !matchFn(filter.conditions)) return;
-    const uttr = new SpeechSynthesisUtterance();
-    uttr.text = text;
-    uttr.lang = lang;
-    uttr.rate = speed;
-    window.speechSynthesis.speak(uttr);
+    const utterance = new SpeechSynthesisUtterance();
+    utterance.text = text;
+    utterance.lang = lang;
+    utterance.rate = speed;
+    speechQueue.push({ utterance, allowed: isAllowed });
   });
+  pumpSpeech();
 };

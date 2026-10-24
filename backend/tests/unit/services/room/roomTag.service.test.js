@@ -1,3 +1,4 @@
+jest.mock('../../../../models/RoomAIAnalysisSetting', () => ({ find: jest.fn(() => ({ select: () => ({ lean: async () => [{ room_tag: 'rt1' }] }) })) }));
 jest.mock('../../../../models/KickedUser', () => ({ findOne: jest.fn().mockResolvedValue(null) }));
 jest.mock('../../../../services/translation.service', () => ({
   translateTag: jest.fn().mockResolvedValue(['translated']),
@@ -116,7 +117,7 @@ describe('roomTagのサービス', () => {
       expect(RoomTag.find).toHaveBeenCalledWith({ floor: 'f1', room: 'r1', delete_flg: false });
       expect(sortMock).toHaveBeenCalledWith({ order: 1, created_at: -1 });
       expect(leanMock).toHaveBeenCalled();
-      expect(result).toEqual([{ _id: 'rt1' }]);
+      expect(result).toEqual([{ _id: 'rt1', ai_enabled: true }]);
     });
 
     test('認可失敗時はタグを検索せずエラーを伝播する', async () => {

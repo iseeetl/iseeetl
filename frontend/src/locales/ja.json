@@ -910,5 +910,25 @@
     "sentOutside": "投稿しました。このタブの表示条件には一致しません。",
     "tagsChanged": "投稿しました。保存されたタグが変更されたため、選択元の強調を解除しました。",
     "noTabTags": "このタブには選択できるタグがありません。"
+  },
+  "aiVisibility": {
+    "enabled": "AI対応",
+    "roomTitle": "このルームのAI付加情報",
+    "allRooms": "全ルーム共通",
+    "all": "すべて表示",
+    "tags": "タグ別に選ぶ",
+    "none": "すべて非表示",
+    "mode": "AI付加情報の表示",
+    "help": "チェックしたタグのAI付加情報を表示します。人の付加情報は表示します。閲覧だけの設定で、AIの生成やプッシュ通知は変わりません。",
+    "shownTags": "AI付加情報を表示するタグ",
+    "loading": "タグを取得中…",
+    "loadFailed": "タグを取得できませんでした。設定を開き直してください。",
+    "noSources": "このルームにAI付加情報の生成元はありません。",
+    "unknown": "タグ不明のAI付加情報",
+    "unavailable": "参照できないタグ（{id}）",
+    "deleted": "{name}（削除済みタグ）",
+    "origin": "AI・{tag}",
+    "showSource": "{tag}のAI付加情報を表示",
+    "badge": "AI"
   }
 }

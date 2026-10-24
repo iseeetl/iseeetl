@@ -58,18 +58,20 @@
           @change="onChange($event, tag._id)"
           :disabled="sending || recording"
         />
-        <span dir="auto">{{ getTagName(tag) }}</span>
+        <TagName :tag="tag" />
       </label>
     </div>
   </div>
 </template>
 
 <script>
+import TagName from '@/components/timeline/inputs/TagName.vue';
 import { useId } from 'vue';
 import TranslationUtil from '@/utils/translationUtil';
 import { showSnackbar } from '@/utils/snackbar';
 
 export default {
+  components: { TagName },
   name: 'TagSelector',
   emits: ['update:modelValue', 'source-change'],
   setup() {

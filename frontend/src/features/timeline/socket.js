@@ -352,9 +352,11 @@ export const bindSocketHandlers = (socket, ctx, deps = {}) => {
       ctx.refreshTimelineEmptyState?.();
     })
     .on('SUPPLEMENT_CREATE', (post) => {
-      const supplement = post.supplementaries[post.supplementaries.length - 1];
+      const supplement = post.supplementaries?.[post.supplementaries.length - 1];
+      if (!supplement) { ctx.reconcilePostInFilters(post); return; }
 
       speakIfNeeded({
+        isAllowed: () => ctx.$store.getters.isSupplementVisible?.(supplement, post.room) !== false,
         text: supplement.content,
         lang: supplement.lang,
         filters: ctx.timeline.filters,
@@ -442,7 +444,9 @@ export const bindSocketHandlers = (socket, ctx, deps = {}) => {
     })
     .on('REPLY_DELETE', (post) => ctx.reconcilePostInFilters(post))
     .on('REPLY_SUPPLEMENT_CREATE', (post, supplement) => {
+      if (!supplement) { ctx.reconcilePostInFilters(post); return; }
       speakIfNeeded({
+        isAllowed: () => ctx.$store.getters.isSupplementVisible?.(supplement, post.room) !== false,
         text: supplement.content,
         lang: supplement.lang,
         filters: ctx.timeline.filters,

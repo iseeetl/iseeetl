@@ -12,6 +12,7 @@ module.exports = () => {
   router.get(base, ensureJsonWebToken, query.list());
   router.post(`${base}/search`, ensureJsonWebToken, query.list(true));
   router.get(`${base}/:post_id`, ensureJsonWebToken, query.detail);
+  router.get('/rooms/:room_id/ai-sources', optionalRoomMetadataIdentity, query.aiSources);
   router.get('/rooms/:room_id/tags', optionalRoomMetadataIdentity, query.roomTags);
   router.post(base, ensureJsonWebToken, controller.create);
   router.patch(`${base}/:post_id`, ensureJsonWebToken, controller.update);
