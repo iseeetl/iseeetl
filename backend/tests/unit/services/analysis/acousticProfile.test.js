@@ -55,7 +55,6 @@ describe('音声データの保守的な波形確認', () => {
   });
 
   test.each([
-    ['1200 Hzのビープ列（0.2秒×6）', 2.4, (t) => (t % 0.4 < 0.2 ? tone(1200)(t) : 0)],
     ['白色雑音', 2, noise(8000)],
     ['ダイヤルトーン（350+440 Hz）', 2, (t) => tone(350)(t) + tone(440)(t)],
     ['周波数が変わる音', 2, (t) => 4000 * Math.sin(2 * Math.PI * (220 * t + 300 * t * t))],
@@ -99,5 +98,67 @@ describe('音声データの保守的な波形確認', () => {
     expect(describeAcousticProfile({ kind: 'digital-silence' })).toBeNull();
     expect(describeAcousticProfile({ kind: 'unknown' })).toBeNull();
     expect(describeAcousticProfile(undefined)).toBeNull();
+  });
+});
+
+describe('短い電子音の繰り返しの波形確認', () => {
+  // 0.2秒の1200 Hz純音（両端5 msフェード）を1秒間隔で6回。間は実質無音（-90 dBFS相当の微小雑音）。
+  const beeps = (frequency = 1200, period = 1, count = 6, start = 0.3, width = 0.2) => {
+    const hiss = noise(dbfsAmplitude(-90));
+    return (t) => {
+      for (let n = 0; n < count; n += 1) {
+        const onset = start + n * period;
+        if (t >= onset && t < onset + width) {
+          const local = t - onset;
+          const envelope = Math.min(1, local / 0.005, (width - local) / 0.005);
+          return tone(frequency, 10000)(t) * envelope;
+        }
+      }
+      return hiss();
+    };
+  };
+
+  test('1秒間隔の1200 Hzビープ6回を、回数と間隔付きの短い電子音として判定する', () => {
+    const result = classifyPcm(pcm(6, beeps()));
+    expect(result).toMatchObject({ kind: 'pulsed-tone', frequencyHz: 1200, pulses: 6, intervalSec: 1, lowLevel: false });
+    expect(describeAcousticProfile(result)).toBe(
+      '波形を確認すると、約1200 Hzの短い電子音が6回、約1秒間隔で鳴っています。この特徴だけでは音源を特定できません。'
+    );
+  });
+
+  test('0.4秒周期の短いビープ列も判定し、間隔は0.1秒単位で丸める', () => {
+    const result = classifyPcm(pcm(2.4, beeps(1200, 0.4, 6, 0, 0.2)));
+    expect(result).toMatchObject({ kind: 'pulsed-tone', frequencyHz: 1200, pulses: 6, intervalSec: 0.4 });
+  });
+
+  test('間隔が不規則なら回数だけを述べる', () => {
+    const onsets = [0.2, 0.6, 1.9, 2.3, 4.5];
+    const sample = (t) => {
+      for (const onset of onsets) {
+        if (t >= onset && t < onset + 0.2) {
+          const local = t - onset;
+          return tone(880, 10000)(t) * Math.min(1, local / 0.005, (0.2 - local) / 0.005);
+        }
+      }
+      return 0;
+    };
+    const result = classifyPcm(pcm(6, sample));
+    expect(result).toMatchObject({ kind: 'pulsed-tone', frequencyHz: 880, pulses: 5, intervalSec: null });
+    expect(describeAcousticProfile(result)).toBe(
+      '波形を確認すると、約880 Hzの短い電子音が5回鳴っています。この特徴だけでは音源を特定できません。'
+    );
+  });
+
+  test.each([
+    ['背景雑音（-30 dBFS）の上のビープ列', (t) => beeps()(t) + noise(dbfsAmplitude(-30))(t)],
+    ['1回だけの短音', beeps(1200, 1, 1)],
+    ['高さの異なる短音の列', (t) => (Math.floor(t) % 2 === 0 ? beeps(1200)(t) : beeps(1800)(t))],
+    ['短音の間に別の音がある', (t) => beeps()(t) + (t > 2.6 && t < 2.9 ? noise(dbfsAmplitude(-35))(t) : 0)],
+  ])('%sは短い電子音の繰り返しとして判定しない', (_label, sample) => {
+    expect(classifyPcm(pcm(6, sample)).kind).toBe('unknown');
+  });
+
+  test('一定音の判定が優先され、短音の判定には進まない', () => {
+    expect(classifyPcm(pcm(3, tone(440))).kind).toBe('steady-tone');
   });
 });

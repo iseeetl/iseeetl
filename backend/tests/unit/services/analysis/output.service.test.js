@@ -45,6 +45,7 @@ describe('AI解析結果の整形', () => {
     ['no-sound', '解析用の音声データは無音です。音源や周囲の状況は判断できません。',
       'The audio data contains no sound. The source or surroundings cannot be determined.'],
     ['no-description', '音の説明を生成できませんでした。', 'Could not generate a description of the sounds.'],
+    ['low-level', '録音レベルが非常に低く、はっきり聞き取れる音はありません。', 'The recording level is very low and no sound can be clearly heard.'],
   ])('音解析の%sは翻訳サービスが使えなくても日英の固定文を保存する', async (status, ja, en) => {
     expect(NOTICE_MESSAGES[status]).toEqual({ ja, en });
     for (const lang of ['ja', 'en', 'fr']) {
