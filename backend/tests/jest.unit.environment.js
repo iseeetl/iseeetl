@@ -6,3 +6,5 @@ process.env.EXTERNAL_LINE_LOGIN_ENABLED = 'false';
 process.env.EXTERNAL_ONESIGNAL_ENABLED = 'false';
 process.env.EXTERNAL_GOOGLE_ANALYTICS_ENABLED = 'false';
 process.env.EXTERNAL_MAIL_DELIVERY_ENABLED = 'false';
+process.env.EXTERNAL_GEMINI_ENABLED = 'false';
+delete process.env.AUDIO_SCENE_PROVIDER;

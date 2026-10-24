@@ -47,7 +47,7 @@ describe('サーバ起動時の設定検証', () => {
       NODE_ENV: 'production', DIST_PATH: '/fixture/frontend',
       VUE_APP_APPURL: 'https://app.example.invalid', CORS_ALLOWED_ORIGINS: origins,
     });
-    for (const key of ['OPENAI', 'GOOGLE_TRANSLATE', 'GOOGLE_LOGIN', 'LINE_LOGIN', 'ONESIGNAL', 'GOOGLE_ANALYTICS', 'MAIL_DELIVERY']) {
+    for (const key of ['OPENAI', 'GOOGLE_TRANSLATE', 'GOOGLE_LOGIN', 'LINE_LOGIN', 'ONESIGNAL', 'GOOGLE_ANALYTICS', 'MAIL_DELIVERY', 'GEMINI']) {
       env[`EXTERNAL_${key}_ENABLED`] = 'false';
     }
     const config = loadRuntimeConfig({ env });
@@ -91,6 +91,8 @@ describe('サーバ起動時の設定検証', () => {
       oneSignalPush: null,
       googleTranslate: null,
       openai: null,
+      gemini: null,
+      audioScene: { provider: 'openai', geminiEnabled: false },
       analytics: { measurementId: null, userIdSecret: null },
     });
     expect(env.ONESIGNAL_HOST).toBeUndefined();
@@ -171,7 +173,9 @@ describe('サーバ起動時の設定検証', () => {
         EXTERNAL_ONESIGNAL_ENABLED: 'false',
         EXTERNAL_GOOGLE_ANALYTICS_ENABLED: 'false',
         EXTERNAL_MAIL_DELIVERY_ENABLED: 'false',
+        EXTERNAL_GEMINI_ENABLED: 'false',
         OPENAI_API_KEY: 'stale-openai-key',
+        GEMINI_API_KEY: 'stale-gemini-key',
         SUPPORT_USER_ID: 'invalid-stale-support-id',
         GOOGLE_APPLICATION_CREDENTIALS: '/stale/google/credentials.json',
       }),
@@ -273,6 +277,6 @@ describe('サーバ起動時の設定検証', () => {
 
 test.each([undefined, '', '   '])('productionでは空のDIST_PATHを拒否する (%s)', (distPath) => {
   const env = buildEnv({ NODE_ENV: 'production', DIST_PATH: distPath });
-  for (const key of ['OPENAI', 'GOOGLE_TRANSLATE', 'GOOGLE_LOGIN', 'LINE_LOGIN', 'ONESIGNAL', 'GOOGLE_ANALYTICS', 'MAIL_DELIVERY']) env[`EXTERNAL_${key}_ENABLED`] = 'false';
+  for (const key of ['OPENAI', 'GOOGLE_TRANSLATE', 'GOOGLE_LOGIN', 'LINE_LOGIN', 'ONESIGNAL', 'GOOGLE_ANALYTICS', 'MAIL_DELIVERY', 'GEMINI']) env[`EXTERNAL_${key}_ENABLED`] = 'false';
   expect(() => loadRuntimeConfig({ env })).toThrow('DIST_PATH is required');
 });

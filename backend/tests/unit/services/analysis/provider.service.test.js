@@ -22,6 +22,14 @@ jest.mock('../../../../services/analysis/runtime', () => ({
     conversation: 'conversation system contract',
   }),
 }));
+const mockGetAudioSceneProvider = jest.fn(() => 'openai');
+jest.mock('../../../../config/featureFlags', () => ({
+  getAudioSceneProvider: mockGetAudioSceneProvider,
+}));
+const mockDescribeAudioSceneWithGemini = jest.fn();
+jest.mock('../../../../services/analysis/audioSceneGemini', () => ({
+  describeAudioSceneWithGemini: mockDescribeAudioSceneWithGemini,
+}));
 
 const {
   MAX_PROVIDER_CODE_POINTS,
@@ -38,6 +46,75 @@ describe('AI解析用の外部サービス呼出', () => {
     });
     mockChatCompletions.mockResolvedValue('provider text');
     mockTranscribeFromBuffer.mockResolvedValue('speech transcript');
+    mockGetAudioSceneProvider.mockReturnValue('openai');
+    mockDescribeAudioSceneWithGemini.mockResolvedValue('gemini description');
+  });
+
+  test.each([
+    [{ kind: 'digital-silence', peakDbfs: -200, rmsDbfs: -200, lowLevel: true }, { status: 'no-sound' }],
+    [{ kind: 'steady-tone', frequencyHz: 880, peakDbfs: -18.3, rmsDbfs: -21.3, lowLevel: false },
+      expect.stringContaining('約880 Hz')],
+  ])('波形で確認した無音・持続音は外部モデルに推測させない', async (acousticProfile, expected) => {
+    for (const provider of ['openai', 'gemini']) {
+      mockGetAudioSceneProvider.mockReturnValue(provider);
+      await expect(analyzeWithProvider({
+        kind: 'audioScene', additionalPrompt: 'Imagine people talking.',
+        media: { audioBuffer: Buffer.from('synthetic encoded audio'), acousticProfile },
+      })).resolves.toEqual(expected);
+    }
+    expect(mockChatCompletions).not.toHaveBeenCalled();
+    expect(mockDescribeAudioSceneWithGemini).not.toHaveBeenCalled();
+  });
+
+  test('波形で判定できても中止済みなら説明を返さない', async () => {
+    const controller = new AbortController();
+    controller.abort();
+    await expect(analyzeWithProvider({
+      kind: 'audioScene', signal: controller.signal,
+      media: { audioBuffer: Buffer.from('synthetic audio'), acousticProfile: { kind: 'digital-silence' } },
+    })).rejects.toMatchObject({ name: 'AbortError', code: 'ABORT_ERR' });
+    expect(mockChatCompletions).not.toHaveBeenCalled();
+    expect(mockDescribeAudioSceneWithGemini).not.toHaveBeenCalled();
+  });
+
+  test('不明な波形はOpenAI経路へ音声をそのまま渡す', async () => {
+    const audioBuffer = Buffer.from('synthetic complex audio');
+    await expect(analyzeWithProvider({
+      kind: 'audioScene', media: { audioBuffer, acousticProfile: { kind: 'unknown', lowLevel: false } },
+    })).resolves.toBe('provider text');
+    const request = mockChatCompletions.mock.calls[0][0];
+    const audio = request.messages[1].content.find((item) => item.type === 'input_audio').input_audio;
+    expect(Buffer.from(audio.data, 'base64')).toEqual(audioBuffer);
+    expect(audio.format).toBe('mp3');
+    expect(mockDescribeAudioSceneWithGemini).not.toHaveBeenCalled();
+  });
+
+  test('providerがgeminiなら音解析だけをGemini経路へ渡し、他の種別はOpenAIのまま', async () => {
+    mockGetAudioSceneProvider.mockReturnValue('gemini');
+    const controller = new AbortController();
+    const media = { audioBuffer: Buffer.from('synthetic audio'), acousticProfile: { kind: 'unknown', lowLevel: true } };
+    const logger = { error: jest.fn() };
+    await expect(analyzeWithProvider({
+      kind: 'audioScene', additionalPrompt: 'trusted additional prompt', media, signal: controller.signal, logger,
+    })).resolves.toBe('gemini description');
+    expect(mockDescribeAudioSceneWithGemini).toHaveBeenCalledTimes(1);
+    expect(mockDescribeAudioSceneWithGemini).toHaveBeenCalledWith({
+      media, additionalPrompt: 'trusted additional prompt', signal: controller.signal, logger,
+    });
+    expect(mockChatCompletions).not.toHaveBeenCalled();
+
+    mockDescribeAudioSceneWithGemini.mockResolvedValue({ status: 'no-description' });
+    await expect(analyzeWithProvider({ kind: 'audioScene', media })).resolves.toEqual({ status: 'no-description' });
+
+    await expect(analyzeWithProvider({ kind: 'vision', media: { imageBase64: 'aW1hZ2U=' } })).resolves.toBe('provider text');
+    expect(mockChatCompletions).toHaveBeenCalledTimes(1);
+  });
+
+  test('providerがgeminiでもOpenAIが無効ならリクエストを作らずnullを返す', async () => {
+    mockGetAudioSceneProvider.mockReturnValue('gemini');
+    mockGetOpenAIClients.mockReturnValue(null);
+    await expect(analyzeWithProvider({ kind: 'audioScene', media: { audioBuffer: Buffer.from('audio') } })).resolves.toBeNull();
+    expect(mockDescribeAudioSceneWithGemini).not.toHaveBeenCalled();
   });
 
   test.each([
@@ -105,14 +182,36 @@ describe('AI解析用の外部サービス呼出', () => {
     expect(mockChatCompletions).toHaveBeenCalledTimes(1);
   });
 
-  test.each(['{}', '{"値":null}', '{"値":" "}', JSON.stringify({ value: 'あ'.repeat(301) })])(
-    '音解析の抽出後の空文と上限超過を拒否する', async (output) => {
+  test.each(['', ' \n ', '{}', '{"値":null}', '{"値":" "}', '```json\n{}\n```'])(
+    '音解析の空応答と抽出後の空文は説明なしの内部結果にする: %s', async (output) => {
       mockChatCompletions.mockResolvedValue(output);
       await expect(analyzeWithProvider({
         kind: 'audioScene', media: { audioBuffer: Buffer.from('audio') },
-      })).rejects.toMatchObject({ code: 'AI_ANALYSIS_OUTPUT_INVALID' });
+      })).resolves.toEqual({ status: 'no-description' });
+      expect(mockChatCompletions).toHaveBeenCalledTimes(1);
     }
   );
+
+  test.each([null, undefined, {}, 0])('音解析の壊れた応答を説明なしにしない', async (output) => {
+    mockChatCompletions.mockResolvedValue(output);
+    await expect(analyzeWithProvider({
+      kind: 'audioScene', media: { audioBuffer: Buffer.from('audio') },
+    })).rejects.toMatchObject({ code: 'AI_ANALYSIS_OUTPUT_INVALID', reason: 'non_string' });
+  });
+
+  test('音解析の抽出後の上限超過は従来どおり拒否する', async () => {
+    mockChatCompletions.mockResolvedValue(JSON.stringify({ value: 'あ'.repeat(301) }));
+    await expect(analyzeWithProvider({
+      kind: 'audioScene', media: { audioBuffer: Buffer.from('audio') },
+    })).rejects.toMatchObject({ code: 'AI_ANALYSIS_OUTPUT_INVALID', reason: 'too_long' });
+  });
+
+  test('音解析のOpenAI通信失敗は説明なしにせず伝える', async () => {
+    mockChatCompletions.mockRejectedValue(new Error('unavailable'));
+    await expect(analyzeWithProvider({
+      kind: 'audioScene', media: { audioBuffer: Buffer.from('audio') },
+    })).rejects.toThrow('unavailable');
+  });
 
   test('他の解析と文字起こしのJSON風本文は変換しない', async () => {
     const output = '{"記録":"本文"}';

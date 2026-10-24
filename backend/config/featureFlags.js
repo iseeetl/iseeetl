@@ -29,6 +29,7 @@ const EXTERNAL_LINE_LOGIN_ENABLED = 'EXTERNAL_LINE_LOGIN_ENABLED';
 const EXTERNAL_ONESIGNAL_ENABLED = 'EXTERNAL_ONESIGNAL_ENABLED';
 const EXTERNAL_GOOGLE_ANALYTICS_ENABLED = 'EXTERNAL_GOOGLE_ANALYTICS_ENABLED';
 const EXTERNAL_MAIL_DELIVERY_ENABLED = 'EXTERNAL_MAIL_DELIVERY_ENABLED';
+const EXTERNAL_GEMINI_ENABLED = 'EXTERNAL_GEMINI_ENABLED';
 const EXTERNAL_FLAG_NAMES = Object.freeze([
   EXTERNAL_OPENAI_ENABLED,
   EXTERNAL_GOOGLE_TRANSLATE_ENABLED,
@@ -37,7 +38,10 @@ const EXTERNAL_FLAG_NAMES = Object.freeze([
   EXTERNAL_ONESIGNAL_ENABLED,
   EXTERNAL_GOOGLE_ANALYTICS_ENABLED,
   EXTERNAL_MAIL_DELIVERY_ENABLED,
+  EXTERNAL_GEMINI_ENABLED,
 ]);
+const AUDIO_SCENE_PROVIDER_ENV = 'AUDIO_SCENE_PROVIDER';
+const AUDIO_SCENE_PROVIDERS = Object.freeze(['openai', 'gemini']);
 const EXPLICIT_FLAG_REQUIRED_ENVIRONMENTS = new Set(['staging', 'production']);
 
 let initializedRuntime = null;
@@ -293,6 +297,34 @@ const resolveGoogleAnalytics = (env) => {
   });
 };
 
+// Geminiは音解析（audioScene）の呼び先を替えるだけで、公開Capabilityには含めない。
+// AI解析の実行可否は従来どおりopenaiAnalysisで決まる。
+const resolveGemini = (env) =>
+  resolveExplicitProvider({
+    capability: 'audioSceneProvider',
+    flagName: EXTERNAL_GEMINI_ENABLED,
+    env,
+    requiredNames: ['GEMINI_API_KEY', 'GEMINI_AUDIO_MODEL'],
+    buildConfig: () => ({
+      apiKey: readEnv(env, 'GEMINI_API_KEY'),
+      models: Object.freeze({
+        audioScene: readEnv(env, 'GEMINI_AUDIO_MODEL'),
+      }),
+    }),
+  });
+
+// AUDIO_SCENE_PROVIDERは未設定ならopenai。geminiはEXTERNAL_GEMINI_ENABLED=trueのときだけ許可する。
+const resolveAudioScene = (env, gemini = resolveGemini(env)) => {
+  const value = readEnv(env, AUDIO_SCENE_PROVIDER_ENV) || 'openai';
+  if (!AUDIO_SCENE_PROVIDERS.includes(value)) {
+    throw invalidConfiguration('audioSceneProvider', [AUDIO_SCENE_PROVIDER_ENV]);
+  }
+  if (value === 'gemini' && !gemini.enabled) {
+    throw invalidConfiguration('audioSceneProvider', [AUDIO_SCENE_PROVIDER_ENV, EXTERNAL_GEMINI_ENABLED]);
+  }
+  return Object.freeze({ provider: value, geminiEnabled: gemini.enabled });
+};
+
 const resolveFeatureConfiguration = (env = process.env) => {
   const openai = resolveOpenAI(env);
   const googleTranslate = resolveGoogleTranslate(env);
@@ -301,6 +333,8 @@ const resolveFeatureConfiguration = (env = process.env) => {
   const mailDelivery = resolveMailDelivery(env);
   const oneSignalPush = resolveOneSignalPush(env);
   const analytics = resolveGoogleAnalytics(env);
+  const gemini = resolveGemini(env);
+  const audioScene = resolveAudioScene(env, gemini);
 
   const capabilities = Object.freeze({
     googleLogin: googleLogin.enabled,
@@ -320,6 +354,8 @@ const resolveFeatureConfiguration = (env = process.env) => {
     oneSignalPush: oneSignalPush.config,
     googleTranslate: googleTranslate.config,
     openai: openai.config,
+    gemini: gemini.config,
+    audioScene,
     analytics: Object.freeze({
       measurementId: analytics.measurementId,
       userIdSecret: analytics.userIdSecret,
@@ -385,6 +421,12 @@ const getGoogleTranslateConfig = () =>
   getProviderConfig('googleTranslate', (env) => resolveGoogleTranslate(env).config);
 const getOpenAIConfig = () =>
   getProviderConfig('openai', (env) => resolveOpenAI(env).config);
+const getGeminiConfig = () =>
+  getProviderConfig('gemini', (env) => resolveGemini(env).config);
+const isGeminiEnabled = () =>
+  getProviderConfig('audioScene', (env) => resolveAudioScene(env)).geminiEnabled;
+const getAudioSceneProvider = () =>
+  getProviderConfig('audioScene', (env) => resolveAudioScene(env)).provider;
 
 // 既存の呼び出し名との互換性を保ち、OpenAIの文字起こしが有効かどうかを返す。
 const isOpenAIEnabled = isOpenAITranscriptionEnabled;
@@ -402,7 +444,9 @@ module.exports = {
   EXTERNAL_ONESIGNAL_ENABLED,
   EXTERNAL_GOOGLE_ANALYTICS_ENABLED,
   EXTERNAL_MAIL_DELIVERY_ENABLED,
+  EXTERNAL_GEMINI_ENABLED,
   EXTERNAL_FLAG_NAMES,
+  AUDIO_SCENE_PROVIDERS,
   resolveRequiredEnvGroup,
   buildCapabilities,
   initializeFeatureConfiguration,
@@ -414,6 +458,9 @@ module.exports = {
   getOneSignalConfig,
   getGoogleTranslateConfig,
   getOpenAIConfig,
+  getGeminiConfig,
+  getAudioSceneProvider,
+  isGeminiEnabled,
   isLineLoginEnabled,
   isOneSignalEnabled,
   isMailDeliveryEnabled,

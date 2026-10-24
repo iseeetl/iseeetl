@@ -67,8 +67,12 @@ const withPreparedAnalysisInput = async (
       );
     }
 
+    // 波形判定は音解析だけに付け、文字起こしには付けない。
+    const includeAcousticProfile = kind === 'audioScene';
     if (source?.audio_name) {
-      return await callback(await prepareAudioFileForAnalysis({ filePath, workspace, signal }));
+      return await callback(
+        await prepareAudioFileForAnalysis({ filePath, workspace, signal, includeAcousticProfile })
+      );
     }
 
     const video = await prepareVideoSource({ filePath, workspace, streamType: 'audio', signal });
@@ -79,6 +83,7 @@ const withPreparedAnalysisInput = async (
         streamIndex: video.streamIndex,
         workspace,
         signal,
+        includeAcousticProfile,
       })
     );
   } catch (error) {

@@ -1,7 +1,18 @@
+const { getAudioSceneProvider } = require('../../config/featureFlags');
+const defaultLogger = require('../../utils/logger');
 const { getOpenAIClients, PROMPTS } = require('./runtime');
+const { describeAcousticProfile } = require('./acousticProfile');
+const { describeAudioSceneWithGemini } = require('./audioSceneGemini');
 
 const MAX_PROVIDER_CODE_POINTS = 300;
 const MAX_COMPLETION_TOKENS = 500;
+
+const createAbortError = () => {
+  const error = new Error('Audio analysis aborted');
+  error.name = 'AbortError';
+  error.code = 'ABORT_ERR';
+  return error;
+};
 
 const invalidOutput = (reason) => {
   const error = new Error('OpenAI analysis output is invalid');
@@ -134,6 +145,8 @@ const buildConversationMessages = ({ sourceText, language, additionalPrompt }) =
 // conversationではsourceTextを使う。languageはspeechの音声言語とconversationの出力言語を指定する。
 // 検証済みの追加指示はadditionalPromptで渡し、signalで中止できる。
 // 解析結果の文字列を返す。OpenAIが無効な場合はnullを返す。
+// speechは{ status: 'no-speech' }、audioSceneは{ status: 'no-sound' }（デジタル無音）または
+// { status: 'no-description' }（空応答・使えない出力・Gemini経路の失敗）を返す場合がある。
 const analyzeWithProvider = async ({
   kind,
   sourceText,
@@ -141,9 +154,33 @@ const analyzeWithProvider = async ({
   additionalPrompt = '',
   media,
   signal,
+  logger = defaultLogger,
 } = {}) => {
   const clients = getOpenAIClients();
   if (!clients) return null;
+
+  if (kind === 'audioScene') {
+    requireMedia(Buffer.isBuffer(media?.audioBuffer) && media.audioBuffer.length > 0);
+    if (signal?.aborted) throw createAbortError();
+    // 波形で確定した無音・持続音は外部モデルに推測させない。
+    const profile = media.acousticProfile;
+    if (profile?.kind === 'digital-silence') return { status: 'no-sound' };
+    const measured = describeAcousticProfile(profile);
+    if (measured) return measured;
+    if (getAudioSceneProvider() === 'gemini') {
+      return describeAudioSceneWithGemini({ media, additionalPrompt, signal, logger });
+    }
+    const text = await clients.openAIChat.chatCompletions({
+      model: clients.models.audioScene,
+      messages: buildAudioSceneMessages({ ...media, additionalPrompt }),
+      max_completion_tokens: MAX_COMPLETION_TOKENS,
+      modalities: ['text'],
+      signal,
+    });
+    const extracted = extractAudioSceneText(text);
+    if (typeof extracted === 'string' && !extracted.trim()) return { status: 'no-description' };
+    return normalizeProviderText(extracted);
+  }
 
   if (kind === 'speech') {
     requireMedia(Buffer.isBuffer(media?.audioBuffer) && media.audioBuffer.length > 0);
@@ -162,7 +199,6 @@ const analyzeWithProvider = async ({
   let messages;
   if (kind === 'vision') messages = buildVisionMessages({ ...media, additionalPrompt });
   else if (kind === 'video') messages = buildVideoMessages({ ...media, additionalPrompt });
-  else if (kind === 'audioScene') messages = buildAudioSceneMessages({ ...media, additionalPrompt });
   else if (kind === 'conversation') {
     messages = buildConversationMessages({ sourceText, language, additionalPrompt });
   } else {
@@ -175,10 +211,9 @@ const analyzeWithProvider = async ({
     model: clients.models[kind],
     messages,
     max_completion_tokens: MAX_COMPLETION_TOKENS,
-    ...(kind === 'audioScene' ? { modalities: ['text'] } : {}),
     signal,
   });
-  return normalizeProviderText(kind === 'audioScene' ? extractAudioSceneText(text) : text);
+  return normalizeProviderText(text);
 };
 
 module.exports = {

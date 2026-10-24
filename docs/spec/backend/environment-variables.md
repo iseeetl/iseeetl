@@ -138,6 +138,22 @@
 - モデルを変更するときは、画像・動画・音声の状況解析・本文解析で使用するChat Completions API、文字起こしで使用するAudio Transcriptions APIの入力形式・パラメータに対応するモデルを選ぶ。起動時の検証は設定の有無を対象とし、モデルの利用可否やAPI互換性は検証しない。解析対象と制限は[AI解析設定・実行仕様](../ai-analysis.md#解析種別)を参照する。
 - 自動解析の失敗は投稿・返信の保存を取り消さず、errorログを出して解析結果なしで継続する。
 
+#### Gemini音解析
+
+| 変数 | 区分 | 用途 |
+| --- | --- | --- |
+| `EXTERNAL_GEMINI_ENABLED` | 機能判定 | `true`／`false`でGemini音解析の有効化・無効化 |
+| `GEMINI_API_KEY` | 有効時必須 | Gemini `generateContent` APIの認証（`x-goog-api-key`） |
+| `GEMINI_AUDIO_MODEL` | 有効時必須 | 音声の状況解析（`audioScene`）に使うGeminiモデル |
+| `AUDIO_SCENE_PROVIDER` | 任意 | 音声の状況解析の呼び先。`openai`（既定）または`gemini` |
+
+- Geminiは音解析（`audioScene`）の呼び先を替えるだけで、AI解析の実行可否は`EXTERNAL_OPENAI_ENABLED`で決まる。OpenAIが無効なら`AUDIO_SCENE_PROVIDER=gemini`でも音解析を実行しない。画像・動画・本文解析と文字起こしはOpenAIのまま。
+- `false`ではAPIキーとモデルを評価せず、Geminiクライアントを作らない。local／Unit／Integration／E2Eでは未設定もfalseとして扱う。staging／productionではフラグの未設定、不正値を起動エラーとする。
+- `true`では`GEMINI_API_KEY`と`GEMINI_AUDIO_MODEL`を必須とし、不足する変数名を`EXTERNAL_FEATURE_CONFIG_INVALID`（capability `audioSceneProvider`）として起動を拒否する。
+- `AUDIO_SCENE_PROVIDER`は未設定・空白なら`openai`。`gemini`は`EXTERNAL_GEMINI_ENABLED=true`のときだけ指定でき、フラグが`false`のまま`gemini`を指定した場合と`openai`／`gemini`以外の値は起動エラーとする。
+- Geminiの有効状態は外部機能の有効状態API（8項目）と起動時の`[EXTERNAL_CAPABILITIES]`ログに含めない。
+- 設定は起動時に固定され、変更の反映にはバックエンドの再起動が必要。音解析の処理手順と送信内容は[AI解析設定・実行仕様](../ai-analysis.md#音解析の流れ)を参照する。
+
 #### 外部連携用v1 API
 
 | 変数 | 用途 |
@@ -245,10 +261,10 @@ E2Eには`backend/.env.e2e.example`を使い、`backend/.env.e2e`へコピーし
   後述する機能固有の規則で追加検証する場合がある。
 - `backend/bootstrap/runtimeConfig.js`が`MEDIA_PATH`、`PROFILE_PATH`へ起動時に末尾のディレクトリ区切りを補う。
 - 相対パスの静的配信ルートは`backend/`ディレクトリを基準に解決する。
-- 外部機能は7つの明示フラグで有効・無効を決める。`false`では残存する外部サービス設定を検証せず、クライアントを作成せず、外部通信しない。`true`では必要設定を検証し、不足・不正があればHTTP受付開始前に起動を停止する。
+- 外部機能は8つの明示フラグで有効・無効を決める。`false`では残存する外部サービス設定を検証せず、クライアントを作成せず、外部通信しない。`true`では必要設定を検証し、不足・不正があればHTTP受付開始前に起動を停止する。
 - 外部機能の有効状態、検証済み外部サービス設定、メール・LINE・通知で使用するフロントエンド URLはバックエンド起動時に
   固定される。値を変更した場合はバックエンドプロセスを再起動する。
-- 起動時は8つの外部機能の項目名と`enabled`／`disabled`だけを1行で出力する。外部サービス設定値、秘密値、接続成否は出力しない。
+- 起動時は8つの外部機能の項目名と`enabled`／`disabled`だけを1行で出力する。外部サービス設定値、秘密値、接続成否は出力しない。Gemini音解析は音解析の呼び先の切替であり、この項目には含めない。
 - フロントエンドへ公開する有効状態は[外部機能の有効状態API](api/capabilities.md)を参照する。
 
 #### 外部機能の有効化フラグ
@@ -262,11 +278,12 @@ E2Eには`backend/.env.e2e.example`を使い、`backend/.env.e2e`へコピーし
 | `EXTERNAL_ONESIGNAL_ENABLED` | OneSignalプッシュ通知 |
 | `EXTERNAL_GOOGLE_ANALYTICS_ENABLED` | Google Analytics |
 | `EXTERNAL_MAIL_DELIVERY_ENABLED` | メール送信 |
+| `EXTERNAL_GEMINI_ENABLED` | Gemini音解析（音解析の呼び先の切替。有効状態APIには含めない） |
 
 - 許可値は小文字の`true`または`false`だけである。
 - development、test、`NODE_ENV`未設定ではフラグ未設定を`false`として扱う。staging、productionでは未設定または`TRUE`、`1`等の不正値を起動エラーとする。
 - `false`では対象外部サービスのID、秘密値、接続先、上限値が残っていても評価しない。
-- 1つの`EXTERNAL_OPENAI_ENABLED`から`openaiTranscription`と`openaiAnalysis`の2つの機能を決めるため、外部機能の有効状態APIは8項目である。
+- 1つの`EXTERNAL_OPENAI_ENABLED`から`openaiTranscription`と`openaiAnalysis`の2つの機能を決めるため、外部機能の有効状態APIは8項目である。`EXTERNAL_GEMINI_ENABLED`は音解析の呼び先を替えるだけで、有効状態APIの項目を増やさない。
 
 #### 本番環境で認証機能を無効化する前の確認
 

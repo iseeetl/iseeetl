@@ -45,7 +45,7 @@
 
 - MongoDBとメディアの保存容量、メモリ、CPU、ネットワーク帯域を、データ量と同時利用者数に応じて確保する。
 - 全件ダウンロードと大容量アップロードをリバースプロキシや保存領域の上限より小さく制限する場合は、アプリケーション仕様との整合を確認する。
-- Google Translateの文字数上限、OpenAI、OneSignalなど外部APIの利用上限と費用を環境ごとに管理する。
+- Google Translateの文字数上限、OpenAI、Gemini（Google）、OneSignalなど外部APIの利用上限と費用を環境ごとに管理する。
 
 ### 可用性・復旧
 
@@ -57,7 +57,7 @@
 - MongoDB接続に成功した後だけHTTP／Socket.IOの受付を開始し、接続失敗時は終了する。
 - `SIGINT`、`SIGUSR2`、`SIGTERM`では一度だけHTTPの新規受付を止め、バックグラウンド処理へ中止を通知して完了を待ち、Socket.IO、HTTP、MongoDBを閉じる。終了猶予は10秒で、完了待ちに失敗した場合はAI解析用の一時メディアを削除し、終了コード1とする。
 - 稼働・受付可能状態を確認する専用エンドポイントはない。
-- Google TranslateとOpenAI自動解析の失敗は原文の投稿・更新を継続する。OpenAI文字起こしはAPIエラーとし、OneSignal失敗は呼出元へ伝播しない。
+- Google TranslateとOpenAI／Gemini自動解析の失敗は原文の投稿・更新を継続する。Gemini音解析の失敗は「音の説明を生成できませんでした。」の固定文を保存する。OpenAI文字起こしはAPIエラーとし、OneSignal失敗は呼出元へ伝播しない。
 
 #### 運用環境での準備
 
@@ -168,7 +168,7 @@
 
 #### アプリケーションの動作
 
-- LINEログイン、Googleログイン、メール、OneSignal、Google Translate、OpenAI、Google Analyticsは、明示フラグで有効化する。有効化時に必要な設定が不足・不正なら起動を拒否する。
+- LINEログイン、Googleログイン、メール、OneSignal、Google Translate、OpenAI、Gemini（Google）、Google Analyticsは、明示フラグで有効化する。有効化時に必要な設定が不足・不正なら起動を拒否する。Geminiは音解析（`audioScene`）の呼び先の切替にだけ使い、有効化にはOpenAIの有効化も必要である。
 - メール無効時のユーザ登録・パスワード再設定メールの送信要求は503となり、仮ユーザや再設定トークンを作成しない。トークンのログ出力による代替も行わない。
 - Google Translateには月間文字数上限を設定できる。AI解析モデルは解析種別ごとの環境変数で指定する。
 - OneSignalのAPI／通信失敗は呼出元へ伝播せず、再試行しない。翻訳・自動解析の失敗時の扱いは前述の「可用性・復旧」に従う。

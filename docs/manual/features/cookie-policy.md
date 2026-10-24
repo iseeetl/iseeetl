@@ -49,7 +49,9 @@ Google Analyticsでイベント単位・利用者単位に保存されるデー�
 
 ## 第三者サービスへの送信
 
-Cookieポリシーは、Google Analytics、Google Fonts、Google／LINEログイン、OneSignal、Google Cloud Translation、OpenAI、メール配信サービス、Xへの共有、iOSの共有機能について、送信する情報の区分、目的、送信される場面を一覧で説明します。
+Cookieポリシーは、Google Analytics、Google Fonts、Google／LINEログイン、OneSignal、Google Cloud Translation、OpenAI、Google（Gemini API）、メール配信サービス、Xへの共有、iOSの共有機能について、送信する情報の区分、目的、送信される場面を一覧で説明します。
+
+AI機能では、画像・動画の解析と文字起こし、質問への回答にOpenAIのAPIを、音の解析にGoogleのGemini API（有料プラン）を利用します。Cookieポリシーは、両社への送信が事業者向けのAPI契約に基づく利用で、送信内容が各社のモデルの学習や改善には使われないこと、不正利用の監視のためにOpenAIは最長30日、Googleは55日の間、送信内容を保持することがあることを説明します。翻訳に利用するGoogle Cloud Translationとは別のサービスとして記載します。
 
 ログインや共有など、利用者が開始する機能は、その操作を選択した場合に認証情報や共有内容を送信します。Googleログインの選択肢を表示する画面、フォント表示、プッシュ通知などでは、機能の提供に伴う通信が発生する場合があります。
 
