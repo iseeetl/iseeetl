@@ -116,7 +116,13 @@ describe('AI解析用のメディア準備', () => {
     await expect(
       withPreparedAnalysisInput({ kind, mediaRoot: MEDIA_ROOT, source }, callback)
     ).resolves.toBe('result');
-    expect(mockPrepareAudioFileForAnalysis).toHaveBeenCalled();
+    expect(mockPrepareAudioFileForAnalysis).toHaveBeenCalledTimes(1);
+    expect(mockPrepareAudioFileForAnalysis).toHaveBeenCalledWith({
+      filePath: SAFE_SOURCE_PATH,
+      workspace: TEMP_WORKSPACE,
+      signal: undefined,
+      includeAcousticProfile: kind === 'audioScene',
+    });
     expect(callback).toHaveBeenCalledWith(
       expect.objectContaining({ audioBuffer: expect.any(Buffer), audioFileName: 'audio.mp3' })
     );
@@ -152,7 +158,9 @@ describe('AI解析用のメディア準備', () => {
       expect.objectContaining({ streamType: 'audio' })
     );
     expect(mockExtractVideoAudioForAnalysis).toHaveBeenCalledWith(
-      expect.objectContaining({ videoPath: VIDEO_SOURCE_PATH, streamIndex: 2 })
+      expect.objectContaining({
+        videoPath: VIDEO_SOURCE_PATH, streamIndex: 2, includeAcousticProfile: kind === 'audioScene',
+      })
     );
     expect(mockExtractVideoFramesForAnalysis).not.toHaveBeenCalled();
     expect(callback).toHaveBeenCalledWith({ audioBuffer: Buffer.from('video-audio'), audioFileName: 'audio.mp3' });

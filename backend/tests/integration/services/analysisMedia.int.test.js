@@ -56,6 +56,14 @@ describe('動画からAI解析用の映像・音声を抽出する', () => {
     ]);
     await runFfmpeg(['-i', multiPath, '-map', '0:v:0', '-c', 'copy', path.join(roomDir, 'silent.mov')]);
     await runFfmpeg(['-i', multiPath, '-map', '0:a:1', '-c', 'copy', path.join(roomDir, 'audio-only.mov')]);
+    for (const [name, filter] of [
+      ['tone', 'sine=frequency=880:sample_rate=16000:duration=3'],
+      ['zero', 'anullsrc=r=16000:cl=mono'],
+    ]) {
+      await runFfmpeg([
+        '-f', 'lavfi', '-i', filter, '-t', '3', '-c:a', 'libmp3lame', '-b:a', '128k', path.join(roomDir, `${name}.mp3`),
+      ]);
+    }
   }, 60000);
 
   afterEach(async () => {
@@ -130,6 +138,36 @@ describe('動画からAI解析用の映像・音声を抽出する', () => {
     callback.mockClear();
     await expect(prepare('video', 'audio-only.mov', callback)).resolves.toBeNull();
     expect(callback).not.toHaveBeenCalled();
+  });
+
+  test.each([
+    ['zero.mp3', { kind: 'digital-silence', peakDbfs: -200, rmsDbfs: -200, lowLevel: true }],
+    ['tone.mp3', { kind: 'steady-tone', frequencyHz: 880, lowLevel: false }],
+  ])('MP3の実変換後に%sの波形を確認し、元ファイルを変更しない', async (audioName, expected) => {
+    const before = await fs.promises.readFile(path.join(roomDir, audioName));
+    const callback = jest.fn(async (media) => {
+      expect(media.audioFileName).toBe('audio.mp3');
+      expect(media.audioBuffer.length).toBeGreaterThan(0);
+      expect(media.acousticProfile).toEqual(expect.objectContaining(expected));
+      return 'prepared';
+    });
+    await expect(withPreparedAnalysisInput({
+      kind: 'audioScene', mediaRoot, source: { ...source, audio_name: audioName },
+    }, callback)).resolves.toBe('prepared');
+    expect(callback).toHaveBeenCalledTimes(1);
+    expect(await fs.promises.readFile(path.join(roomDir, audioName))).toEqual(before);
+  });
+
+  test('文字起こしには波形判定を付けない', async () => {
+    const callback = jest.fn(async (media) => {
+      expect(media.audioBuffer.length).toBeGreaterThan(0);
+      expect(media).not.toHaveProperty('acousticProfile');
+      return 'prepared';
+    });
+    await expect(withPreparedAnalysisInput({
+      kind: 'speech', mediaRoot, source: { ...source, audio_name: 'tone.mp3' },
+    }, callback)).resolves.toBe('prepared');
+    expect(callback).toHaveBeenCalledTimes(1);
   });
 
   test('破損した動画を処理できなければ失敗を返し、一時ファイルを残さない', async () => {

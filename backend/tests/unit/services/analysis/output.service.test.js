@@ -1,5 +1,6 @@
 const {
   MAX_SUPPLEMENT_UTF16_UNITS,
+  NOTICE_MESSAGES,
   buildAnalysisSupplement,
   truncateSpeechWithPrefix,
 } = require('../../../../services/analysis/output.service');
@@ -38,6 +39,56 @@ describe('AI解析結果の整形', () => {
     expect(contents.some((text) => text.endsWith('発話を検出できませんでした'))).toBe(true);
     expect(contents.some((text) => text.endsWith('No speech was detected.'))).toBe(true);
     if (lang !== 'fr') expect(translateContent).not.toHaveBeenCalled();
+  });
+
+  test.each([
+    ['no-sound', '解析用の音声データは無音です。音源や周囲の状況は判断できません。',
+      'The audio data contains no sound. The source or surroundings cannot be determined.'],
+    ['no-description', '音の説明を生成できませんでした。', 'Could not generate a description of the sounds.'],
+  ])('音解析の%sは翻訳サービスが使えなくても日英の固定文を保存する', async (status, ja, en) => {
+    expect(NOTICE_MESSAGES[status]).toEqual({ ja, en });
+    for (const lang of ['ja', 'en', 'fr']) {
+      const translateContent = jest.fn().mockRejectedValue(new Error('unavailable'));
+      const value = await buildAnalysisSupplement({
+        snapshot: snapshot({ kind: 'audioScene', source: { _id: 'post-1', lang }, targetLangs: [] }),
+        providerOutput: { status }, translateContent, logger: logger(),
+      });
+      expect(value.lang).toBe(lang === 'ja' ? 'ja' : 'en');
+      expect(value.content).toBe(lang === 'ja' ? `#相談 ${ja}` : `#Advice ${en}`);
+      const contents = [value.content, ...value.translations.map((entry) => entry.content)];
+      expect(contents).toContain(`#相談 ${ja}`);
+      expect(contents).toContain(`#Advice ${en}`);
+      expect(value.meta.analysis_kind).toBe('audioScene');
+      if (lang !== 'fr') expect(translateContent).not.toHaveBeenCalled();
+      else expect(translateContent).toHaveBeenCalledWith('user-1', en, 'en', ['fr'], expect.objectContaining({ field: 'body' }));
+    }
+  });
+
+  test('音解析の固定文は日英以外を翻訳経路で補い、翻訳本文を保存する', async () => {
+    const translateContent = jest.fn().mockResolvedValue([{ lang: 'fr-FR', content: 'Aucun son.' }]);
+    const value = await buildAnalysisSupplement({
+      snapshot: snapshot({ kind: 'audioScene', source: { _id: 'post-1', lang: 'ja' } }),
+      providerOutput: { status: 'no-sound' }, translateContent, logger: logger(),
+    });
+    expect(value.lang).toBe('ja');
+    expect(translateContent).toHaveBeenCalledWith(
+      'user-1', '解析用の音声データは無音です。音源や周囲の状況は判断できません。', 'ja', ['fr-FR'], expect.any(Object)
+    );
+    expect(value.translations).toEqual([
+      expect.objectContaining({ lang: 'en', content: '#Advice The audio data contains no sound. The source or surroundings cannot be determined.' }),
+      expect.objectContaining({ lang: 'fr-FR', content: '#Conseil Aucun son.' }),
+    ]);
+  });
+
+  test.each([
+    ['speech', 'no-sound'], ['speech', 'no-description'],
+    ['conversation', 'no-sound'], ['vision', 'no-description'], ['video', 'no-sound'],
+    ['audioScene', 'unknown-status'],
+  ])('%sに%sの内部結果を流用しない', async (kind, status) => {
+    const log = logger();
+    await expect(buildAnalysisSupplement({ snapshot: snapshot({ kind }), providerOutput: { status }, logger: log }))
+      .resolves.toBeNull();
+    expect(log.error).toHaveBeenCalledWith('AI_ANALYSIS_OUTPUT_INVALID', expect.objectContaining({ reason: 'empty' }));
   });
 
   test.each(['conversation', 'vision', 'video', 'audioScene'])('他の種別に未検出結果を流用しない: %s', async (kind) => {

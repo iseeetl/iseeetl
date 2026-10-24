@@ -14,10 +14,11 @@
 
 ### 外部連携の有効条件と失敗時の動作
 
-LINE／Google認証、メール、Google Translate、OpenAI、OneSignal、Google Analyticsは、明示フラグと
+LINE／Google認証、メール、Google Translate、OpenAI、Gemini（Google）、OneSignal、Google Analyticsは、明示フラグと
 起動時の必須設定検証で有効化条件を統一している。一方、呼出失敗時の扱いは機能ごとに異なる。
 タイムアウトや再試行は個別実装に従い、共通の監視指標・アラートは設けていない。OneSignalは呼出元が送信成否を確定できない。
-AI解析モデルは解析種別ごとの環境変数で指定する。
+AI解析モデルは解析種別ごとの環境変数で指定する。音解析（`audioScene`）だけは`AUDIO_SCENE_PROVIDER`でOpenAIとGeminiを切り替えられ、
+Gemini経路の2回の呼び出しがともに失敗した場合は`AI_ANALYSIS_PROVIDER_FAILED`をERRORで記録して固定文を保存する。
 現行の有効化条件は[環境変数](environment-variables.md)、AI解析の境界は[AI解析設定・実行仕様](../ai-analysis.md)を参照する。
 
 Google翻訳APIの失敗と利用量管理のDB障害は、共通の翻訳処理でERRORとして記録する。ログには処理名、対象言語、失敗理由と取得できたエラーコード・種別・HTTPステータス・リクエストIDを含め、本文・翻訳結果・例外メッセージは出力しない。AI解析からの翻訳には投稿ID・返信ID・解析設定ID・解析種別・本文とタイトルの区別も付ける。翻訳の失敗だけでは原文の保存を取り消さず、成功した言語の翻訳も保持する。

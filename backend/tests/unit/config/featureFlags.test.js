@@ -5,6 +5,9 @@ const {
   initializeFeatureConfiguration,
   getCapabilities,
   getGoogleLoginConfig,
+  getGeminiConfig,
+  getAudioSceneProvider,
+  isGeminiEnabled,
   isGoogleLoginEnabled,
 } = require('../../../config/featureFlags');
 const { OPENAI_MODEL_ENV } = require('../../_helpers/openai');
@@ -39,7 +42,7 @@ const buildAllEnabledEnv = () => ({
   LINE_LOGIN_REDIRECT_URI: 'https://app.example.invalid/api/auth/line/callback',
   SEND_MAIL_HOST: 'smtp.example.invalid',
   SEND_MAIL_PORT: '587',
-  NO_REPLY_MAIL: 'noreply@example.invalid',
+  NO_REPLY_MAIL: ['no-reply', 'example.invalid'].join('@'),
   VUE_APP_APPNAME: 'Test App',
   VUE_APP_APPURL: 'https://app.example.invalid',
   ONESIGNAL_APP_ID: 'onesignal-app-id',
@@ -52,6 +55,10 @@ const buildAllEnabledEnv = () => ({
   ...OPENAI_MODEL_ENV,
   GA4_MEASUREMENT_ID: 'G-UNITTEST01',
   GA4_USER_ID_SECRET: 'ga4-dummy-user-id-secret-32-bytes-minimum',
+  EXTERNAL_GEMINI_ENABLED: 'true',
+  GEMINI_API_KEY: 'dummy',
+  GEMINI_AUDIO_MODEL: 'test-gemini-audio-model',
+  AUDIO_SCENE_PROVIDER: 'gemini',
 });
 
 const CAPABILITY_BY_FLAG = Object.freeze({
@@ -62,6 +69,7 @@ const CAPABILITY_BY_FLAG = Object.freeze({
   EXTERNAL_ONESIGNAL_ENABLED: 'oneSignalPush',
   EXTERNAL_GOOGLE_ANALYTICS_ENABLED: 'googleAnalytics',
   EXTERNAL_MAIL_DELIVERY_ENABLED: 'mailDelivery',
+  EXTERNAL_GEMINI_ENABLED: 'audioSceneProvider',
 });
 
 describe('外部機能の有効状態と設定検証', () => {
@@ -289,7 +297,7 @@ describe('外部機能の有効状態と設定検証', () => {
         EXTERNAL_MAIL_DELIVERY_ENABLED: 'true',
         SEND_MAIL_HOST: 'smtp.example.invalid',
         SEND_MAIL_PORT: port,
-        NO_REPLY_MAIL: 'noreply@example.invalid',
+        NO_REPLY_MAIL: ['no-reply', 'example.invalid'].join('@'),
         VUE_APP_APPNAME: 'Test App',
       })).toThrow('Invalid external feature configuration for mailDelivery: SEND_MAIL_PORT');
     }
@@ -430,5 +438,109 @@ describe('外部機能の有効状態と設定検証', () => {
     expect(() => getCapabilities()).toThrow(
       'Invalid external feature configuration for googleTranslate: GOOGLE_PROJECT_ID, GOOGLE_TRANSLATE_API_LIMIT'
     );
+  });
+
+  describe('Gemini音解析の切替', () => {
+    const geminiEnv = (overrides = {}) => ({
+      NODE_ENV: 'test',
+      ...ALL_FLAGS_FALSE,
+      EXTERNAL_GEMINI_ENABLED: 'true',
+      GEMINI_API_KEY: 'dummy',
+      GEMINI_AUDIO_MODEL: 'test-gemini-audio-model',
+      AUDIO_SCENE_PROVIDER: 'gemini',
+      ...overrides,
+    });
+
+    test('未設定ではOpenAI経路を既定とし、Geminiを無効にする', () => {
+      const configuration = initializeFeatureConfiguration({ NODE_ENV: 'test', ...ALL_FLAGS_FALSE });
+      expect(configuration.privateConfig.audioScene).toEqual({ provider: 'openai', geminiEnabled: false });
+      expect(configuration.privateConfig.gemini).toBeNull();
+      expect(configuration.capabilities).toEqual(ALL_DISABLED);
+    });
+
+    test('Gemini有効でproviderがgeminiなら秘密設定を保持し、公開Capabilityへ出さない', () => {
+      const configuration = initializeFeatureConfiguration(geminiEnv());
+      expect(configuration.privateConfig.gemini).toEqual({
+        apiKey: 'dummy',
+        models: { audioScene: 'test-gemini-audio-model' },
+      });
+      expect(Object.isFrozen(configuration.privateConfig.gemini.models)).toBe(true);
+      expect(configuration.privateConfig.audioScene).toEqual({ provider: 'gemini', geminiEnabled: true });
+      expect(Object.keys(configuration.capabilities)).toEqual(CAPABILITY_KEYS);
+      expect(configuration.capabilities).toEqual(ALL_DISABLED);
+    });
+
+    test('Gemini有効でproviderを未設定にするとopenaiのまま有効化だけ行う', () => {
+      const configuration = initializeFeatureConfiguration(geminiEnv({ AUDIO_SCENE_PROVIDER: undefined }));
+      expect(configuration.privateConfig.audioScene).toEqual({ provider: 'openai', geminiEnabled: true });
+    });
+
+    test.each([
+      [['GEMINI_API_KEY'], ['GEMINI_API_KEY', 'GEMINI_AUDIO_MODEL']],
+      [['GEMINI_AUDIO_MODEL'], ['GEMINI_AUDIO_MODEL']],
+    ])('Gemini有効時は%sの欠落を変数名だけで拒否する', (missing, expectedNames) => {
+      const env = geminiEnv();
+      missing.forEach((name) => { delete env[name]; });
+      if (missing.length === 1 && missing[0] === 'GEMINI_API_KEY') delete env.GEMINI_AUDIO_MODEL;
+      expect.assertions(4);
+      try {
+        buildCapabilities(env);
+      } catch (error) {
+        expect(error.code).toBe('EXTERNAL_FEATURE_CONFIG_INVALID');
+        expect(error.capability).toBe('audioSceneProvider');
+        expect(error.envNames).toEqual(expectedNames);
+        expect(error.message).not.toContain('dummy');
+      }
+    });
+
+    test('providerがgeminiでフラグがfalseなら設定誤りとして拒否する', () => {
+      expect.assertions(3);
+      try {
+        buildCapabilities(geminiEnv({ EXTERNAL_GEMINI_ENABLED: 'false' }));
+      } catch (error) {
+        expect(error.code).toBe('EXTERNAL_FEATURE_CONFIG_INVALID');
+        expect(error.capability).toBe('audioSceneProvider');
+        expect(error.envNames).toEqual(['AUDIO_SCENE_PROVIDER', 'EXTERNAL_GEMINI_ENABLED']);
+      }
+    });
+
+    test.each(['openAI', 'GEMINI', 'azure', 'true'])('providerの不正値%sを値を出さず拒否する', (value) => {
+      expect.assertions(3);
+      try {
+        buildCapabilities(geminiEnv({ AUDIO_SCENE_PROVIDER: value }));
+      } catch (error) {
+        expect(error.capability).toBe('audioSceneProvider');
+        expect(error.envNames).toEqual(['AUDIO_SCENE_PROVIDER']);
+        expect(error.message).not.toContain(value);
+      }
+    });
+
+    test.each(['production', 'staging'])('%sではEXTERNAL_GEMINI_ENABLED未設定を拒否する', (nodeEnv) => {
+      const env = { NODE_ENV: nodeEnv, ...ALL_FLAGS_FALSE };
+      delete env.EXTERNAL_GEMINI_ENABLED;
+      expect(() => buildCapabilities(env)).toThrow(
+        'Invalid external feature configuration for audioSceneProvider: EXTERNAL_GEMINI_ENABLED'
+      );
+    });
+
+    test('未初期化の個別getterはGemini設定だけを評価する', () => {
+      process.env = geminiEnv({ EXTERNAL_GOOGLE_TRANSLATE_ENABLED: 'true' });
+      expect(getAudioSceneProvider()).toBe('gemini');
+      expect(isGeminiEnabled()).toBe(true);
+      expect(getGeminiConfig()).toEqual({ apiKey: 'dummy', models: { audioScene: 'test-gemini-audio-model' } });
+      expect(() => getCapabilities()).toThrow('Invalid external feature configuration for googleTranslate');
+    });
+
+    test('起動時初期化後はprocess.envの変更後もGemini設定を維持する', () => {
+      jest.isolateModules(() => {
+        process.env = geminiEnv();
+        const featureFlags = require('../../../config/featureFlags');
+        featureFlags.initializeFeatureConfiguration();
+        process.env.AUDIO_SCENE_PROVIDER = 'openai';
+        process.env.GEMINI_API_KEY = 'other';
+        expect(featureFlags.getAudioSceneProvider()).toBe('gemini');
+        expect(featureFlags.getGeminiConfig().apiKey).toBe('dummy');
+      });
+    });
   });
 });

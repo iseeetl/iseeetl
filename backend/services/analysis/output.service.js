@@ -3,10 +3,33 @@ const defaultLogger = require('../../utils/logger');
 const { errorLogDetails } = require('../../utils/errorLogDetails');
 const { makeLabelByLangFromTag, prefixWithLabel } = require('./labels');
 
-const NO_SPEECH_MESSAGES = Object.freeze({
-  ja: '発話を検出できませんでした',
-  en: 'No speech was detected.',
+// 外部サービスの本文ではなく、固定の案内として表示する内部結果。日英は翻訳サービスなしで保存する。
+const NOTICE_MESSAGES = Object.freeze({
+  'no-speech': Object.freeze({
+    ja: '発話を検出できませんでした',
+    en: 'No speech was detected.',
+  }),
+  'no-sound': Object.freeze({
+    ja: '解析用の音声データは無音です。音源や周囲の状況は判断できません。',
+    en: 'The audio data contains no sound. The source or surroundings cannot be determined.',
+  }),
+  'no-description': Object.freeze({
+    ja: '音の説明を生成できませんでした。',
+    en: 'Could not generate a description of the sounds.',
+  }),
 });
+// 解析種別ごとに受け付ける内部結果。他の種別や未知のstatusは無効な出力として扱う。
+const NOTICE_STATUSES_BY_KIND = Object.freeze({
+  speech: Object.freeze(['no-speech']),
+  audioScene: Object.freeze(['no-sound', 'no-description']),
+});
+
+const resolveNotice = (snapshot, providerOutput) => {
+  const status = providerOutput?.status;
+  if (typeof status !== 'string') return null;
+  const accepted = NOTICE_STATUSES_BY_KIND[snapshot.kind] || [];
+  return accepted.includes(status) ? status : null;
+};
 
 const MAX_PROVIDER_CODE_POINTS = 300;
 const MAX_SUPPLEMENT_UTF16_UNITS = 400;
@@ -51,9 +74,11 @@ const truncateSpeechWithPrefix = ({ label, text }) => {
 };
 
 const buildBaseContent = ({ snapshot, providerOutput, logger, startedAt = Date.now() }) => {
-  const noSpeech = snapshot.kind === 'speech' && providerOutput?.status === 'no-speech';
+  const notice = resolveNotice(snapshot, providerOutput);
+  // noSpeechは互換のために残す。固定の案内を表示する内部結果全般を指す。
+  const noSpeech = Boolean(notice);
   const noticeLang = snapshot.source.lang === 'ja' ? 'ja' : 'en';
-  const text = noSpeech ? NO_SPEECH_MESSAGES[noticeLang] : normalizeProviderOutput(providerOutput);
+  const text = notice ? NOTICE_MESSAGES[notice][noticeLang] : normalizeProviderOutput(providerOutput);
   if (!text) {
     logger.error('AI_ANALYSIS_OUTPUT_INVALID', analysisLogContext(snapshot, 'empty', startedAt));
     return null;
@@ -80,18 +105,19 @@ const buildBaseContent = ({ snapshot, providerOutput, logger, startedAt = Date.n
     }
     logger.warn('AI_ANALYSIS_OUTPUT_TRUNCATED', analysisLogContext(snapshot, 'base_utf16_units', startedAt));
   }
-  return { baseLang, content, text, noSpeech };
+  return { baseLang, content, text, noSpeech, notice };
 };
 
 const buildTranslations = async ({ snapshot, base, translateContent, logger, startedAt }) => {
-  const targets = [...new Set(base.noSpeech
+  const fixedMessages = base.notice ? NOTICE_MESSAGES[base.notice] : null;
+  const targets = [...new Set(fixedMessages
     ? [...snapshot.targetLangs, snapshot.source.lang, 'ja', 'en']
     : snapshot.targetLangs)].filter((lang) => lang && lang !== base.baseLang);
-  const fixedTranslations = base.noSpeech ? targets.filter((lang) => NO_SPEECH_MESSAGES[lang]).map((lang) => ({
+  const fixedTranslations = fixedMessages ? targets.filter((lang) => fixedMessages[lang]).map((lang) => ({
     user: snapshot.resultUserId, guest_id: null, lang,
-    content: prefixWithLabel(makeLabelByLangFromTag(snapshot.triggerTag)(lang), NO_SPEECH_MESSAGES[lang]),
+    content: prefixWithLabel(makeLabelByLangFromTag(snapshot.triggerTag)(lang), fixedMessages[lang]),
   })) : [];
-  const translationTargets = base.noSpeech ? targets.filter((lang) => !NO_SPEECH_MESSAGES[lang]) : targets;
+  const translationTargets = fixedMessages ? targets.filter((lang) => !fixedMessages[lang]) : targets;
   if (translationTargets.length === 0) return fixedTranslations;
 
   let translated;
@@ -189,6 +215,7 @@ const buildAnalysisSupplement = async ({
 module.exports = {
   MAX_PROVIDER_CODE_POINTS,
   MAX_SUPPLEMENT_UTF16_UNITS,
+  NOTICE_MESSAGES,
   buildAnalysisSupplement,
   buildBaseContent,
   normalizeProviderOutput,
