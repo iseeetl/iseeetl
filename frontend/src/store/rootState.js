@@ -37,6 +37,7 @@ export const createRootState = () => ({
   ariahidden: { appToolbar: false, appMenu: true, appView: false },
   inertAppContainer: false,
   error: { message: null },
+  roomAIVisibility: {},
   guestSoundTags: [],
   filters: {},
   tempRoomId: null,

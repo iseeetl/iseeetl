@@ -1,3 +1,4 @@
+import { clearTimelineSpeech } from '@/features/timeline/audio';
 import { expect } from 'vitest';
 import { shallowMount } from '../../../helpers/testUtils';
 import SpeechDialog from '@/components/timeline/dialogs/SpeechDialog.vue';
@@ -77,6 +78,7 @@ describe('読み上げの開始確認', () => {
       this.rate = 1;
     };
     window.speechSynthesis = {
+      cancel: () => {},
       speak: (payload) => {
         speakCalls.push(payload);
       },
@@ -91,6 +93,7 @@ describe('読み上げの開始確認', () => {
       expect(wrapper.emitted().success).to.have.lengthOf(1);
       expect(wrapper.vm.visible).to.equal(false);
     } finally {
+      clearTimelineSpeech();
       global.SpeechSynthesisUtterance = originalUttr;
       window.speechSynthesis = originalSpeech;
     }

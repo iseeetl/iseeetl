@@ -8,6 +8,8 @@ ISeee TimeLineは、スポーツイベントに参加してリアルで観戦し
 
 スマートフォン幅の「流す」「投稿」ボタンは、ブラウザのバー開閉に追随するアプリ領域の下部へまとめて配置します。画面高とスクロールは[フロントエンド概要](docs/spec/frontend/overview.md#画面の高さとスクロール)、ボタンの位置は[タイムラインの通常表示](docs/spec/frontend/screens/Timeline.md#通常表示)を参照してください。
 
+AI対応タグには色と「AI」の目印を表示し、タイムライン設定からルーム別・タグ別にAI付加情報の表示を選べます。人の付加情報とは分けて扱います。設定を開くたびに最新のAI対象タグを取得し、改名後もタグIDで選択を保持します。[表示と保存の仕様](docs/spec/frontend/screens/Timeline.md#ai対応タグと付加情報の閲覧)を参照してください。
+
 ## 必要な環境
 
 Node.js、npm、MongoDB、FFmpeg／ffprobeを使用します。バージョンは[運用事例の稼働環境](docs/deployment/production.md#稼働環境)を参考にし、Node.js・npmの対応範囲は各`package.json`の`engines`で確認してください。メール送信などの外部機能は、利用する場合に接続先と設定を用意します。

@@ -33,6 +33,7 @@
 </template>
 
 <script>
+import { speakIfNeeded } from '@/features/timeline/audio';
 import ConfirmDialog from '@/components/common/ConfirmDialog.vue';
 import UiIcon from '@/components/ui/UiIcon.vue';
 
@@ -62,11 +63,12 @@ export default {
     },
 
     onPressDoneButton() {
-      const uttr = new SpeechSynthesisUtterance();
-      uttr.text = this.$t('投稿の読み上げを開始します');
-      uttr.lang = this.$i18n.locale || this.$store.getters.lang;
-      uttr.rate = this.$store.getters.speechSpeed;
-      window.speechSynthesis.speak(uttr);
+      speakIfNeeded({
+        text: this.$t('投稿の読み上げを開始します'),
+        lang: this.$i18n.locale || this.$store.getters.lang,
+        speed: this.$store.getters.speechSpeed,
+        filters: [{ speech: true, conditions: null }],
+      });
 
       this.$emit('success');
       this.visible = false;

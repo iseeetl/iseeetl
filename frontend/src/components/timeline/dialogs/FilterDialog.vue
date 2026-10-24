@@ -89,7 +89,7 @@
               v-model="selectedTags"
               @change="changeCheckBox({ key: tag._id })"
             />
-            <span dir="auto">{{ getTagName(tag) }}</span>
+            <TagName :tag="tag" />
           </label>
         </div>
         <fieldset class="filter-search-method">
@@ -195,6 +195,7 @@
 </template>
 
 <script>
+import TagName from '@/components/timeline/inputs/TagName.vue';
 import { useId } from 'vue';
 import { useOptionsVuelidate } from '@/utils/validation';
 import { minLength, maxLength } from '@vuelidate/validators';
@@ -209,6 +210,7 @@ export default {
   emits: ['close', 'create', 'update'],
   name: 'FilterDialog',
   components: {
+    TagName,
     BaseEditDialog,
     ConfirmDialog,
     UiButton,

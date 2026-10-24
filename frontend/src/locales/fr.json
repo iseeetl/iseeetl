@@ -909,5 +909,26 @@
     "sentOutside": "Post sent. It does not match this tab’s filters.",
     "tagsChanged": "Post sent. The saved tags changed, so the source highlight was cleared.",
     "noTabTags": "This tab has no tags to select."
+  },
+  "発話を検出できませんでした": "Aucune parole détectée.",
+  "aiVisibility": {
+    "enabled": "AI enabled",
+    "roomTitle": "AI supplementary information in this room",
+    "allRooms": "All rooms",
+    "all": "Show all",
+    "tags": "Choose by tag",
+    "none": "Hide all",
+    "mode": "Display AI information",
+    "help": "Checked tags are shown. Human information stays visible. This setting changes viewing only; AI generation and push notifications are unchanged.",
+    "shownTags": "Show AI information from these tags",
+    "loading": "Loading tags…",
+    "loadFailed": "Could not load tags. Close and reopen settings to try again.",
+    "noSources": "No AI information sources in this room.",
+    "unknown": "AI information with an unknown tag",
+    "unavailable": "Unavailable tag ({id})",
+    "deleted": "{name} (deleted tag)",
+    "origin": "AI · {tag}",
+    "showSource": "Show AI information from {tag}",
+    "badge": "AI"
   }
 }

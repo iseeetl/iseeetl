@@ -99,3 +99,15 @@ describe('タイムラインの公開データ変換', () => {
     expect(serializeTimeline(null)).toBeNull();
   });
 });
+
+describe('public AI origin', () => {
+  test('returns only kind and tag identity, preserving the private source', () => {
+    const source = { meta: { analysis_kind: 'vision', analysis_trigger_tag: 'tag-a', analysis_setting: 'private-setting', analysis_setting_revision: 2 } };
+    expect(serializeTimeline.serializeSupplement(source)).toEqual({ ai_origin: { kind: 'vision', tag_id: 'tag-a' } });
+    expect(source.meta.analysis_setting).toBe('private-setting');
+  });
+  test('never accepts a user supplied origin without server metadata', () => {
+    expect(serializeTimeline.serializeSupplement({ content: 'human', ai_origin: { tag_id: 'fake' } })).toEqual({ content: 'human' });
+    expect(serializeTimeline.serializeSupplement({ meta: { analysis_kind: 'speech' } }).ai_origin.tag_id).toBeNull();
+  });
+});

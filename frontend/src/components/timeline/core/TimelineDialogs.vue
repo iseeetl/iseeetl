@@ -139,6 +139,7 @@
 
     <TimelineSettingDialog
       ref="TimelineSettingDialog"
+      :room-id="dialogShared.roomId" :room-title="dialogShared.roomTitle" :room-tags="dialogShared.roomTags"
       :dialogVisible="dialogs.settings.visible"
       @success="(...args) => emitEvent('timelineSettingSaved', ...args)"
       @close="(...args) => emitEvent('closeTimelineSettingDialog', ...args)"

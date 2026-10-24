@@ -59,9 +59,7 @@
               v-model="tags"
               :data-testid="'dialog-edit-tag-checkbox-' + roomTag._id"
             />
-            <span dir="auto">
-              {{ getTagName(roomTag) }}
-            </span>
+            <TagName :tag="roomTag" />
           </label>
         </div>
       </fieldset>
@@ -87,6 +85,7 @@
 </template>
 
 <script>
+import TagName from '@/components/timeline/inputs/TagName.vue';
 import { useId } from 'vue';
 import chatApi from '@/api/chat';
 import { appendApiErrorMessage } from '@/api/apiClient';
@@ -101,6 +100,7 @@ export default {
   emits: ['close', 'success'],
   name: 'EditTagDialog',
   components: {
+    TagName,
     BaseEditDialog,
     ConfirmDialog,
     UiButton,

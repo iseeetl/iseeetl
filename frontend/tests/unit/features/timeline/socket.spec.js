@@ -710,6 +710,8 @@ describe('タイムラインのSocketイベント処理', () => {
       ['REPLY_UPDATE', [post]],
       ['REPLY_DELETE', [post]],
       ['REPLY_SUPPLEMENT_CREATE', [post, supplement]],
+      ['REPLY_SUPPLEMENT_CREATE', [post, null]],
+      ['SUPPLEMENT_CREATE', [{ ...post, supplementaries: [] }]],
       ['REPLY_SUPPLEMENT_UPDATE', [post]],
       ['REPLY_SUPPLEMENT_DELETE', [post]],
       ['TAG_UPDATE', [post]],
