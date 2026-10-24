@@ -2,6 +2,7 @@ const fs = require('node:fs');
 const path = require('node:path');
 const vueModule = require('@vitejs/plugin-vue');
 const { loadEnv } = require('vite');
+const { parseRoomGuides } = require('./scripts/room-guides-config');
 const { buildLicensesPlugin } = require('./scripts/build-licenses.mjs');
 
 const vue = vueModule.default || vueModule;
@@ -22,6 +23,7 @@ const publicEnvironmentKeys = [
   'VITE_APP_URL',
   'VITE_ONESIGNAL_APP_ID',
   'VITE_GOOGLE_OAUTH_CLIENT_ID',
+  'VITE_ROOM_GUIDES',
 ];
 const e2eDisabledPublicEnvironmentKeys = [
   'VITE_ONESIGNAL_APP_ID',
@@ -78,6 +80,7 @@ const validateE2EBuildOutput = ({
 
 const loadFrontendEnvironment = (mode, loadEnvironment = loadEnv) => {
   const loadedEnvironment = loadEnvironment(mode, frontendRoot, 'VITE_');
+  loadedEnvironment.VITE_ROOM_GUIDES = JSON.stringify(parseRoomGuides(loadedEnvironment.VITE_ROOM_GUIDES));
 
   if (mode === 'e2e') {
     const configuredProviderKeys = e2eDisabledPublicEnvironmentKeys.filter(

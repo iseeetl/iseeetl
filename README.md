@@ -12,6 +12,8 @@ AI対応タグには色と「AI」の目印を表示し、タイムライン設�
 
 ## 必要な環境
 
+案内投稿へのボタンをルーム上部に常時表示できます。`VITE_ROOM_GUIDES`に対象ルームと各言語の投稿を設定してビルドします。[固定案内の設定](docs/spec/frontend/build-and-config.md#ルーム上部の固定案内)を参照してください。
+
 Node.js、npm、MongoDB、FFmpeg／ffprobeを使用します。バージョンは[運用事例の稼働環境](docs/deployment/production.md#稼働環境)を参考にし、Node.js・npmの対応範囲は各`package.json`の`engines`で確認してください。メール送信などの外部機能は、利用する場合に接続先と設定を用意します。
 
 ## 構築・起動

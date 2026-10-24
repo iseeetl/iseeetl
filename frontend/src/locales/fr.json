@@ -1,4 +1,9 @@
 {
+  "roomGuides": {
+    "title": "Guides épinglés",
+    "unavailable": "Le guide n’a pas pu être chargé. Vérifiez la connexion et réessayez.",
+    "languageNote": "Ouvrir le guide ne change pas la langue de saisie. Avant de saisir du texte, choisissez et enregistrez la langue dans votre profil."
+  },
   "supplementTitle": {
     "label": "Titre",
     "settingLabel": "Titre de l’information complémentaire",

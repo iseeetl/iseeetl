@@ -1,4 +1,9 @@
 {
+  "roomGuides": {
+    "title": "Sabitlenmiş rehberler",
+    "unavailable": "Rehber yüklenemedi. Bağlantınızı kontrol edip tekrar deneyin.",
+    "languageNote": "Rehberi açmak giriş dilini değiştirmez. Yazmadan önce profilinizde dili seçip kaydedin."
+  },
   "supplementTitle": {
     "label": "Başlık",
     "settingLabel": "Ek bilgi başlığı",

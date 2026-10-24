@@ -1,4 +1,9 @@
 {
+  "roomGuides": {
+    "title": "置顶指南",
+    "unavailable": "无法加载指南。请检查网络连接后重试。",
+    "languageNote": "打开指南不会更改输入语言。输入前，请在个人资料中设置并保存语言。"
+  },
   "supplementTitle": {
     "label": "标题",
     "settingLabel": "附加信息标题",

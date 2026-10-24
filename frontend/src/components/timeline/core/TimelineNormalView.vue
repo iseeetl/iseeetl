@@ -1,6 +1,7 @@
 <template>
   <div class="view">
     <TimelineHeader v-bind="headerProps" ref="timelineHeaderRef" v-on="headerEvents" />
+    <TimelineRoomGuides :room-id="roomId" :is-guest="isGuest" />
 
     <div class="socket-status" v-if="showSocketStatus" data-testid="timeline-socket-status">
       <span class="socket-status__text">{{ socketStatusMessage }}</span>
@@ -48,6 +49,7 @@ import TimelineColumns from '@/components/timeline/core/TimelineColumns.vue';
 import TimelineHeader from '@/components/timeline/core/TimelineHeader.vue';
 import TimelineTabs from '@/components/timeline/core/TimelineTabs.vue';
 import TimelineMobilePostButtons from '@/components/timeline/core/TimelineMobilePostButtons.vue';
+import TimelineRoomGuides from '@/components/timeline/core/TimelineRoomGuides.vue';
 
 export default {
   name: 'TimelineNormalView',
@@ -56,8 +58,11 @@ export default {
     TimelineHeader,
     TimelineTabs,
     TimelineMobilePostButtons,
+    TimelineRoomGuides,
   },
   props: {
+    roomId: { type: String, default: '' },
+    isGuest: { type: Boolean, default: true },
     headerProps: {
       type: Object,
       default: () => ({}),
