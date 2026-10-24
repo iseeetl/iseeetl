@@ -1,3 +1,4 @@
+const { assertSupplementContentLimit } = require('./shared/supplementContentLimit');
 const { titleFields, titleChanged } = require('../../utils/supplementTitle');
 const { scheduleSupplementTitleTranslation } = require('./shared/supplementTitleTranslation');
 const { publishSocketEvent } = require('../../socket/publication');
@@ -169,6 +170,7 @@ exports.updateReplySupplement = async (body, jwtPayload, io, { errors, requireCo
     supplementId: id,
     code: errors?.post?.code || 'INVALID_PARAMS',
   });
+  assertSupplementContentLimit(body, supplement);
   const effectiveSupplement = {
     ...mergeTimelinePatch(supplement, body, SUPPLEMENT_MUTABLE_FIELDS),
     ...titleFields(body, supplement, { fallbackLang: supplement.lang }),

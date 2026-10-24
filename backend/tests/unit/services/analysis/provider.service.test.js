@@ -270,12 +270,12 @@ describe('AI解析用の外部サービス呼出', () => {
     expect(mockTranscribeFromBuffer).toHaveBeenCalledTimes(1);
   });
 
-  test('文字起こし以外で300文字を超える結果を保存処理へ渡さない', async () => {
+  test('画像解析で300文字を超える結果を保存処理へ渡さない', async () => {
     mockChatCompletions.mockResolvedValue('😀'.repeat(MAX_PROVIDER_CODE_POINTS + 1));
     await expect(
       analyzeWithProvider({
-        kind: 'conversation',
-        sourceText: 'fixture',
+        kind: 'vision',
+        media: { imageBase64: 'aW1hZ2U=' },
         language: 'ja',
       })
     ).rejects.toMatchObject({
@@ -324,4 +324,30 @@ describe('音解析の波形判定の追加分', () => {
     expect(mockDescribeAudioSceneWithGemini).not.toHaveBeenCalled();
     expect(mockChatCompletions).not.toHaveBeenCalled();
   });
+});
+
+
+test('会話は保存可能な長さを指示し、短縮時も質問全体・知識を保持して同じモデルへ1回送る', async () => {
+  mockChatCompletions.mockResolvedValue('a'.repeat(365));
+  const output = await analyzeWithProvider({ kind: 'conversation', sourceText: 'first? second?', language: 'en',
+    additionalPrompt: 'product facts', maxAnswerUtf16: 390, previousAnswer: 'long draft' });
+  expect(output.length).toBe(365);
+  const request = mockChatCompletions.mock.calls[0][0];
+  expect(request.model).toBe(mockModels.conversation);
+  expect(request.messages[0].content).toContain('390 UTF-16');
+  expect(request.messages[0].content).toContain('各問い');
+  expect(request.messages).toEqual(expect.arrayContaining([
+    { role: 'user', content: 'first? second?' }, { role: 'assistant', content: 'long draft' },
+  ]));
+  expect(JSON.stringify(request.messages)).toContain('product facts');
+});
+
+
+test.each(['length', 'content_filter'])('会話の未完了回答を正常な短い回答として保存しない: %s', async (finishReason) => {
+  mockChatCompletions.mockImplementationOnce(async ({ onResponse }) => {
+    onResponse({ finish_reason: finishReason, request_id: 'req-test', http_status: 200 });
+    return 'Only first part';
+  });
+  await expect(analyzeWithProvider({ kind: 'conversation', sourceText: 'one? two?', language: 'en' }))
+    .rejects.toMatchObject({ code: 'AI_ANALYSIS_OUTPUT_INVALID', reason: 'incomplete' });
 });

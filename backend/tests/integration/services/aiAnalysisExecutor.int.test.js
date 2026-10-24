@@ -90,6 +90,62 @@ const sourceSupplements = async ({ postId, replyId = null }) => {
 };
 
 describe('設定に基づくAI解析の結合動作（外部サービスはモック）', () => {
+  test.each(['post', 'reply'])('%sの会話AI補足は権限確認後に2000文字で編集し、人の補足の上限は維持する', async (sourceType) => {
+    const ctx=await setup({withReply:sourceType==='reply'});const {io}=createIo();
+    const executor=createAnalysisExecutor({executionEnabled:()=>true,prepareInput,analyze:async()=> 'x'.repeat(1800)});
+    await executor.executeSetting({chatId:ctx.post._id,sourceType,replyId:sourceType==='reply'?ctx.replyId:null,settingId:ctx.settings[0]._id,io,mediaPath:'/mocked'});
+    const [sup]=await sourceSupplements({postId:ctx.post._id,replyId:sourceType==='reply'?ctx.replyId:null});
+    const update=sourceType==='post' ? require('../../../services/timeline/postSupplements.service').update : require('../../../services/timeline/replySupplements.service').updateReplySupplement;
+    const body={room_id:String(ctx.room._id),post_id:String(ctx.post._id),reply_id:String(ctx.replyId),_id:String(sup._id),content:'y'.repeat(2000)};
+    const payload={user_id:String(ctx.owner._id),user_role:ROLES.ADMINISTRATOR};
+    await expect(update(body,payload,io,{requireContentOrMedia:true})).resolves.toBeTruthy();
+    await expect(update({...body,content:'y'.repeat(2001)},payload,io,{requireContentOrMedia:true})).rejects.toMatchObject({code:'INVALID_PARAMS'});
+    const current=(await sourceSupplements({postId:ctx.post._id,replyId:sourceType==='reply'?ctx.replyId:null}))[0];
+    expect(current.content).toHaveLength(2000);
+    const humanId = new mongoose.Types.ObjectId();
+    const path = sourceType === 'reply' ? 'replies.$.supplementaries' : 'supplementaries';
+    const query = sourceType === 'reply' ? { _id: ctx.post._id, 'replies._id': ctx.replyId } : { _id: ctx.post._id };
+    await Chat.updateOne(query, { $push: { [path]: { _id: humanId, user: ctx.owner._id, content: 'Human information', lang: 'en' } } });
+    await expect(update({ ...body, _id: String(humanId), content: 'h'.repeat(401),
+      ai_origin: { kind: 'conversation' }, meta: { analysis_kind: 'conversation' } }, payload, io))
+      .rejects.toMatchObject({ code: 'INVALID_PARAMS' });
+    await expect(update({ ...body, _id: String(humanId), content: 'h'.repeat(400) }, payload, io))
+      .resolves.toBeTruthy();
+  });
+
+  test.each(['post', 'reply'])('%sの会話短縮と失敗案内を1件だけ保存する', async (sourceType) => {
+    const ctx = await setup({ withReply: sourceType === 'reply' });
+    const { emit, io } = createIo();
+    const analyze = jest.fn().mockResolvedValueOnce('x'.repeat(2450)).mockResolvedValueOnce('Both parts answered.');
+    const executor = createAnalysisExecutor({ executionEnabled: () => true, prepareInput, analyze });
+    const args = { chatId: ctx.post._id, sourceType, replyId: sourceType === 'reply' ? ctx.replyId : null,
+      settingId: ctx.settings[0]._id, io, mediaPath: '/mocked' };
+    await expect(executor.executeSetting(args)).resolves.toMatchObject({ status: 'created' });
+    const values = await sourceSupplements({ postId: ctx.post._id, replyId: args.replyId });
+    expect(values).toHaveLength(1);
+    expect(values[0].content).toBe('#Custom analysis Both parts answered.');
+    expect(analyze).toHaveBeenCalledTimes(2);
+    await expect(executor.executeSetting(args)).resolves.toMatchObject({ status: 'idempotent' });
+    expect(analyze).toHaveBeenCalledTimes(2);
+    expect(emit).toHaveBeenCalled();
+  });
+
+  test.each(['post', 'reply'])('%sの会話通信失敗を日英の案内として保存し、古い結果を上書きしない', async (sourceType) => {
+    const ctx = await setup({ withReply: sourceType === 'reply' });
+    const { io } = createIo();
+    const analyze = jest.fn().mockRejectedValue(new Error('synthetic failure'));
+    const executor = createAnalysisExecutor({ executionEnabled: () => true, prepareInput, analyze });
+    const args = { chatId: ctx.post._id, sourceType, replyId: sourceType === 'reply' ? ctx.replyId : null,
+      settingId: ctx.settings[0]._id, io, mediaPath: '/mocked' };
+    await expect(executor.executeSetting(args)).resolves.toMatchObject({ status: 'created' });
+    const values = await sourceSupplements({ postId: ctx.post._id, replyId: args.replyId });
+    expect(values).toHaveLength(1);
+    expect(values[0].content).toBe('#Custom analysis Could not generate AI supplementary information.');
+    expect(values[0].translations.find(t => t.lang === 'ja').content).toBe('#独自解析 AIの補足情報を生成できませんでした。');
+    await expect(executor.executeSetting(args)).resolves.toMatchObject({ status: 'idempotent' });
+    expect(analyze).toHaveBeenCalledTimes(1);
+  });
+
   test.each(['post', 'reply'])('%sの発話未検出を日英で保存・配信し、再実行で重複しない', async (sourceType) => {
     const context = await setup({ kinds: ['speech'], withReply: sourceType === 'reply' });
     const { emit, io } = createIo();
@@ -518,10 +574,10 @@ describe('設定に基づくAI解析の結合動作（外部サービスはモ�
     expect(emit).toHaveBeenCalledTimes(1);
   });
 
-  test('会話解析の結果が文字数上限を超えた場合は、既存結果を保持し、更新イベントを送らない', async () => {
+  test('会話短縮も上限を超えた場合は、更新世代の失敗案内を表示する', async () => {
     const context = await setup();
     const { emit, io } = createIo();
-    const analyze = jest.fn().mockResolvedValueOnce('valid').mockResolvedValueOnce('x'.repeat(301));
+    const analyze = jest.fn().mockResolvedValueOnce('valid').mockResolvedValue('x'.repeat(2450));
     const executor = createAnalysisExecutor({ executionEnabled: () => true, prepareInput, analyze });
     const args = {
       chatId: context.post._id,
@@ -536,13 +592,13 @@ describe('設定に基づくAI解析の結合動作（外部サービスはモ�
       { _id: context.settings[0]._id },
       { $inc: { revision: 1 } }
     );
-    await expect(executor.executeSetting(args)).resolves.toEqual({ status: 'invalid-output' });
+    await expect(executor.executeSetting(args)).resolves.toMatchObject({ status: 'updated' });
 
     const [after] = await sourceSupplements({ postId: context.post._id });
-    expect(after.content).toBe(before.content);
-    expect(after.updated_at).toEqual(before.updated_at);
-    expect(after.meta.analysis_setting_revision).toBe(1);
-    expect(emit).toHaveBeenCalledTimes(1);
+    expect(after._id).toEqual(before._id);
+    expect(after.content).toBe('#Custom analysis Could not generate AI supplementary information.');
+    expect(after.meta.analysis_setting_revision).toBe(2);
+    expect(emit).toHaveBeenCalledTimes(2);
   });
 
   test('1つの設定で外部サービスが失敗しても次の設定の解析結果を保存する', async () => {
@@ -564,10 +620,10 @@ describe('設定に基づくAI解析の結合動作（外部サービスはモ�
       mediaPath: '/mocked',
     });
 
-    expect(results).toEqual([{ status: 'failed' }, expect.objectContaining({ status: 'created' })]);
-    expect(await sourceSupplements({ postId: context.post._id })).toHaveLength(1);
+    expect(results).toEqual([expect.objectContaining({ status: 'created' }), expect.objectContaining({ status: 'created' })]);
+    expect(await sourceSupplements({ postId: context.post._id })).toHaveLength(2);
     expect(logger.error).toHaveBeenCalledWith(
-      'AI_ANALYSIS_SETTING_FAILED',
+      'AI_CONVERSATION_FAILED',
       expect.objectContaining({ error_code: 'PROVIDER_FAILED' })
     );
   });

@@ -930,5 +930,12 @@
     "origin": "AI · {tag}",
     "showSource": "Show AI information from {tag}",
     "badge": "AI"
+  },
+  "aiAnswer": {
+    "expand": "Read more",
+    "collapse": "Show less",
+    "expandLabel": "Read all AI supplementary information: {title}",
+    "collapseLabel": "Show less AI supplementary information: {title}",
+    "contentLimit": "Comments can be up to {count} characters."
   }
 }

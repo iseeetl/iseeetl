@@ -53,7 +53,7 @@
               ? v$.content.required.$invalid
                 ? $t('コメントは必須です')
                 : v$.content.maxLength.$invalid
-                ? $t('コメントは400文字までです')
+                ? $t('aiAnswer.contentLimit', { count: contentLimit })
                 : ''
               : ''
           "
@@ -63,7 +63,7 @@
               dir="auto"
               v-bind="controlAttrs"
               ref="supplementContentRef"
-              maxlength="400"
+              :maxlength="contentLimit"
               rows="4"
               v-model.trim="content"
               :disabled="sending || recording || transcribing"
@@ -256,6 +256,7 @@
 </template>
 
 <script>
+import { supplementContentLimit } from '@/features/timeline/supplementLength';
 import { isValidSupplementTitle, supplementTitleLanguage } from '@/features/timeline/supplementTitle';
 import { useId } from 'vue';
 import chatApi from '@/api/chat';
@@ -333,11 +334,11 @@ export default {
     roomQuickTextGroups: { type: Array, default: () => [] },
     roomQuickTextItemsByGroup: { type: Object, default: () => ({}) },
   },
-  validations: {
+  validations() { return {
     title: { validTitle: isValidSupplementTitle },
     content: {
       required,
-      maxLength: maxLength(400),
+      maxLength: (value) => value == null || value.length <= this.contentLimit,
     },
     imageCaption: {
       maxLength: maxLength(200),
@@ -348,13 +349,14 @@ export default {
     audioDescription: {
       maxLength: maxLength(200),
     },
-  },
+  }; },
   watch: {
     dialogVisible() {
       this.visible = this.dialogVisible;
     },
   },
   computed: {
+    contentLimit() { return supplementContentLimit(this.supplementValue); },
     allowedImageTypes() {
       return ALLOWED_IMAGE_TYPES.join(',');
     },

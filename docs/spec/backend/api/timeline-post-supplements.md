@@ -144,3 +144,7 @@
 - `backend/tests/integration/routes/timeline.core.int.test.js`
 - `backend/tests/unit/services/timeline/postSupplements.service.test.js`
 - `backend/tests/unit/services/timeline/postSupplementReactions.service.test.js`
+
+## 会話AIの長文編集
+
+更新時の本文上限は、保存済みレコードが会話AI由来の場合のみ2000 UTF-16単位です。他の付加情報と新規手動作成は400単位です。通常APIとv1 APIの両方で編集権限を確認し、DB内の解析種別で上限を決めます。送信された `ai_origin` や `meta` で変更することはできません。詳細は[AI解析仕様](../../ai-analysis.md#会話の長さ制限と失敗表示)を参照してください。

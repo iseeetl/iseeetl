@@ -226,3 +226,34 @@ describe('付加情報の表示と操作', () => {
     wrapper.unmount();
   });
 });
+
+
+describe('長い会話AIの展開', () => {
+  it('全文を初期読み上げ対象にせず、ボタンで全文・リンクを展開し閉じられる', async () => {
+    const wrapper = createWrapper({ props: { supplement: { _id:'long', lang:'ja', content:'説明。'.repeat(180) + 'END', ai_origin:{kind:'conversation'}, user:{username:'Helper'}, reactions:[] } } });
+    expect(wrapper.get('.expand-supplement').attributes('aria-expanded')).toBe('false');
+    expect(wrapper.get('.expand-supplement').attributes('aria-controls')).toBe('timeline-supplement-body-long');
+    expect(wrapper.text()).not.toContain('END');
+    await wrapper.get('.expand-supplement').trigger('click');
+    expect(wrapper.get('.expand-supplement').attributes('aria-expanded')).toBe('true');
+    expect(wrapper.findComponent({name:'TimelineText'}).props('content')).toContain('END');
+    await wrapper.get('.expand-supplement').trigger('click');
+    expect(wrapper.get('.expand-supplement').attributes('aria-expanded')).toBe('false');
+    wrapper.unmount();
+  });
+  it('原文が短く翻訳だけが長い場合にも展開でき、言語変更で閉じる', async () => {
+    const wrapper = createWrapper({props:{supplement:{_id:'translated',lang:'en',content:'Short answer.',translations:[{lang:'ja',content:'翻訳'.repeat(300)+'末尾'}],ai_origin:{kind:'conversation'},user:{username:'Helper'},reactions:[]}}});
+    expect(wrapper.find('.expand-supplement').exists()).toBe(true);
+    expect(wrapper.text()).not.toContain('末尾');
+    await wrapper.get('.expand-supplement').trigger('click');
+    expect(wrapper.text()).toContain('末尾');
+    wrapper.vm.$options.watch['$i18n.locale'].call(wrapper.vm);
+    await wrapper.vm.$nextTick();
+    expect(wrapper.get('.expand-supplement').attributes('aria-expanded')).toBe('false');
+    wrapper.unmount();
+  });
+  it.each([undefined, {kind:'speech'}, {kind:'vision'}])('人・他の解析には会話用折りたたみを適用しない', (origin) => {
+    const wrapper=createWrapper({props:{supplement:{_id:'other',content:'long '.repeat(200),ai_origin:origin,user:{username:'User'},reactions:[]}}});
+    expect(wrapper.find('.expand-supplement').exists()).toBe(false);wrapper.unmount();
+  });
+});

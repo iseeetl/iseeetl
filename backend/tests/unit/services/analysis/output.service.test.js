@@ -177,15 +177,15 @@ describe('AI解析結果の整形', () => {
     });
   });
 
-  test('文字起こし以外は300文字を許可し、301文字を拒否する', async () => {
+  test('画像解析は300文字を許可し、301文字を拒否する', async () => {
     const log = logger();
     const accepted = await buildAnalysisSupplement({
-      snapshot: snapshot({ targetLangs: [] }),
+      snapshot: snapshot({ kind: 'vision', targetLangs: [] }),
       providerOutput: '界'.repeat(300),
       logger: log,
     });
     const rejected = await buildAnalysisSupplement({
-      snapshot: snapshot({ targetLangs: [] }),
+      snapshot: snapshot({ kind: 'vision', targetLangs: [] }),
       providerOutput: '界'.repeat(301),
       logger: log,
     });
@@ -201,7 +201,7 @@ describe('AI解析結果の整形', () => {
   test('文字起こし以外は接頭辞込みの400文字を保存し、401文字なら変更しない', async () => {
     const longLabel = 'T'.repeat(99);
     const baseSnapshot = snapshot({
-      targetLangs: [],
+      kind: 'vision', targetLangs: [],
       triggerTag: { _id: 'tag-1', name: longLabel, translations: [] },
     });
     const prefixLength = `#${longLabel} `.length;
@@ -344,12 +344,12 @@ describe('AI解析結果の整形', () => {
     ]);
   });
 
-  test('翻訳タグ名を解析原文に付けた結果が400文字を超える場合は拒否する', async () => {
+  test('翻訳タグ名を会話原文に付けた結果が2000文字を超える場合は拒否する', async () => {
     const log = logger();
     const translateContent = jest.fn();
     const value = await buildAnalysisSupplement({
       snapshot: snapshot({
-        triggerTag: { _id: 'tag-1', name: '相談', translations: [{ lang: 'en', name: 'T'.repeat(399) }] },
+        triggerTag: { _id: 'tag-1', name: '相談', translations: [{ lang: 'en', name: 'T'.repeat(1999) }] },
       }),
       providerOutput: 'valid',
       translateContent,

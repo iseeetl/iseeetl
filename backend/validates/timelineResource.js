@@ -1,3 +1,4 @@
+const { MAX_CONVERSATION_UTF16_UNITS } = require('../services/analysis/conversationBudget');
 const AppError = require('../utils/appError');
 const { ALLOWED_LANGUAGES } = require('../constants/languages');
 const { normalizeTitle } = require('../utils/supplementTitle');
@@ -70,7 +71,7 @@ function mapTimelineRequest(params, body, operation, kind = 'post') {
     data.title_lang = body.title_lang;
   }
   if (own(body, 'content')) {
-    data.content = nullableString(body.content, 400);
+    data.content = nullableString(body.content, supplement && operation === 'update' ? MAX_CONVERSATION_UTF16_UNITS : 400);
     if (data.content !== null && !data.content.trim()) invalid();
   }
   if (own(body, 'lang')) {

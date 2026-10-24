@@ -741,3 +741,17 @@ describe('付加情報の作成・編集', () => {
     expect(snackbarCalls[0].role).to.equal('alert');
   });
 });
+
+
+it('会話AIの補足は2000 UTF-16単位まで編集でき、上限超過と偽のラベルを認めない', async () => {
+  const wrapper=createWrapper({props:{supplementValue:{_id:'ai-long',content:'a'.repeat(2000),ai_origin:{kind:'conversation'}}}});
+  wrapper.vm.openedDialog();await wrapper.vm.$nextTick();wrapper.vm.v$.content.$touch();
+  expect(wrapper.get('#supplement_content').attributes('maxlength')).toBe('2000');
+  expect(wrapper.vm.v$.content.maxLength.$invalid).toBe(false);
+  wrapper.vm.content='😀'.repeat(1001);await wrapper.vm.$nextTick();
+  expect(wrapper.vm.v$.content.maxLength.$invalid).toBe(true);
+  await wrapper.setProps({supplementValue:{_id:'human',content:'a'.repeat(401),title:'AI'}});
+  wrapper.vm.openedDialog();await wrapper.vm.$nextTick();
+  expect(wrapper.get('#supplement_content').attributes('maxlength')).toBe('400');
+  expect(wrapper.vm.v$.content.maxLength.$invalid).toBe(true);wrapper.unmount();
+});

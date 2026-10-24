@@ -5,6 +5,10 @@ const { makeLabelByLangFromTag, prefixWithLabel } = require('./labels');
 
 // 外部サービスの本文ではなく、固定の案内として表示する内部結果。日英は翻訳サービスなしで保存する。
 const NOTICE_MESSAGES = Object.freeze({
+  'conversation-failed': Object.freeze({
+    ja: 'AIの補足情報を生成できませんでした。',
+    en: 'Could not generate AI supplementary information.',
+  }),
   'no-speech': Object.freeze({
     ja: '発話を検出できませんでした',
     en: 'No speech was detected.',
@@ -24,6 +28,7 @@ const NOTICE_MESSAGES = Object.freeze({
 });
 // 解析種別ごとに受け付ける内部結果。他の種別や未知のstatusは無効な出力として扱う。
 const NOTICE_STATUSES_BY_KIND = Object.freeze({
+  conversation: Object.freeze(['conversation-failed']),
   speech: Object.freeze(['no-speech']),
   audioScene: Object.freeze(['no-sound', 'low-level', 'no-description']),
 });
@@ -36,7 +41,7 @@ const resolveNotice = (snapshot, providerOutput) => {
 };
 
 const MAX_PROVIDER_CODE_POINTS = 300;
-const MAX_SUPPLEMENT_UTF16_UNITS = 400;
+const { MAX_SUPPLEMENT_UTF16_UNITS, MAX_CONVERSATION_UTF16_UNITS } = require('./conversationBudget');
 
 const analysisLogContext = (snapshot, reason, startedAt) => ({
   source_type: snapshot.sourceType,
@@ -87,7 +92,7 @@ const buildBaseContent = ({ snapshot, providerOutput, logger, startedAt = Date.n
     logger.error('AI_ANALYSIS_OUTPUT_INVALID', analysisLogContext(snapshot, 'empty', startedAt));
     return null;
   }
-  if (snapshot.kind !== 'speech' && [...text].length > MAX_PROVIDER_CODE_POINTS) {
+  if (!['speech', 'conversation'].includes(snapshot.kind) && [...text].length > MAX_PROVIDER_CODE_POINTS) {
     logger.error('AI_ANALYSIS_OUTPUT_INVALID', analysisLogContext(snapshot, 'provider_code_points', startedAt));
     return null;
   }
@@ -97,7 +102,8 @@ const buildBaseContent = ({ snapshot, providerOutput, logger, startedAt = Date.n
     : snapshot.source.lang;
   const label = makeLabelByLangFromTag(snapshot.triggerTag)(baseLang);
   let content = prefixWithLabel(label, text);
-  if (content.length > MAX_SUPPLEMENT_UTF16_UNITS) {
+  const contentLimit = snapshot.kind === 'conversation' ? MAX_CONVERSATION_UTF16_UNITS : MAX_SUPPLEMENT_UTF16_UNITS;
+  if (content.length > contentLimit) {
     if (snapshot.kind !== 'speech') {
       logger.error('AI_ANALYSIS_OUTPUT_INVALID', analysisLogContext(snapshot, 'base_utf16_units', startedAt));
       return null;
