@@ -217,3 +217,24 @@ OpenAIとGoogle（Gemini API）への送信は事業者向けのAPI契約に基�
 - `frontend/tests/unit/features/analytics/runtime.spec.js`
 - `frontend/tests/unit/features/analytics/pageTracking.spec.js`
 - `frontend/tests/unit/features/analytics/timelineTracking.spec.js`
+
+
+#### 編集画面の送信操作計測
+
+編集画面は既存のAnalytics送信可否と識別情報の仕組みを使用する。新しいブラウザ保存キーは追加しない。本文、添付内容、エラー文、投稿IDを追加で送らない。
+
+| イベント | 契機 | 共通コンテキストに加える必須項目 |
+| --- | --- | --- |
+| `timeline_submit_select` | 送信中等のガードを通り、保存操作を受け付けた時 | `content_type`, `action_type`, `control_position`, `submit_mode`, `editor_layout`, `attempt_phase` |
+| `timeline_submit_result` | 受け付けた操作の処理が終了した時、1回だけ | 上記に加え `outcome` |
+
+- `control_position`: `top` / `bottom` / `desktop` / `shortcut`。ショートカットはボタン位置に含めない。
+- `submit_mode`: `single` / `continuous` / `flow`。既存の「流す」は `flow` とする。
+- `editor_layout`: `mobile_dual` / `desktop_current`。操作した時点の幅で決定する。
+- `attempt_phase`: `first` / `repeat`。画面を開いてからの初回操作と、検証失敗後などの再操作・連続投稿を分ける。新たに編集画面を開くと初回へ戻る。実人数や利用経験を示さない。
+- `outcome`: `success` / `validation_error` / `request_error`。ローカル検証を通らなければvalidation_error、検証後のアップロード・保存の失敗はrequest_error。無効ボタンへのタップは計測しない。
+- 位置・ルーム・画面幅等は操作受付時に固定する。送信の結果はその操作に対応づける。内部トークンはメモリ内のみで、GAへ送信しない。ページ終了・計測停止時は結果が届かない場合がある。
+- 既存の `timeline_content_change` は変更せず、新イベントの件数と合算しない。selectは操作受付回数、resultのsuccessは保存成功回数として扱う。
+- Google側で必要となる追加のイベントスコープディメンションは上記の新規5項目。管理画面での登録と実受信確認は配置とは別に行う。
+
+比較対象は `editor_layout=mobile_dual`、同じcontent_type/action_type/submit_mode/attempt_phaseのtopとbottomとし、下部利用率はbottom / (top + bottom)。成功率は同じ条件のsuccess件数 / select件数。GA未計測・離脱を含むため厳密な保存率ではない。PCとショートカットは分離する。併設したボタンの利用傾向であり、位置だけの因果効果を示すA/B試験ではない。

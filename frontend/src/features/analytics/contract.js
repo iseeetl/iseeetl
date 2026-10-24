@@ -59,6 +59,8 @@ export const ANALYTICS_RESOURCE_ID_PREFIXES = Object.freeze({
 });
 
 export const ANALYTICS_EVENTS = Object.freeze({
+  TIMELINE_SUBMIT_SELECT: 'timeline_submit_select',
+  TIMELINE_SUBMIT_RESULT: 'timeline_submit_result',
   PAGE_VIEW: 'page_view',
   PAGE_EXIT: 'iseeetl_page_exit',
   TIMELINE_VIEW: 'timeline_view',
@@ -75,6 +77,11 @@ export const ANALYTICS_EVENTS = Object.freeze({
 });
 
 export const ANALYTICS_PARAMETERS = Object.freeze({
+  CONTROL_POSITION: 'control_position',
+  SUBMIT_MODE: 'submit_mode',
+  EDITOR_LAYOUT: 'editor_layout',
+  ATTEMPT_PHASE: 'attempt_phase',
+  OUTCOME: 'outcome',
   PAGE_GROUP: 'page_group',
   PAGE_LOCATION: 'page_location',
   PAGE_TITLE: 'page_title',
@@ -104,6 +111,11 @@ const pageGroups = [...new Set(
 )];
 
 export const ANALYTICS_ENUM_VALUES = freezeValueMap({
+  control_position: ['top', 'bottom', 'desktop', 'shortcut'],
+  submit_mode: ['single', 'continuous', 'flow'],
+  editor_layout: ['mobile_dual', 'desktop_current'],
+  attempt_phase: ['first', 'repeat'],
+  outcome: ['success', 'validation_error', 'request_error'],
   page_group: pageGroups,
   visitor_type: ['guest', 'registered'],
   content_type: ['post', 'reply', 'post_supplement', 'reply_supplement'],
@@ -165,6 +177,8 @@ const withTimelineContext = (...parameters) =>
   freezeList(...timelineContextParameters, ...parameters);
 
 export const ANALYTICS_EVENT_PARAMETER_ALLOWLIST = Object.freeze({
+  [E.TIMELINE_SUBMIT_SELECT]: withTimelineContext(P.CONTENT_TYPE, P.ACTION_TYPE, P.CONTROL_POSITION, P.SUBMIT_MODE, P.EDITOR_LAYOUT, P.ATTEMPT_PHASE),
+  [E.TIMELINE_SUBMIT_RESULT]: withTimelineContext(P.CONTENT_TYPE, P.ACTION_TYPE, P.CONTROL_POSITION, P.SUBMIT_MODE, P.EDITOR_LAYOUT, P.ATTEMPT_PHASE, P.OUTCOME),
   [E.PAGE_VIEW]: pageContextParameters,
   [E.PAGE_EXIT]: pageContextParameters,
   [E.TIMELINE_VIEW]: withTimelineContext(),
@@ -211,6 +225,8 @@ const requiredPageContext = freezeList(
   P.VISITOR_TYPE
 );
 const requiredParametersByEvent = Object.freeze({
+  [E.TIMELINE_SUBMIT_SELECT]: withRequiredTimelineContext(P.CONTENT_TYPE, P.ACTION_TYPE, P.CONTROL_POSITION, P.SUBMIT_MODE, P.EDITOR_LAYOUT, P.ATTEMPT_PHASE),
+  [E.TIMELINE_SUBMIT_RESULT]: withRequiredTimelineContext(P.CONTENT_TYPE, P.ACTION_TYPE, P.CONTROL_POSITION, P.SUBMIT_MODE, P.EDITOR_LAYOUT, P.ATTEMPT_PHASE, P.OUTCOME),
   [E.PAGE_VIEW]: requiredPageContext,
   [E.PAGE_EXIT]: requiredPageContext,
   [E.TIMELINE_VIEW]: withRequiredTimelineContext(),

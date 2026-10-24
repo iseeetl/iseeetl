@@ -1,6 +1,7 @@
 <template>
   <UiDialog
     class="timeline-editor-dialog ui-dialog--standard"
+    :style="viewportStyle"
     :open="visible"
     :title-id="titleId"
     :initial-focus="initialFocus"
@@ -28,7 +29,8 @@
         {{ titleText }}
       </h2>
 
-      <div class="timeline-editor-dialog__mobile-actions ui-dialog__header-end mobile-item">
+      <div class="timeline-editor-dialog__mobile-actions ui-dialog__header-end mobile-item"
+        role="group" :aria-label="$t('editorActions.top')">
         <slot name="mobile-actions" />
       </div>
     </template>
@@ -47,8 +49,8 @@
           <UiIcon name="close" />
           {{ cancelLabel }}
         </UiButton>
-        <div class="timeline-editor-dialog__primary-actions">
-          <slot name="actions" />
+        <div class="timeline-editor-dialog__primary-actions" role="group" :aria-label="$t('editorActions.bottom')">
+          <slot name="actions" :position="mobileLayout ? 'bottom' : 'desktop'" />
         </div>
       </div>
     </template>
@@ -113,12 +115,32 @@ export default {
       default: 0,
     },
   },
+  data() { return { mobileLayout: false, viewportStyle: {} }; },
+  mounted() {
+    this.updateViewport();
+    window.addEventListener('resize', this.updateViewport);
+    window.visualViewport?.addEventListener('resize', this.updateViewport);
+    window.visualViewport?.addEventListener('scroll', this.updateViewport);
+  },
+  beforeUnmount() {
+    window.removeEventListener('resize', this.updateViewport);
+    window.visualViewport?.removeEventListener('resize', this.updateViewport);
+    window.visualViewport?.removeEventListener('scroll', this.updateViewport);
+  },
   computed: {
     interactionBlocked() {
       return this.blocked || this.sending;
     },
   },
   methods: {
+    updateViewport() {
+      this.mobileLayout = Boolean(window.matchMedia?.('(max-width: 896px)').matches);
+      const viewport = window.visualViewport;
+      // Do not counteract pinch zoom; visual viewport fitting targets the keyboard at normal zoom.
+      this.viewportStyle = this.mobileLayout && viewport && viewport.scale === 1
+        ? { '--editor-visible-height': `${viewport.height}px`, '--editor-visible-top': `${viewport.offsetTop}px` }
+        : {};
+    },
     onCancel() {
       if (this.interactionBlocked) return;
       this.$emit('cancel');
@@ -183,11 +205,15 @@ export default {
 
   :global(.timeline-editor-dialog) {
     --ui-dialog-width: 100vw;
+    top: var(--editor-visible-top, 0px);
+    bottom: auto;
+    height: var(--editor-visible-height, 100dvh);
   }
 
   :global(.timeline-editor-dialog .ui-dialog__panel) {
     height: calc(100vh - var(--ui-dialog-viewport-gutter));
-    height: calc(100dvh - var(--ui-dialog-viewport-gutter));
+    height: calc(var(--editor-visible-height, 100dvh) - var(--ui-dialog-viewport-gutter));
+    max-height: calc(var(--editor-visible-height, 100dvh) - var(--ui-dialog-viewport-gutter));
     overflow: hidden;
   }
 
@@ -210,7 +236,23 @@ export default {
   }
 
   :global(.timeline-editor-dialog .ui-dialog__actions) {
-    display: none;
+    display: flex;
+    flex: 0 0 auto;
+    padding: 8px 16px max(8px, env(safe-area-inset-bottom));
+    background: #fff;
+    border-top: 1px solid #ccc;
+  }
+  .timeline-editor-dialog__primary-actions {
+    width: 100%;
+    display: flex;
+    flex-wrap: nowrap;
+    gap: 8px;
+  }
+  .timeline-editor-dialog__primary-actions > :deep(*) { flex: 1 1 0; }
+  .timeline-editor-dialog__primary-actions :deep(.ui-tooltip__anchor) { width: 100%; }
+  .timeline-editor-dialog__primary-actions :deep(.ui-button) {
+    width: 100%;
+    min-height: 48px;
   }
 }
 </style>

@@ -937,5 +937,9 @@
     "expandLabel": "展开补充信息全文：{title}",
     "collapseLabel": "收起补充信息：{title}",
     "contentLimit": "评论最多可包含{count}个字符。"
+  },
+  "editorActions": {
+    "top": "顶部发送操作",
+    "bottom": "底部发送操作"
   }
 }

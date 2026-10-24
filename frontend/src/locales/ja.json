@@ -937,5 +937,9 @@
     "expandLabel": "付加情報「{title}」の全文を表示",
     "collapseLabel": "付加情報「{title}」を短く表示",
     "contentLimit": "コメントは{count}文字までです"
+  },
+  "editorActions": {
+    "top": "上部の送信操作",
+    "bottom": "下部の送信操作"
   }
 }

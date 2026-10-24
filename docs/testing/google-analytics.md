@@ -108,3 +108,10 @@
 - `frontend/src/features/analytics/timelineTracking.js`
 - `backend/routes/analytics.route.js`
 - `backend/services/analytics/identity.service.js`
+
+
+## 上下の送信ボタンの比較
+
+追加5項目とイベント2件の仕様は[送信操作計測](../spec/frontend/cookies-and-external-transmissions.md#編集画面の送信操作計測)に従う。上記の既存19ディメンションに加える場合は計24件となる。管理画面の変更は別作業として承認と設定照合を行う。
+
+ローカルでは外部送信を無効とし、契約テストと送信処理のテストで位置・成功・検証失敗・二重送信防止を確認する。実プロパティでの受信や実機のキーボード表示は、ローカルの幅変更テストと区別して記録する。

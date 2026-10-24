@@ -26,12 +26,12 @@
           :aria-label="$t('連続投稿')"
           :disabled="sending || recording || transcribing"
           type="button"
-          @click.stop="submit(true)"
+          @click.stop="submit(true, 'top')"
         >
           <UiIcon name="outbox_alt" family="symbols" />
         </UiButton>
 
-        <form class="inline-form" @submit.prevent="submit()">
+        <form class="inline-form" @submit.prevent="submit(false, 'top')">
           <UiButton
             appearance="filled"
             tone="primary"
@@ -335,25 +335,25 @@
           </div>
         </fieldset>
       </div>
-      <template #actions>
+      <template #actions="{ position }">
         <UiTooltip v-if="!isAnimationPost" :text="$t('ショートカットキー Ctrl + Shift + Enter')">
           <UiButton
-            class="desktop-item"
+
             appearance="filled"
             tone="primary"
             type="button"
             :disabled="sending || recording || transcribing"
             :aria-label="`${$t('連続投稿')} ${$t('ショートカットキー Ctrl + Shift + Enter')}`"
-            @click.stop="submit(true)"
+            @click.stop="submit(true, position)"
           >
             <UiIcon name="outbox_alt" family="symbols" />
             {{ $t('連続投稿') }}
           </UiButton>
         </UiTooltip>
-        <form class="desktop-submit-form" @submit.prevent="submit()">
+        <form class="desktop-submit-form" @submit.prevent="submit(false, position)">
           <UiTooltip :text="$t('ショートカットキー Ctrl + Enter')">
             <UiButton
-              class="desktop-item"
+
               appearance="filled"
               tone="primary"
               :aria-label="
@@ -404,6 +404,7 @@
 </template>
 
 <script>
+import { editorSubmissionMixin } from '@/features/analytics/editorSubmission.js';
 import { useId } from 'vue';
 import { initialPostTags } from '@/features/timeline/postDefaults';
 import chatApi from '@/api/chat';
@@ -452,6 +453,7 @@ import UiIcon from '@/components/ui/UiIcon.vue';
 import UiTooltip from '@/components/ui/UiTooltip.vue';
 
 export default {
+  mixins: [editorSubmissionMixin],
   emits: ['view-post', 'close', 'doneContinuousPost', 'content-saved', 'quick-text-inserted'],
   name: 'EditPostDialog',
   setup() {
@@ -827,9 +829,11 @@ export default {
       };
     },
 
-    async submit(isContinuous = false) {
+    async submit(isContinuous = false, position = 'shortcut') {
       if (this.recording || this.transcribing || this.sending) return;
       this.sending = true;
+      const attempt = this.editorSubmissionTracker.begin({ position, mode: this.isAnimationPost ? 'flow' : isContinuous ? 'continuous' : 'single', content: 'post', action: this.postId === null ? 'create' : 'update' });
+      let outcome = 'validation_error';
 
       this.progressAmount = 0;
 
@@ -856,6 +860,7 @@ export default {
         }
 
         if (!this.validateMedia()) return;
+        outcome = 'request_error';
 
         // 入力とメディアの検証後に、連続投稿フラグを反映する。
         this.continuousPosting = isContinuous;
@@ -899,7 +904,9 @@ export default {
           nextTagIds: Array.isArray(response?.data?.room_tags) ? [...response.data.room_tags] : [],
         };
         success = true;
+        outcome = 'success';
         nextAction = this.continuousPosting ? 'reopen' : 'close';
+        this.keepSubmissionSequence = this.continuousPosting;
       } catch (e) {
         const status = e?.response?.status;
         if (didUpload && status >= 400 && status < 500) {
@@ -914,6 +921,7 @@ export default {
           throw e;
         }
       } finally {
+        this.editorSubmissionTracker.finish(attempt, outcome);
         this.sending = false;
         this.progressAmount = 0;
       }

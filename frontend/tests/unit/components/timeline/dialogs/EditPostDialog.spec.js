@@ -937,3 +937,27 @@ it('keeps saved tags until This tab is explicitly selected, then clears feedback
   expect(wrapper.findAll('.tag-action-button[aria-pressed="true"]')).toHaveLength(0);
   wrapper.unmount();
 });
+
+
+describe('上下共通の送信と計測', () => {
+  it('下部の連続投稿中は上部から重複送信せず、保存後の結果を一回記録する', async () => {
+    const wrapper = createWrapper(); wrapper.vm.openedDialog(); wrapper.vm.content = 'ローカル確認';
+    const events = []; const original = wrapper.vm.editorSubmissionTracker;
+    wrapper.vm.editorSubmissionTracker = { begin: args => { events.push(args); return args; }, finish: (args, outcome) => events.push({ ...args, outcome }), reset: () => {} };
+    let release; wrapper.vm.editPost = () => new Promise(resolve => { release = resolve; });
+    const pending = wrapper.vm.submit(true, 'bottom');
+    expect(wrapper.vm.sending).toBe(true);
+    await wrapper.vm.submit(false, 'top'); expect(events).toHaveLength(1);
+    release({ data: { _id: 'saved', room_tags: ['question'] } }); await pending;
+    expect(events).toHaveLength(2); expect(events[1]).toMatchObject({ position: 'bottom', mode: 'continuous', outcome: 'success' });
+    expect(wrapper.emitted().doneContinuousPost).toHaveLength(1);
+    wrapper.vm.editorSubmissionTracker = original; wrapper.unmount();
+  });
+  it('空入力では選択と検証失敗だけを記録し、下書きを保持する', async () => {
+    const wrapper = createWrapper(); wrapper.vm.openedDialog(); wrapper.vm.content = '';
+    const results = []; wrapper.vm.editorSubmissionTracker = { begin: args => args, finish: (args, outcome) => results.push({ ...args, outcome }) };
+    await wrapper.vm.submit(false, 'top');
+    expect(results).toEqual([expect.objectContaining({ position: 'top', outcome: 'validation_error' })]);
+    expect(wrapper.vm.sending).toBe(false); expect(wrapper.emitted().close).toBeUndefined(); wrapper.unmount();
+  });
+});

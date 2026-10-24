@@ -207,7 +207,7 @@ describe('画面ごとの表示スタイル', () => {
     );
   });
 
-  it('スマートフォンタイムライン編集ダイアログを透過のままほぼ全画面にし、操作を右上へ固定する', () => {
+  it('スマートフォンタイムライン編集ダイアログを透過のままほぼ全画面にし、上部と下部に操作を表示する', () => {
     const editorSource = readSource(TIMELINE_EDITOR_DIALOG_PATH);
     const editorStyle = readScopedStyle(TIMELINE_EDITOR_DIALOG_PATH);
     const compiledEditorStyle = compileScopedStyle(TIMELINE_EDITOR_DIALOG_PATH);
@@ -225,7 +225,7 @@ describe('画面ごとの表示スタイル', () => {
       /\.timeline-editor-dialog\s*\{[^}]*--ui-dialog-width:\s*100vw;/
     );
     expect(mobileStyle).to.match(
-      /\.timeline-editor-dialog \.ui-dialog__panel\s*\{[^}]*height:\s*calc\(100vh - var\(--ui-dialog-viewport-gutter\)\);[^}]*height:\s*calc\(100dvh - var\(--ui-dialog-viewport-gutter\)\);[^}]*overflow:\s*hidden;/
+      /\.timeline-editor-dialog \.ui-dialog__panel\s*\{[^}]*height:\s*calc\(100vh - var\(--ui-dialog-viewport-gutter\)\);[^}]*height:\s*calc\(var\(--editor-visible-height, 100dvh\) - var\(--ui-dialog-viewport-gutter\)\);[^}]*overflow:\s*hidden;/
     );
     expect(mobileStyle).to.match(
       /\.timeline-editor-dialog \.ui-dialog__content\s*\{[^}]*min-height:\s*0;[^}]*flex:\s*1 1 auto;[^}]*overscroll-behavior:\s*contain;/
@@ -236,7 +236,8 @@ describe('画面ごとの表示スタイル', () => {
     TIMELINE_EDITOR_DIALOG_USAGE_PATHS.forEach((filePath) => {
       expect(readSource(filePath)).to.include('class="transparent-dialog"');
     });
-    expect(editorStyle).to.not.match(/background(?:-color)?:/);
+    expect(mobileStyle).to.match(/\.timeline-editor-dialog \.ui-dialog__actions\s*\{[^}]*display:\s*flex;[^}]*flex:\s*0 0 auto;[^}]*background:\s*#fff;/);
+    expect(editorStyle).to.match(/min-height:\s*48px;/);
   });
 
   it('ギャラリーは暗い領域内に画像・動画全体を収め、操作を左右に分ける', () => {
