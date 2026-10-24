@@ -90,8 +90,8 @@ const sourceSupplements = async ({ postId, replyId = null }) => {
 };
 
 describe('設定に基づくAI解析の結合動作（外部サービスはモック）', () => {
-  test.each(['post', 'reply'])('%sの会話AI補足は権限確認後に2000文字で編集し、人の補足の上限は維持する', async (sourceType) => {
-    const ctx=await setup({withReply:sourceType==='reply'});const {io}=createIo();
+  test.each(['post','reply'].flatMap(sourceType=>['conversation','vision','video','speech','audioScene'].map(kind=>[sourceType,kind])))('%s/%sと人の付加情報を2000文字で保存・編集する', async (sourceType,kind) => {
+    const ctx=await setup({withReply:sourceType==='reply',kinds:[kind]});const {io}=createIo();
     const executor=createAnalysisExecutor({executionEnabled:()=>true,prepareInput,analyze:async()=> 'x'.repeat(1800)});
     await executor.executeSetting({chatId:ctx.post._id,sourceType,replyId:sourceType==='reply'?ctx.replyId:null,settingId:ctx.settings[0]._id,io,mediaPath:'/mocked'});
     const [sup]=await sourceSupplements({postId:ctx.post._id,replyId:sourceType==='reply'?ctx.replyId:null});
@@ -106,10 +106,10 @@ describe('設定に基づくAI解析の結合動作（外部サービスはモ�
     const path = sourceType === 'reply' ? 'replies.$.supplementaries' : 'supplementaries';
     const query = sourceType === 'reply' ? { _id: ctx.post._id, 'replies._id': ctx.replyId } : { _id: ctx.post._id };
     await Chat.updateOne(query, { $push: { [path]: { _id: humanId, user: ctx.owner._id, content: 'Human information', lang: 'en' } } });
-    await expect(update({ ...body, _id: String(humanId), content: 'h'.repeat(401),
+    await expect(update({ ...body, _id: String(humanId), content: 'h'.repeat(2001),
       ai_origin: { kind: 'conversation' }, meta: { analysis_kind: 'conversation' } }, payload, io))
       .rejects.toMatchObject({ code: 'INVALID_PARAMS' });
-    await expect(update({ ...body, _id: String(humanId), content: 'h'.repeat(400) }, payload, io))
+    await expect(update({ ...body, _id: String(humanId), content: 'h'.repeat(2000) }, payload, io))
       .resolves.toBeTruthy();
   });
 
@@ -258,7 +258,7 @@ describe('設定に基づくAI解析の結合動作（外部サービスはモ�
     await RoomTag.updateOne({ _id: context.tag._id }, {
       $push: { translations: { user: context.owner._id, lang: 'fr', name: translatedTag } },
     });
-    const providerOutput = kind === 'speech' ? 'a'.repeat(600) : 'valid result';
+    const providerOutput = kind === 'speech' ? 'a'.repeat(2400) : 'valid result';
     const translateContent = jest.fn();
     const { emit, io } = createIo();
     const executor = createAnalysisExecutor({
@@ -298,7 +298,7 @@ describe('設定に基づくAI解析の結合動作（外部サービスはモ�
       ];
       expect(saved.translations.map(({ lang, content }) => ({ lang, content }))).toEqual(expectedTranslations);
       if (kind === 'speech') {
-        expect(saved.content).toHaveLength(400);
+        expect(saved.content).toHaveLength(2000);
         expect(saved.content.endsWith('…')).toBe(true);
       } else {
         expect(saved.content).toBe(`#Custom analysis ${providerOutput}`);

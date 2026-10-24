@@ -4,9 +4,8 @@ const { getOpenAIClients, PROMPTS } = require('./runtime');
 const { describeAcousticProfile } = require('./acousticProfile');
 const { describeAudioSceneWithGemini } = require('./audioSceneGemini');
 
-const MAX_PROVIDER_CODE_POINTS = 300;
-const MAX_COMPLETION_TOKENS = 500;
-const MAX_CONVERSATION_COMPLETION_TOKENS = 1500;
+const { MAX_SUPPLEMENT_UTF16_UNITS } = require('../../constants/contentLimits');
+const MAX_COMPLETION_TOKENS = 1500;
 
 const createAbortError = () => {
   const error = new Error('Audio analysis aborted');
@@ -22,11 +21,11 @@ const invalidOutput = (reason) => {
   return error;
 };
 
-const normalizeProviderText = (value, { enforceLimit = true } = {}) => {
+const normalizeProviderText = (value, { enforceLimit = true, maxAnswerUtf16 = MAX_SUPPLEMENT_UTF16_UNITS } = {}) => {
   if (typeof value !== 'string') throw invalidOutput('non_string');
   const text = value.trim();
   if (!text) throw invalidOutput('empty');
-  if (enforceLimit && Array.from(text).length > MAX_PROVIDER_CODE_POINTS) {
+  if (enforceLimit && text.length > maxAnswerUtf16) {
     throw invalidOutput('too_long');
   }
   return text;
@@ -120,6 +119,8 @@ const buildAudioSceneMessages = ({ audioBuffer, additionalPrompt }) => {
   ];
 };
 
+const budgetMessage = (limit) => ({ role: 'system', content: `説明は${limit} UTF-16単位以内にしてください。必要な情報を簡潔に述べ、上限まで埋める必要はありません。` });
+
 const buildConversationMessages = ({ sourceText, language, additionalPrompt, maxAnswerUtf16, previousAnswer }) => {
   if (typeof sourceText !== 'string' || !sourceText.trim()) {
     const error = new Error('Conversation source text is required');
@@ -161,7 +162,7 @@ const analyzeWithProvider = async ({
   media,
   signal,
   logger = defaultLogger,
-  maxAnswerUtf16 = 2000,
+  maxAnswerUtf16 = MAX_SUPPLEMENT_UTF16_UNITS,
   previousAnswer,
   onResponse,
 } = {}) => {
@@ -179,18 +180,18 @@ const analyzeWithProvider = async ({
     // 録音レベルが非常に低い入力は、外部モデルが存在しない発話を創作しやすいため送らない。
     if (profile?.lowLevel) return { status: 'low-level' };
     if (getAudioSceneProvider() === 'gemini') {
-      return describeAudioSceneWithGemini({ media, additionalPrompt, signal, logger });
+      return describeAudioSceneWithGemini({ media, additionalPrompt, signal, logger, maxAnswerUtf16 });
     }
     const text = await clients.openAIChat.chatCompletions({
       model: clients.models.audioScene,
-      messages: buildAudioSceneMessages({ ...media, additionalPrompt }),
+      messages: [...buildAudioSceneMessages({ ...media, additionalPrompt }), budgetMessage(maxAnswerUtf16)],
       max_completion_tokens: MAX_COMPLETION_TOKENS,
       modalities: ['text'],
       signal,
     });
     const extracted = extractAudioSceneText(text);
     if (typeof extracted === 'string' && !extracted.trim()) return { status: 'no-description' };
-    return normalizeProviderText(extracted);
+    return normalizeProviderText(extracted, { maxAnswerUtf16 });
   }
 
   if (kind === 'speech') {
@@ -218,11 +219,12 @@ const analyzeWithProvider = async ({
     throw error;
   }
 
+  if (kind !== 'conversation') messages.push(budgetMessage(maxAnswerUtf16));
   let responseMetadata;
   const text = await clients.openAIChat.chatCompletions({
     model: clients.models[kind],
     messages,
-    max_completion_tokens: kind === 'conversation' ? MAX_CONVERSATION_COMPLETION_TOKENS : MAX_COMPLETION_TOKENS,
+    max_completion_tokens: MAX_COMPLETION_TOKENS,
     signal,
     ...(kind === 'conversation' ? { onResponse: (metadata) => {
       responseMetadata = metadata;
@@ -232,11 +234,11 @@ const analyzeWithProvider = async ({
   if (kind === 'conversation' && ['length', 'content_filter'].includes(responseMetadata?.finish_reason)) {
     throw invalidOutput('incomplete');
   }
-  return normalizeProviderText(text, { enforceLimit: kind !== 'conversation' });
+  return normalizeProviderText(text, { enforceLimit: kind !== 'conversation', maxAnswerUtf16 });
 };
 
 module.exports = {
-  MAX_PROVIDER_CODE_POINTS,
+  MAX_SUPPLEMENT_UTF16_UNITS,
   analyze: analyzeWithProvider,
   analyzeWithProvider,
   normalizeProviderText,

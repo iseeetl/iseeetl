@@ -41,6 +41,7 @@ const hasDefinedOwn = (value, key) =>
 exports.createReplySupplement = async (body, jwtPayload, io, { errors, requireContentOrMedia = false } = {}) => {
   const postId = body.post_id;
   const replyId = body.reply_id;
+  assertSupplementContentLimit(body);
   const content = body.content;
   const decodedUserId = jwtPayload.user_id;
 
@@ -170,7 +171,7 @@ exports.updateReplySupplement = async (body, jwtPayload, io, { errors, requireCo
     supplementId: id,
     code: errors?.post?.code || 'INVALID_PARAMS',
   });
-  assertSupplementContentLimit(body, supplement);
+  assertSupplementContentLimit(body);
   const effectiveSupplement = {
     ...mergeTimelinePatch(supplement, body, SUPPLEMENT_MUTABLE_FIELDS),
     ...titleFields(body, supplement, { fallbackLang: supplement.lang }),

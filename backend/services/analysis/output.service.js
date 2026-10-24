@@ -40,8 +40,7 @@ const resolveNotice = (snapshot, providerOutput) => {
   return accepted.includes(status) ? status : null;
 };
 
-const MAX_PROVIDER_CODE_POINTS = 300;
-const { MAX_SUPPLEMENT_UTF16_UNITS, MAX_CONVERSATION_UTF16_UNITS } = require('./conversationBudget');
+const { MAX_SUPPLEMENT_UTF16_UNITS } = require('./conversationBudget');
 
 const analysisLogContext = (snapshot, reason, startedAt) => ({
   source_type: snapshot.sourceType,
@@ -92,17 +91,13 @@ const buildBaseContent = ({ snapshot, providerOutput, logger, startedAt = Date.n
     logger.error('AI_ANALYSIS_OUTPUT_INVALID', analysisLogContext(snapshot, 'empty', startedAt));
     return null;
   }
-  if (!['speech', 'conversation'].includes(snapshot.kind) && [...text].length > MAX_PROVIDER_CODE_POINTS) {
-    logger.error('AI_ANALYSIS_OUTPUT_INVALID', analysisLogContext(snapshot, 'provider_code_points', startedAt));
-    return null;
-  }
 
   const baseLang = noSpeech ? noticeLang : ['vision', 'audioScene', 'video'].includes(snapshot.kind)
     ? 'ja'
     : snapshot.source.lang;
   const label = makeLabelByLangFromTag(snapshot.triggerTag)(baseLang);
   let content = prefixWithLabel(label, text);
-  const contentLimit = snapshot.kind === 'conversation' ? MAX_CONVERSATION_UTF16_UNITS : MAX_SUPPLEMENT_UTF16_UNITS;
+  const contentLimit = MAX_SUPPLEMENT_UTF16_UNITS;
   if (content.length > contentLimit) {
     if (snapshot.kind !== 'speech') {
       logger.error('AI_ANALYSIS_OUTPUT_INVALID', analysisLogContext(snapshot, 'base_utf16_units', startedAt));
@@ -223,7 +218,6 @@ const buildAnalysisSupplement = async ({
 };
 
 module.exports = {
-  MAX_PROVIDER_CODE_POINTS,
   MAX_SUPPLEMENT_UTF16_UNITS,
   NOTICE_MESSAGES,
   buildAnalysisSupplement,

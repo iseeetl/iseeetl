@@ -1,8 +1,5 @@
-export const CONVERSATION_CONTENT_LIMIT = 2000;
-export const DEFAULT_CONTENT_LIMIT = 400;
-export const isConversationSupplement = (item) => item?.ai_origin?.kind === 'conversation';
-export const supplementContentLimit = (item) => isConversationSupplement(item)
-  ? CONVERSATION_CONTENT_LIMIT : DEFAULT_CONTENT_LIMIT;
+export const SUPPLEMENT_CONTENT_LIMIT = 2000;
+export const supplementContentLimit = () => SUPPLEMENT_CONTENT_LIMIT;
 
 // 表示だけを短くする。保存データには触れず、サロゲートペアも分断しない。
 export const supplementPreview = (content) => {

@@ -178,7 +178,7 @@
 </template>
 
 <script>
-import { isConversationSupplement, supplementPreview } from '@/features/timeline/supplementLength';
+import { supplementPreview } from '@/features/timeline/supplementLength';
 import { getSupplementTitle } from '@/features/timeline/supplementTitle';
 import { canManageFloor } from '@/utils/floorPermissions';
 import DateUtil from '@/utils/dateUtil.js';
@@ -242,8 +242,7 @@ export default {
   computed: {
     contentRegionId() { return `${this.idPrefix}-supplement-body-${this.supplement._id}`; },
     canExpand() {
-      return isConversationSupplement(this.supplement) &&
-        ((this.supplement.content || '').length > 400 ||
+      return ((this.supplement.content || '').length > 400 ||
          (this.needsTranslation(this.supplement) && (this.getContent(this.supplement) || '').length > 400));
     },
     originTagName() {

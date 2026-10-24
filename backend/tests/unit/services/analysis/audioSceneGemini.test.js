@@ -1,5 +1,5 @@
 const mockGetGeminiConfig = jest.fn(() => ({
-  apiKey: 'dummy',
+  apiKey: 'placeholder',
   models: { audioScene: 'test-gemini-audio-model' },
 }));
 jest.mock('../../../../config/featureFlags', () => ({
@@ -38,7 +38,7 @@ describe('Geminiによる音解析', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     resetGeminiClientForTest();
-    mockGetGeminiConfig.mockReturnValue({ apiKey: 'dummy', models: { audioScene: 'test-gemini-audio-model' } });
+    mockGetGeminiConfig.mockReturnValue({ apiKey: 'placeholder', models: { audioScene: 'test-gemini-audio-model' } });
   });
 
   test('同じ入力で2回並列に呼び、主要分類が一致すれば1回目の説明をそのまま返す', async () => {
@@ -56,10 +56,10 @@ describe('Geminiによる音解析', () => {
       expect(request).toEqual({
         model: 'test-gemini-audio-model',
         systemInstruction: SYSTEM_INSTRUCTION,
-        text: `${USER_PROMPT}\n\ntrusted additional prompt`,
+        text: `${USER_PROMPT}\n\n説明と注記の合計は2000 UTF-16単位以内です。\n\ntrusted additional prompt`,
         audio: { buffer: AUDIO, mimeType: 'audio/mp3' },
         responseSchema: RESPONSE_SCHEMA,
-        maxOutputTokens: 512,
+        maxOutputTokens: 2048,
         thinkingLevel: 'LOW',
         signal: controller.signal,
       });
@@ -212,29 +212,30 @@ describe('Geminiによる音解析', () => {
     })).resolves.toBe(`風の音が聞こえます。${LOW_CONFIDENCE_NOTE_JA}${LOW_LEVEL_NOTE_JA}`);
   });
 
-  test('注記込みで300文字を超える説明は文末で切り、注記を残す', async () => {
-    const sentence = `${'あ'.repeat(100)}。`;
+  test('注記込みで2000文字を超える説明は文末で切り、注記を残す', async () => {
+    const sentence = `${'あ'.repeat(700)}。`;
     mockGenerateContent
       .mockResolvedValueOnce(answer(sentence.repeat(3), ['speech']))
       .mockResolvedValueOnce(answer('別の音。', ['music']));
     const text = await describeAudioSceneWithGemini({ media: media(), logger: logger() });
     expect(text).toBe(`${sentence.repeat(2)}${LOW_CONFIDENCE_NOTE_JA}`);
-    expect(Array.from(text).length).toBeLessThanOrEqual(300);
+    expect(Array.from(text).length).toBeLessThanOrEqual(2000);
   });
 
-  test('文末で収まらない長い説明は注記を優先して120文字に「…」付きで切る', async () => {
+  test('文末で収まらない長い説明は注記を優先して予算内に「…」付きで切る', async () => {
     mockGenerateContent
-      .mockResolvedValueOnce(answer('い'.repeat(320), ['speech']))
+      .mockResolvedValueOnce(answer('😀'.repeat(1200), ['speech']))
       .mockResolvedValueOnce(answer('別の音。', ['music']));
     const text = await describeAudioSceneWithGemini({
       media: media({ kind: 'unknown', lowLevel: true }), logger: logger(),
     });
-    expect(text).toBe(`${'い'.repeat(119)}…${LOW_CONFIDENCE_NOTE_JA}${LOW_LEVEL_NOTE_JA}`);
-    expect(Array.from(text).length).toBeLessThanOrEqual(300);
+    expect(text.endsWith(`…${LOW_CONFIDENCE_NOTE_JA}${LOW_LEVEL_NOTE_JA}`)).toBe(true);
+    expect(text).not.toMatch(/[\uD800-\uDBFF]…/);
+    expect(Array.from(text).length).toBeLessThanOrEqual(2000);
   });
 
-  test('注記なしで300文字以内の説明は切らない', async () => {
-    const description = `${'う'.repeat(299)}。`;
+  test('注記なしで2000文字以内の説明は切らない', async () => {
+    const description = `${'う'.repeat(1700)}。`;
     mockGenerateContent
       .mockResolvedValueOnce(answer(description, ['speech']))
       .mockResolvedValueOnce(answer('同じ音。', ['speech']));

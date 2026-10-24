@@ -32,7 +32,7 @@ jest.mock('../../../../services/analysis/audioSceneGemini', () => ({
 }));
 
 const {
-  MAX_PROVIDER_CODE_POINTS,
+  MAX_SUPPLEMENT_UTF16_UNITS,
   analyzeWithProvider,
 } = require('../../../../services/analysis/provider.service');
 
@@ -99,7 +99,7 @@ describe('AI解析用の外部サービス呼出', () => {
     })).resolves.toBe('gemini description');
     expect(mockDescribeAudioSceneWithGemini).toHaveBeenCalledTimes(1);
     expect(mockDescribeAudioSceneWithGemini).toHaveBeenCalledWith({
-      media, additionalPrompt: 'trusted additional prompt', signal: controller.signal, logger,
+      media, additionalPrompt: 'trusted additional prompt', signal: controller.signal, logger, maxAnswerUtf16: 2000,
     });
     expect(mockChatCompletions).not.toHaveBeenCalled();
 
@@ -136,7 +136,7 @@ describe('AI解析用の外部サービス呼出', () => {
     const request = mockChatCompletions.mock.calls[0][0];
     expect(request.model).toBe(mockModels[kind]);
     expect(request.signal).toBe(controller.signal);
-    expect(request.max_completion_tokens).toBe(500);
+    expect(request.max_completion_tokens).toBe(1500);
     expect(JSON.stringify(request.messages)).toContain('trusted additional prompt');
     if (kind === 'audioScene') expect(request.modalities).toEqual(['text']);
     expect(mockTranscribeFromBuffer).not.toHaveBeenCalled();
@@ -200,7 +200,7 @@ describe('AI解析用の外部サービス呼出', () => {
   });
 
   test('音解析の抽出後の上限超過は従来どおり拒否する', async () => {
-    mockChatCompletions.mockResolvedValue(JSON.stringify({ value: 'あ'.repeat(301) }));
+    mockChatCompletions.mockResolvedValue(JSON.stringify({ value: 'あ'.repeat(2001) }));
     await expect(analyzeWithProvider({
       kind: 'audioScene', media: { audioBuffer: Buffer.from('audio') },
     })).rejects.toMatchObject({ code: 'AI_ANALYSIS_OUTPUT_INVALID', reason: 'too_long' });
@@ -224,7 +224,7 @@ describe('AI解析用の外部サービス呼出', () => {
   });
 
   test('文字起こしはクライアントを1回だけ呼び、長文を切り捨てない', async () => {
-    const transcript = 'あ'.repeat(MAX_PROVIDER_CODE_POINTS + 1);
+    const transcript = 'あ'.repeat(MAX_SUPPLEMENT_UTF16_UNITS + 1);
     mockTranscribeFromBuffer.mockResolvedValue(transcript);
     const controller = new AbortController();
 
@@ -270,8 +270,8 @@ describe('AI解析用の外部サービス呼出', () => {
     expect(mockTranscribeFromBuffer).toHaveBeenCalledTimes(1);
   });
 
-  test('画像解析で300文字を超える結果を保存処理へ渡さない', async () => {
-    mockChatCompletions.mockResolvedValue('😀'.repeat(MAX_PROVIDER_CODE_POINTS + 1));
+  test('画像解析で2000 UTF-16単位を超える結果を保存処理へ渡さない', async () => {
+    mockChatCompletions.mockResolvedValue('😀'.repeat(MAX_SUPPLEMENT_UTF16_UNITS + 1));
     await expect(
       analyzeWithProvider({
         kind: 'vision',

@@ -1,4 +1,4 @@
-const { MAX_CONVERSATION_UTF16_UNITS } = require('../analysis/conversationBudget');
+const { MAX_POST_UTF16_UNITS, MAX_SUPPLEMENT_UTF16_UNITS } = require('../../constants/contentLimits');
 const AppError = require('../../utils/appError');
 const { normalizeTitle } = require('../../utils/supplementTitle');
 const { ALLOWED_LANGUAGES } = require('../../constants/languages');
@@ -38,7 +38,7 @@ function requireId(body, field) {
   return body[field].toLowerCase();
 }
 
-function copyContent(body, target, { required = true, limit = 400 } = {}) {
+function copyContent(body, target, { required = true, limit = MAX_POST_UTF16_UNITS } = {}) {
   if (!hasOwn(body, 'content')) {
     if (required) throw invalidParams();
     return;
@@ -127,14 +127,14 @@ function copyMedia(body, target, { create = false } = {}) {
   }
 }
 
-function baseCreate(body, { tags = false, animation = false } = {}) {
+function baseCreate(body, { contentLimit = MAX_POST_UTF16_UNITS, tags = false, animation = false } = {}) {
   assertBody(body);
   const target = {
     room_id: requireId(body, 'room_id'),
     content: undefined,
     lang: 'ja',
   };
-  copyContent(body, target);
+  copyContent(body, target, { limit: contentLimit });
   if (tags) copyRoomTags(body, target);
   if (animation) {
     copyAnimation(body, target);
@@ -144,7 +144,7 @@ function baseCreate(body, { tags = false, animation = false } = {}) {
   return target;
 }
 
-function baseUpdate(body, { contentLimit = 400, tags = false, animation = false, replySemantics = false } = {}) {
+function baseUpdate(body, { contentLimit = MAX_POST_UTF16_UNITS, tags = false, animation = false, replySemantics = false } = {}) {
   assertBody(body);
   const target = {
     room_id: requireId(body, 'room_id'),
@@ -183,12 +183,12 @@ function supplementTitleInput(body) {
 }
 
 function adaptPostSupplementCreate(body) {
-  return { ...baseCreate(body), ...supplementTitleInput(body), post_id: requireId(body, 'post_id') };
+  return { ...baseCreate(body, { contentLimit: MAX_SUPPLEMENT_UTF16_UNITS }), ...supplementTitleInput(body), post_id: requireId(body, 'post_id') };
 }
 
 function adaptPostSupplementUpdate(body) {
   return {
-    ...baseUpdate(body, { contentLimit: MAX_CONVERSATION_UTF16_UNITS }), ...supplementTitleInput(body),
+    ...baseUpdate(body, { contentLimit: MAX_SUPPLEMENT_UTF16_UNITS }), ...supplementTitleInput(body),
     post_id: requireId(body, 'post_id'),
     _id: requireId(body, 'supplement_id'),
   };
@@ -231,7 +231,7 @@ function adaptReplyDelete(body) {
 
 function adaptReplySupplementCreate(body) {
   return {
-    ...baseCreate(body), ...supplementTitleInput(body),
+    ...baseCreate(body, { contentLimit: MAX_SUPPLEMENT_UTF16_UNITS }), ...supplementTitleInput(body),
     post_id: requireId(body, 'post_id'),
     reply_id: requireId(body, 'reply_id'),
   };
@@ -239,7 +239,7 @@ function adaptReplySupplementCreate(body) {
 
 function adaptReplySupplementUpdate(body) {
   return {
-    ...baseUpdate(body, { contentLimit: MAX_CONVERSATION_UTF16_UNITS }), ...supplementTitleInput(body),
+    ...baseUpdate(body, { contentLimit: MAX_SUPPLEMENT_UTF16_UNITS }), ...supplementTitleInput(body),
     post_id: requireId(body, 'post_id'),
     reply_id: requireId(body, 'reply_id'),
     _id: requireId(body, 'supplement_id'),

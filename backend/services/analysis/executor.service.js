@@ -1,4 +1,4 @@
-const { conversationBodyLimit } = require('./conversationBudget');
+const { analysisBodyLimit } = require('./conversationBudget');
 const defaultLogger = require('../../utils/logger');
 const { errorLogDetails, safeDiagnostic } = require('../../utils/errorLogDetails');
 const { isAIAnalysisExecutionEnabled } = require('./settings/capability');
@@ -117,8 +117,8 @@ const createAnalysisExecutor = ({
                 additionalPrompt: snapshot.prompt,
                 media,
                 signal,
+                maxAnswerUtf16: analysisBodyLimit(snapshot),
                 ...(snapshot.kind === 'conversation' ? {
-                  maxAnswerUtf16: conversationBodyLimit(snapshot),
                   previousAnswer,
                   onResponse: (details) => {
                     lastResponse = details;
@@ -141,7 +141,7 @@ const createAnalysisExecutor = ({
           const { snapshot } = send;
           let providerOutput;
           if (snapshot.kind === 'conversation') {
-            const limit = conversationBodyLimit(snapshot);
+            const limit = analysisBodyLimit(snapshot);
             let attempt = 1;
             try {
               providerOutput = await send.responsePromise;

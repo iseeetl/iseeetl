@@ -150,7 +150,7 @@ describe('AI解析の実行制御', () => {
     }));
   });
 
-  test.each(['', '界'.repeat(301)])('外部APIの応答が無効な場合は本文を残さず理由を記録する（%#.）', async (output) => {
+  test.each(['', '界'.repeat(2001)])('外部APIの応答が無効な場合は本文を残さず理由を記録する（%#.）', async (output) => {
     const dependencies = createDependencies({ buildSnapshot: jest.fn(async () => buildSnapshotValue({ kind: 'vision' })), analyze: jest.fn(async () => normalizeProviderText(output)) });
     await createAnalysisExecutor(dependencies).runSourceAnalyses({ chatId: 'post-1', sourceType: 'post' });
     expect(dependencies.persistResult).not.toHaveBeenCalled();
@@ -164,7 +164,7 @@ describe('AI解析の実行制御', () => {
   test('付加情報の文字数超過はERRORを重複させず、結果を保存しない', async () => {
     const dependencies = createDependencies({
       buildSnapshot: jest.fn(async () => buildSnapshotValue({ kind: 'vision', triggerTag: { _id: 'tag-1', name: '界'.repeat(100) } })),
-      analyze: jest.fn(async () => '界'.repeat(300)),
+      analyze: jest.fn(async () => '界'.repeat(1900)),
       buildSupplement: buildAnalysisSupplement,
     });
     await expect(createAnalysisExecutor(dependencies).runSourceAnalyses({ chatId: 'post-1', sourceType: 'post' }))
@@ -336,7 +336,8 @@ describe('AI解析の実行制御', () => {
         additionalPrompt: 'prompt',
         media: null,
         signal,
-        ...(kind === 'conversation' ? { maxAnswerUtf16: 1996, previousAnswer: undefined, onResponse: expect.any(Function) } : {}),
+        maxAnswerUtf16: 1996,
+        ...(kind === 'conversation' ? { previousAnswer: undefined, onResponse: expect.any(Function) } : {}),
       });
       expect(dependencies.persistResult).toHaveBeenCalledWith(
         expect.objectContaining({ snapshot, supplement: expect.any(Object) })

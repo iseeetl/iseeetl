@@ -934,8 +934,8 @@
   "aiAnswer": {
     "expand": "続きを読む",
     "collapse": "閉じる",
-    "expandLabel": "AI付加情報「{title}」の全文を表示",
-    "collapseLabel": "AI付加情報「{title}」を短く表示",
+    "expandLabel": "付加情報「{title}」の全文を表示",
+    "collapseLabel": "付加情報「{title}」を短く表示",
     "contentLimit": "コメントは{count}文字までです"
   }
 }

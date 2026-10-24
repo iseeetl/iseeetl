@@ -934,8 +934,8 @@
   "aiAnswer": {
     "expand": "Read more",
     "collapse": "Show less",
-    "expandLabel": "Read all AI supplementary information: {title}",
-    "collapseLabel": "Show less AI supplementary information: {title}",
+    "expandLabel": "Read all supplementary information: {title}",
+    "collapseLabel": "Show less supplementary information: {title}",
     "contentLimit": "Comments can be up to {count} characters."
   }
 }

@@ -934,8 +934,8 @@
   "aiAnswer": {
     "expand": "展开全文",
     "collapse": "收起",
-    "expandLabel": "展开AI补充信息全文：{title}",
-    "collapseLabel": "收起AI补充信息：{title}",
+    "expandLabel": "展开补充信息全文：{title}",
+    "collapseLabel": "收起补充信息：{title}",
     "contentLimit": "评论最多可包含{count}个字符。"
   }
 }
