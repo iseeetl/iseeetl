@@ -653,8 +653,8 @@ describe('付加情報の作成・編集', () => {
     expect(wrapper.vm.audioDescription).to.equal('desc');
   });
 
-  it('既存の401文字本文は開いた時点で保持し、400文字以下へ短縮するまで保存不可にする', async () => {
-    const longContent = 'a'.repeat(401);
+  it('既存の2001文字本文は開いた時点で保持し、2000文字以下へ短縮するまで保存不可にする', async () => {
+    const longContent = 'a'.repeat(2001);
     const wrapper = createWrapper({
       props: {
         supplementValue: {
@@ -671,7 +671,7 @@ describe('付加情報の作成・編集', () => {
     expect(wrapper.vm.content).to.equal(longContent);
     expect(wrapper.vm.v$.content.maxLength.$invalid).to.equal(true);
 
-    wrapper.vm.content = 'a'.repeat(400);
+    wrapper.vm.content = 'a'.repeat(2000);
     await wrapper.vm.$nextTick();
     expect(wrapper.vm.v$.content.maxLength.$invalid).to.equal(false);
     wrapper.unmount();
@@ -740,4 +740,18 @@ describe('付加情報の作成・編集', () => {
     expect(snackbarCalls).to.have.lengthOf(1);
     expect(snackbarCalls[0].role).to.equal('alert');
   });
+});
+
+
+it('会話AI・人の補足は2000 UTF-16単位まで編集でき、超過を認めない', async () => {
+  const wrapper=createWrapper({props:{supplementValue:{_id:'ai-long',content:'a'.repeat(2000),ai_origin:{kind:'conversation'}}}});
+  wrapper.vm.openedDialog();await wrapper.vm.$nextTick();wrapper.vm.v$.content.$touch();
+  expect(wrapper.get('#supplement_content').attributes('maxlength')).toBe('2000');
+  expect(wrapper.vm.v$.content.maxLength.$invalid).toBe(false);
+  wrapper.vm.content='😀'.repeat(1001);await wrapper.vm.$nextTick();
+  expect(wrapper.vm.v$.content.maxLength.$invalid).toBe(true);
+  await wrapper.setProps({supplementValue:{_id:'human',content:'a'.repeat(2001),title:'AI'}});
+  wrapper.vm.openedDialog();await wrapper.vm.$nextTick();
+  expect(wrapper.get('#supplement_content').attributes('maxlength')).toBe('2000');
+  expect(wrapper.vm.v$.content.maxLength.$invalid).toBe(true);wrapper.unmount();
 });

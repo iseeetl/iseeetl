@@ -14,6 +14,7 @@ function createOpenAIChatClient({ apiKey, baseURL = 'https://api.openai.com/v1',
     max_completion_tokens,
     modalities,
     signal,
+    onResponse,
   } = {}) {
     if (!model) throw new Error('OpenAI model is required');
     if (!Array.isArray(messages)) throw new Error('OpenAI messages are required');
@@ -29,6 +30,11 @@ function createOpenAIChatClient({ apiKey, baseURL = 'https://api.openai.com/v1',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${apiKey}` },
         timeout,
         signal,
+      });
+      if (typeof onResponse === 'function') onResponse({
+        finish_reason: response?.data?.choices?.[0]?.finish_reason || null,
+        request_id: response?.headers?.['x-request-id'] || null,
+        http_status: response.status,
       });
       return response?.data?.choices?.[0]?.message?.content || '';
     } catch (error) {

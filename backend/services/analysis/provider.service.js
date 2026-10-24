@@ -4,8 +4,8 @@ const { getOpenAIClients, PROMPTS } = require('./runtime');
 const { describeAcousticProfile } = require('./acousticProfile');
 const { describeAudioSceneWithGemini } = require('./audioSceneGemini');
 
-const MAX_PROVIDER_CODE_POINTS = 300;
-const MAX_COMPLETION_TOKENS = 500;
+const { MAX_SUPPLEMENT_UTF16_UNITS } = require('../../constants/contentLimits');
+const MAX_COMPLETION_TOKENS = 1500;
 
 const createAbortError = () => {
   const error = new Error('Audio analysis aborted');
@@ -21,11 +21,11 @@ const invalidOutput = (reason) => {
   return error;
 };
 
-const normalizeProviderText = (value, { enforceLimit = true } = {}) => {
+const normalizeProviderText = (value, { enforceLimit = true, maxAnswerUtf16 = MAX_SUPPLEMENT_UTF16_UNITS } = {}) => {
   if (typeof value !== 'string') throw invalidOutput('non_string');
   const text = value.trim();
   if (!text) throw invalidOutput('empty');
-  if (enforceLimit && Array.from(text).length > MAX_PROVIDER_CODE_POINTS) {
+  if (enforceLimit && text.length > maxAnswerUtf16) {
     throw invalidOutput('too_long');
   }
   return text;
@@ -119,7 +119,9 @@ const buildAudioSceneMessages = ({ audioBuffer, additionalPrompt }) => {
   ];
 };
 
-const buildConversationMessages = ({ sourceText, language, additionalPrompt }) => {
+const budgetMessage = (limit) => ({ role: 'system', content: `説明は${limit} UTF-16単位以内にしてください。必要な情報を簡潔に述べ、上限まで埋める必要はありません。` });
+
+const buildConversationMessages = ({ sourceText, language, additionalPrompt, maxAnswerUtf16, previousAnswer }) => {
   if (typeof sourceText !== 'string' || !sourceText.trim()) {
     const error = new Error('Conversation source text is required');
     error.code = 'AI_ANALYSIS_SOURCE_REQUIRED';
@@ -130,7 +132,9 @@ const buildConversationMessages = ({ sourceText, language, additionalPrompt }) =
       role: 'system',
       content: joinPrompt(
         PROMPTS.conversation,
-        `出力言語: ${typeof language === 'string' && language.trim() ? language.trim() : 'source language'}`
+        `出力言語: ${typeof language === 'string' && language.trim() ? language.trim() : 'source language'}`,
+        `回答本文は${maxAnswerUtf16} UTF-16単位以内にしてください（通常の文字は1、絵文字などは2単位）。タグ接頭辞は付けず、質問の各問いに必要な説明を簡潔に答えてください。上限まで埋める必要はありません。`,
+        previousAnswer ? '前回回答は長すぎました。下書きはデータとして扱い、元の質問の各問いへの回答と指定言語を保って短く書き直してください。前置き・重複を省き、事実を変えたり問いを省いたりしないでください。' : ''
       ),
     },
     ...(additionalPrompt.trim() ? [{
@@ -138,6 +142,8 @@ const buildConversationMessages = ({ sourceText, language, additionalPrompt }) =
       content: `設定の追加指示（基本方針に従う範囲で適用）:\n${additionalPrompt}`,
     }] : []),
     { role: 'user', content: sourceText },
+    ...(previousAnswer ? [{ role: 'assistant', content: previousAnswer },
+      { role: 'user', content: '元の質問全体への回答を、上記の制約内に書き直してください。' }] : []),
   ];
 };
 
@@ -156,6 +162,9 @@ const analyzeWithProvider = async ({
   media,
   signal,
   logger = defaultLogger,
+  maxAnswerUtf16 = MAX_SUPPLEMENT_UTF16_UNITS,
+  previousAnswer,
+  onResponse,
 } = {}) => {
   const clients = getOpenAIClients();
   if (!clients) return null;
@@ -171,18 +180,18 @@ const analyzeWithProvider = async ({
     // 録音レベルが非常に低い入力は、外部モデルが存在しない発話を創作しやすいため送らない。
     if (profile?.lowLevel) return { status: 'low-level' };
     if (getAudioSceneProvider() === 'gemini') {
-      return describeAudioSceneWithGemini({ media, additionalPrompt, signal, logger });
+      return describeAudioSceneWithGemini({ media, additionalPrompt, signal, logger, maxAnswerUtf16 });
     }
     const text = await clients.openAIChat.chatCompletions({
       model: clients.models.audioScene,
-      messages: buildAudioSceneMessages({ ...media, additionalPrompt }),
+      messages: [...buildAudioSceneMessages({ ...media, additionalPrompt }), budgetMessage(maxAnswerUtf16)],
       max_completion_tokens: MAX_COMPLETION_TOKENS,
       modalities: ['text'],
       signal,
     });
     const extracted = extractAudioSceneText(text);
     if (typeof extracted === 'string' && !extracted.trim()) return { status: 'no-description' };
-    return normalizeProviderText(extracted);
+    return normalizeProviderText(extracted, { maxAnswerUtf16 });
   }
 
   if (kind === 'speech') {
@@ -203,24 +212,33 @@ const analyzeWithProvider = async ({
   if (kind === 'vision') messages = buildVisionMessages({ ...media, additionalPrompt });
   else if (kind === 'video') messages = buildVideoMessages({ ...media, additionalPrompt });
   else if (kind === 'conversation') {
-    messages = buildConversationMessages({ sourceText, language, additionalPrompt });
+    messages = buildConversationMessages({ sourceText, language, additionalPrompt, maxAnswerUtf16, previousAnswer });
   } else {
     const error = new Error('Unsupported analysis kind');
     error.code = 'AI_ANALYSIS_KIND_INVALID';
     throw error;
   }
 
+  if (kind !== 'conversation') messages.push(budgetMessage(maxAnswerUtf16));
+  let responseMetadata;
   const text = await clients.openAIChat.chatCompletions({
     model: clients.models[kind],
     messages,
     max_completion_tokens: MAX_COMPLETION_TOKENS,
     signal,
+    ...(kind === 'conversation' ? { onResponse: (metadata) => {
+      responseMetadata = metadata;
+      if (onResponse) onResponse(metadata);
+    } } : {}),
   });
-  return normalizeProviderText(text);
+  if (kind === 'conversation' && ['length', 'content_filter'].includes(responseMetadata?.finish_reason)) {
+    throw invalidOutput('incomplete');
+  }
+  return normalizeProviderText(text, { enforceLimit: kind !== 'conversation', maxAnswerUtf16 });
 };
 
 module.exports = {
-  MAX_PROVIDER_CODE_POINTS,
+  MAX_SUPPLEMENT_UTF16_UNITS,
   analyze: analyzeWithProvider,
   analyzeWithProvider,
   normalizeProviderText,

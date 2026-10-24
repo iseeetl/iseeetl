@@ -450,6 +450,7 @@ describe('v1 APIの取得・更新・削除・アップロード', () => {
     expect(res.body.map((tag) => tag.name)).toEqual(['newer', 'older']);
     expect(res.body[0]).toEqual({
       _id: newerTag._id.toString(),
+      ai_enabled: false,
       source_floor_tag: null,
       floor: floor._id.toString(),
       room: room._id.toString(),

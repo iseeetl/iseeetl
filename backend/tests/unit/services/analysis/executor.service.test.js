@@ -92,7 +92,7 @@ describe('AI解析の実行制御', () => {
   });
 
   test('外部APIの失敗にHTTPステータスとリクエストIDを付ける', async () => {
-    const dependencies = createDependencies({
+    const dependencies = createDependencies({ buildSnapshot: jest.fn(async () => buildSnapshotValue({ kind: 'vision' })),
       analyze: jest.fn(async () => {
         throw toOpenAIError({ response: {
           status: 429, headers: { 'x-request-id': 'req-fixture' },
@@ -150,8 +150,8 @@ describe('AI解析の実行制御', () => {
     }));
   });
 
-  test.each(['', '界'.repeat(301)])('外部APIの応答が無効な場合は本文を残さず理由を記録する（%#.）', async (output) => {
-    const dependencies = createDependencies({ analyze: jest.fn(async () => normalizeProviderText(output)) });
+  test.each(['', '界'.repeat(2001)])('外部APIの応答が無効な場合は本文を残さず理由を記録する（%#.）', async (output) => {
+    const dependencies = createDependencies({ buildSnapshot: jest.fn(async () => buildSnapshotValue({ kind: 'vision' })), analyze: jest.fn(async () => normalizeProviderText(output)) });
     await createAnalysisExecutor(dependencies).runSourceAnalyses({ chatId: 'post-1', sourceType: 'post' });
     expect(dependencies.persistResult).not.toHaveBeenCalled();
     expect(dependencies.logger.error).toHaveBeenCalledTimes(1);
@@ -163,8 +163,8 @@ describe('AI解析の実行制御', () => {
 
   test('付加情報の文字数超過はERRORを重複させず、結果を保存しない', async () => {
     const dependencies = createDependencies({
-      buildSnapshot: jest.fn(async () => buildSnapshotValue({ triggerTag: { _id: 'tag-1', name: '界'.repeat(100) } })),
-      analyze: jest.fn(async () => '界'.repeat(300)),
+      buildSnapshot: jest.fn(async () => buildSnapshotValue({ kind: 'vision', triggerTag: { _id: 'tag-1', name: '界'.repeat(100) } })),
+      analyze: jest.fn(async () => '界'.repeat(1900)),
       buildSupplement: buildAnalysisSupplement,
     });
     await expect(createAnalysisExecutor(dependencies).runSourceAnalyses({ chatId: 'post-1', sourceType: 'post' }))
@@ -228,7 +228,7 @@ describe('AI解析の実行制御', () => {
   test('1件の設定が失敗しても後続の設定を実行する', async () => {
     const dependencies = createDependencies({
       listSettingIds: jest.fn(async () => ['bad', 'good']),
-      buildSnapshot: jest.fn(async ({ settingId }) => buildSnapshotValue({ settingId })),
+      buildSnapshot: jest.fn(async ({ settingId }) => buildSnapshotValue({ settingId, kind: 'vision' })),
       analyze: jest
         .fn()
         .mockRejectedValueOnce(Object.assign(new Error('provider failed'), { code: 'PROVIDER_FAILED' }))
@@ -336,10 +336,71 @@ describe('AI解析の実行制御', () => {
         additionalPrompt: 'prompt',
         media: null,
         signal,
+        maxAnswerUtf16: 1996,
+        ...(kind === 'conversation' ? { previousAnswer: undefined, onResponse: expect.any(Function) } : {}),
       });
       expect(dependencies.persistResult).toHaveBeenCalledWith(
         expect.objectContaining({ snapshot, supplement: expect.any(Object) })
       );
     }
   );
+});
+
+
+describe('会話の保存上限・短縮・失敗表示', () => {
+  const run = (dependencies) => createAnalysisExecutor(dependencies).runSourceAnalyses({ chatId: 'post-1', sourceType: 'post' });
+  test.each(['a', '界', '😀'])('接頭辞込み2000 UTF-16単位まで保存: %s', async (character) => {
+    const answer = character.repeat(1996 / character.length);
+    const dependencies = createDependencies({ analyze: jest.fn(async () => answer), buildSupplement: buildAnalysisSupplement });
+    await run(dependencies);
+    expect(dependencies.analyze).toHaveBeenCalledTimes(1);
+    expect(dependencies.persistResult.mock.calls[0][0].supplement.content).toBe('#相談 ' + answer);
+    expect(dependencies.persistResult.mock.calls[0][0].supplement.content.length).toBe(2000);
+  });
+  test.each(['ja', 'en'])('長い回答だけ1回短縮。元の質問・指示・言語を維持: %s', async (lang) => {
+    const original = buildSnapshotValue();
+    original.source.lang = lang;
+    original.source.content = 'Can I hide AI information for image analysis but keep information added by people? Will this setting also be saved on another phone?';
+    original.triggerTag.translations = [{ lang: 'en', name: 'Help' }];
+    const dependencies = createDependencies({
+      buildSnapshot: jest.fn(async () => original),
+      analyze: jest.fn().mockResolvedValueOnce('a'.repeat(2450)).mockResolvedValueOnce('Both answers.'),
+      buildSupplement: buildAnalysisSupplement,
+    });
+    await run(dependencies);
+    expect(dependencies.analyze).toHaveBeenCalledTimes(2);
+    expect(dependencies.analyze.mock.calls[1][0]).toMatchObject({
+      sourceText: original.source.content, additionalPrompt: original.prompt,
+      language: lang, previousAnswer: 'a'.repeat(2450), maxAnswerUtf16: lang === 'ja' ? 1996 : 1994,
+    });
+    expect(dependencies.persistResult).toHaveBeenCalledTimes(1);
+    expect(dependencies.persistResult.mock.calls[0][0].supplement.content).toContain('Both answers.');
+  });
+  test.each(['empty', 'long', 'http', 'timeout', 'retry-empty', 'retry-http'])('%sは日英の固定案内、無制限再試行なし', async (mode) => {
+    const analyze = jest.fn();
+    if (mode === 'empty') analyze.mockResolvedValue('');
+    if (mode === 'long') analyze.mockResolvedValue('a'.repeat(2450));
+    if (mode === 'http' || mode === 'timeout') analyze.mockRejectedValue(Object.assign(new Error('private response'), { code: mode === 'timeout' ? 'ECONNABORTED' : 'HTTP_FAILED' }));
+    if (mode === 'retry-empty') analyze.mockResolvedValueOnce('a'.repeat(2450)).mockResolvedValueOnce('');
+    if (mode === 'retry-http') analyze.mockResolvedValueOnce('a'.repeat(2450)).mockRejectedValueOnce(new Error('private response'));
+    const dependencies = createDependencies({ analyze, buildSupplement: buildAnalysisSupplement });
+    await run(dependencies);
+    expect(analyze).toHaveBeenCalledTimes(mode === 'long' || mode.startsWith('retry-') ? 2 : 1);
+    const supplement = dependencies.persistResult.mock.calls[0][0].supplement;
+    expect(supplement.content).toBe('#相談 AIの補足情報を生成できませんでした。');
+    expect(supplement.translations[0].content).toBe('#相談 Could not generate AI supplementary information.');
+    expect(JSON.stringify(dependencies.logger.error.mock.calls)).not.toContain('private response');
+  });
+  test.each(['sourceRevision', 'settingRevision', 'deleted', 'aborted', 'idempotent'])('短縮直前の%sを再確認し、再送・保存しない', async (change) => {
+    const controller = new AbortController();
+    const dependencies = createDependencies({
+      analyze: jest.fn(async () => { if (change === 'aborted') controller.abort(); return 'a'.repeat(2450); }),
+      buildSnapshot: jest.fn().mockResolvedValueOnce(buildSnapshotValue()).mockResolvedValueOnce(buildSnapshotValue())
+        .mockResolvedValueOnce(change === 'deleted' ? null : buildSnapshotValue({ [change]: 99 })),
+      inspectResult: jest.fn().mockResolvedValueOnce('create').mockResolvedValueOnce(change === 'idempotent' ? 'idempotent' : 'create'),
+    });
+    await createAnalysisExecutor(dependencies).runSourceAnalyses({ chatId: 'post-1', sourceType: 'post', signal: controller.signal });
+    expect(dependencies.analyze).toHaveBeenCalledTimes(1);
+    expect(dependencies.persistResult).not.toHaveBeenCalled();
+  });
 });

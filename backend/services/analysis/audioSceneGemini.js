@@ -17,7 +17,7 @@ const SYSTEM_INSTRUCTION =
   '音源・場所・人物は、明瞭に聞こえる場合だけ断定してください。' +
   '電子音・ビープ音・一定の高さの音を人の声や言葉として説明せず、言葉として聞き取れない音を発話と断定しないでください。';
 const USER_PROMPT =
-  '添付音声から実際に聞こえる音を、日本語のplain textで1〜2文、150文字以内で説明してください。' +
+  '添付音声から実際に聞こえる音を、日本語のplain textで簡潔に説明してください。必要な音の成分を省かず、長さの上限まで埋める必要はありません。' +
   'あわせて主要な音の分類を categories に列挙してください。';
 const LOW_CONFIDENCE_NOTE_JA = 'この説明の確度は低く、聞き直すと別の音と判定されました。';
 const NO_AUDIBLE_SOUND_JA = 'はっきり聞き取れる音はありません。';
@@ -31,12 +31,11 @@ const RESPONSE_SCHEMA = Object.freeze({
   required: ['description', 'categories', 'audible'],
 });
 const AUDIO_MIME_TYPE = 'audio/mp3';
-const MAX_OUTPUT_TOKENS = 512;
+const MAX_OUTPUT_TOKENS = 2048;
 const THINKING_LEVEL = 'LOW';
 const ATTEMPT_COUNT = 2;
 const ACCEPTED_FINISH_REASONS = Object.freeze(['STOP', 'MAX_TOKENS']);
-const MAX_TEXT_CODE_POINTS = 300;
-const FALLBACK_DESCRIPTION_CODE_POINTS = 120;
+const { MAX_SUPPLEMENT_UTF16_UNITS } = require('../../constants/contentLimits');
 
 let cached = null;
 
@@ -122,24 +121,20 @@ const reportsNoSound = (attempt) => {
 
 const normalizeDescription = (description) => description.replace(/\s+/g, ' ').trim();
 
-const codePoints = (text) => Array.from(text);
-
-// 説明文を文末（。）で切り、注記込みで300コードポイントに収める。最低1文は残す。文末で収まらなければ「…」付きで切る。
-const fitDescription = (description, notes) => {
-  const noteLength = codePoints(notes.join('')).length;
-  const budget = MAX_TEXT_CODE_POINTS - noteLength;
-  const characters = codePoints(description);
-  if (characters.length <= budget) return description;
-  let cutAt = -1;
-  for (let i = 0; i < characters.length && i < budget; i += 1) {
-    if (characters[i] === '。') cutAt = i + 1;
+// 注記と接頭辞の予算を保ち、超過時だけ文末または安全な文字境界で省略する。
+const fitDescription = (description, notes, maxAnswerUtf16) => {
+  const budget = Math.max(0, maxAnswerUtf16 - notes.join('').length);
+  if (description.length <= budget) return description;
+  let excerpt = '';
+  for (const character of description) {
+    if (excerpt.length + character.length > Math.max(0, budget - 1)) break;
+    excerpt += character;
   }
-  if (cutAt > 0) return characters.slice(0, cutAt).join('');
-  // 文末で収まらないときは途中で切ることを「…」で示す。
-  return `${characters.slice(0, Math.max(0, Math.min(FALLBACK_DESCRIPTION_CODE_POINTS, budget) - 1)).join('')}…`;
+  const end = excerpt.lastIndexOf('。');
+  return end >= 0 ? excerpt.slice(0, end + 1) : budget > 0 ? excerpt + '…' : '';
 };
-
-const composeText = (description, notes) => `${fitDescription(normalizeDescription(description), notes)}${notes.join('')}`;
+const composeText = (description, notes, maxAnswerUtf16) =>
+  `${fitDescription(normalizeDescription(description), notes, maxAnswerUtf16)}${notes.join('')}`;
 
 const failureDetails = (attempt) => ({
   reason: attempt.reason,
@@ -148,13 +143,13 @@ const failureDetails = (attempt) => ({
 
 // 同じ入力で2回並列に生成し、主要な音の分類が一致しなければ確度低の注記を添える。
 // 2回とも失敗（通信失敗・HTTPエラー・使えない出力）なら { status: 'no-description' } を返す。中断はそのまま投げる。
-const describeAudioSceneWithGemini = async ({ media, additionalPrompt = '', signal, logger = defaultLogger } = {}) => {
+const describeAudioSceneWithGemini = async ({ media, additionalPrompt = '', signal, logger = defaultLogger, maxAnswerUtf16 = MAX_SUPPLEMENT_UTF16_UNITS } = {}) => {
   if (signal?.aborted) throw createAbortError();
   const { client, model } = getGeminiRuntime();
   const request = {
     model,
     systemInstruction: SYSTEM_INSTRUCTION,
-    text: joinPrompt(USER_PROMPT, additionalPrompt),
+    text: joinPrompt(USER_PROMPT, `説明と注記の合計は${maxAnswerUtf16} UTF-16単位以内です。`, additionalPrompt),
     audio: { buffer: media.audioBuffer, mimeType: AUDIO_MIME_TYPE },
     responseSchema: RESPONSE_SCHEMA,
     maxOutputTokens: MAX_OUTPUT_TOKENS,
@@ -204,7 +199,7 @@ const describeAudioSceneWithGemini = async ({ media, additionalPrompt = '', sign
     }
   }
   if (media.acousticProfile?.lowLevel) notes.push(LOW_LEVEL_NOTE_JA);
-  return composeText(description, notes);
+  return composeText(description, notes, maxAnswerUtf16);
 };
 
 module.exports = {

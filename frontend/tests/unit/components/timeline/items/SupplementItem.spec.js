@@ -145,7 +145,7 @@ describe('付加情報の表示と操作', () => {
     expect(wrapper.findComponent(ReactionPickerStub).props('pickerId')).to.equal(wrapper.vm.reactionPickerId);
   });
 
-  it('作成ユーザや本文長による特別扱いをせず通常付加情報として表示する', () => {
+  it('ユーザ名がAIでも人の長文付加情報と同じ展開表示になる', async () => {
     const longContent = 'a'.repeat(401);
     const wrapper = createWrapper({
       props: {
@@ -160,6 +160,8 @@ describe('付加情報の表示と操作', () => {
     });
 
     expect(wrapper.find('article.supplement').exists()).to.equal(true);
+    wrapper.vm.contentExpanded = true;
+    await wrapper.vm.$nextTick();
     expect(wrapper.findComponent({ name: 'TimelineText' }).props('content')).to.equal(longContent);
     wrapper.unmount();
   });
@@ -224,5 +226,36 @@ describe('付加情報の表示と操作', () => {
     expect(children.indexOf(textEl)).to.be.lessThan(children.indexOf(imageEl));
 
     wrapper.unmount();
+  });
+});
+
+
+describe('長い付加情報の展開', () => {
+  it('全文を初期読み上げ対象にせず、ボタンで全文・リンクを展開し閉じられる', async () => {
+    const wrapper = createWrapper({ props: { supplement: { _id:'long', lang:'ja', content:'説明。'.repeat(180) + 'END', ai_origin:{kind:'conversation'}, user:{username:'Helper'}, reactions:[] } } });
+    expect(wrapper.get('.expand-supplement').attributes('aria-expanded')).toBe('false');
+    expect(wrapper.get('.expand-supplement').attributes('aria-controls')).toBe('timeline-supplement-body-long');
+    expect(wrapper.text()).not.toContain('END');
+    await wrapper.get('.expand-supplement').trigger('click');
+    expect(wrapper.get('.expand-supplement').attributes('aria-expanded')).toBe('true');
+    expect(wrapper.findComponent({name:'TimelineText'}).props('content')).toContain('END');
+    await wrapper.get('.expand-supplement').trigger('click');
+    expect(wrapper.get('.expand-supplement').attributes('aria-expanded')).toBe('false');
+    wrapper.unmount();
+  });
+  it('原文が短く翻訳だけが長い場合にも展開でき、言語変更で閉じる', async () => {
+    const wrapper = createWrapper({props:{supplement:{_id:'translated',lang:'en',content:'Short answer.',translations:[{lang:'ja',content:'翻訳'.repeat(300)+'末尾'}],ai_origin:{kind:'conversation'},user:{username:'Helper'},reactions:[]}}});
+    expect(wrapper.find('.expand-supplement').exists()).toBe(true);
+    expect(wrapper.text()).not.toContain('末尾');
+    await wrapper.get('.expand-supplement').trigger('click');
+    expect(wrapper.text()).toContain('末尾');
+    wrapper.vm.$options.watch['$i18n.locale'].call(wrapper.vm);
+    await wrapper.vm.$nextTick();
+    expect(wrapper.get('.expand-supplement').attributes('aria-expanded')).toBe('false');
+    wrapper.unmount();
+  });
+  it.each([undefined, {kind:'speech'}, {kind:'vision'}, {kind:'video'}, {kind:'audioScene'}])('人・全解析を同じルールで折りたたむ', (origin) => {
+    const wrapper=createWrapper({props:{supplement:{_id:'other',content:'long '.repeat(200),ai_origin:origin,user:{username:'User'},reactions:[]}}});
+    expect(wrapper.find('.expand-supplement').exists()).toBe(true);wrapper.unmount();
   });
 });

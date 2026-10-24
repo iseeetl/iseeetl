@@ -52,10 +52,21 @@
         </div>
       </div>
       <div v-if="supplement.ai_origin" class="ai-origin">{{ $t('aiVisibility.origin', { tag: originTagName }) }}</div>
-      <div class="supplement-content text"><TimelineText :content="supplement.content" /></div>
-      <div class="supplement-content translate" dir="auto" v-if="needsTranslation(supplement)">
-        {{ getContent(supplement) }}
+      <div :id="contentRegionId">
+        <div class="supplement-content text">
+          <span v-if="canExpand && !contentExpanded" dir="auto">{{ previewContent(supplement.content) }}</span>
+          <TimelineText v-else :content="supplement.content" />
+        </div>
+        <div class="supplement-content translate" dir="auto" v-if="needsTranslation(supplement)">
+          {{ canExpand && !contentExpanded ? previewContent(getContent(supplement)) : getContent(supplement) }}
+        </div>
       </div>
+      <button v-if="canExpand" type="button" class="expand-supplement"
+        :aria-expanded="contentExpanded ? 'true' : 'false'" :aria-controls="contentRegionId"
+        :aria-label="$t(contentExpanded ? 'aiAnswer.collapseLabel' : 'aiAnswer.expandLabel', { title: supplementHeading })"
+        @click.stop="contentExpanded = !contentExpanded">
+        {{ $t(contentExpanded ? 'aiAnswer.collapse' : 'aiAnswer.expand') }}
+      </button>
       <div class="image" v-if="supplement.image_name">
         <button @click="onPressShowSupplementMedia(supplement, $event)" :aria-label="$t('画像を拡大表示')">
           <img
@@ -167,6 +178,7 @@
 </template>
 
 <script>
+import { supplementPreview } from '@/features/timeline/supplementLength';
 import { getSupplementTitle } from '@/features/timeline/supplementTitle';
 import { canManageFloor } from '@/utils/floorPermissions';
 import DateUtil from '@/utils/dateUtil.js';
@@ -220,9 +232,19 @@ export default {
       thumbOrientation: {}, // 付加情報IDごとのサムネイルの向き（portraitは縦長、landscapeは横長）
 
       reactionPickerVisible: false,
+      contentExpanded: false,
     };
   },
+  watch: {
+    'supplement.content'() { this.contentExpanded = false; },
+    '$i18n.locale'() { this.contentExpanded = false; },
+  },
   computed: {
+    contentRegionId() { return `${this.idPrefix}-supplement-body-${this.supplement._id}`; },
+    canExpand() {
+      return ((this.supplement.content || '').length > 400 ||
+         (this.needsTranslation(this.supplement) && (this.getContent(this.supplement) || '').length > 400));
+    },
     originTagName() {
       const id = this.supplement.ai_origin?.tag_id;
       const tag = this.tags.find((entry) => entry._id === id);
@@ -240,6 +262,7 @@ export default {
     },
   },
   methods: {
+    previewContent: supplementPreview,
     ...userDisplayMethods,
     createUserFilter(userName) {
       const conditions = {
@@ -350,6 +373,19 @@ export default {
 </script>
 
 <style scoped>
+.expand-supplement {
+  font: inherit;
+  color: #8fd3ff;
+  background: transparent;
+  border: 1px solid currentColor;
+  border-radius: 4px;
+  padding: 8px 12px;
+  min-height: 44px;
+  margin-top: 8px;
+  cursor: pointer;
+}
+.expand-supplement:focus-visible { outline: 2px solid currentColor; outline-offset: 2px; }
+
 .supplement {
   display: flex;
   padding: 16px 0px 0px 0px;

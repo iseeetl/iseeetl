@@ -12,7 +12,7 @@ describe('OpenAIのチャットクライアント', () => {
 
   test('指定モデルでタイムアウトとAbortSignalを付け、1回だけChat Completionsへ送る', async () => {
     const client = createOpenAIChatClient({
-      apiKey: 'dummy-key',
+      apiKey: 'placeholder',
       baseURL: 'https://example.com/v1',
       timeout: 4321,
     });
@@ -42,7 +42,7 @@ describe('OpenAIのチャットクライアント', () => {
       expect.objectContaining({
         headers: {
           'Content-Type': 'application/json',
-          Authorization: 'Bearer dummy-key',
+          Authorization: 'Bearer placeholder',
         },
         signal: controller.signal,
         timeout: 4321,
@@ -51,7 +51,7 @@ describe('OpenAIのチャットクライアント', () => {
   });
 
   test('モデルとmessagesを必須とする', async () => {
-    const client = createOpenAIChatClient({ apiKey: 'dummy-key' });
+    const client = createOpenAIChatClient({ apiKey: 'placeholder' });
     await expect(client.chatCompletions({ messages: [] })).rejects.toThrow('model is required');
     await expect(
       client.chatCompletions({ model: 'gpt-4.1-mini-2025-04-14' })
@@ -60,7 +60,7 @@ describe('OpenAIのチャットクライアント', () => {
   });
 
   test('処理開始前に中断された場合はHTTPリクエストを作らずAbortErrorを返す', async () => {
-    const client = createOpenAIChatClient({ apiKey: 'dummy-key' });
+    const client = createOpenAIChatClient({ apiKey: 'placeholder' });
     const controller = new AbortController();
     controller.abort();
 
@@ -75,7 +75,7 @@ describe('OpenAIのチャットクライアント', () => {
   });
 
   test('axiosの中断を機密情報を含まないAbortErrorへ変換する', async () => {
-    const client = createOpenAIChatClient({ apiKey: 'dummy-key' });
+    const client = createOpenAIChatClient({ apiKey: 'placeholder' });
     axios.post.mockRejectedValue({ code: 'ERR_CANCELED', config: { data: 'private fixture' } });
 
     const error = await client
@@ -86,7 +86,7 @@ describe('OpenAIのチャットクライアント', () => {
   });
 
   test('外部サービスエラーは必要な固定項目だけを保持し再試行しない', async () => {
-    const client = createOpenAIChatClient({ apiKey: 'dummy-key' });
+    const client = createOpenAIChatClient({ apiKey: 'placeholder' });
     axios.post.mockRejectedValue({
       response: {
         status: 429,
@@ -120,7 +120,7 @@ describe('OpenAIのチャットクライアント', () => {
   });
 
   test('外部サービスの診断情報が安全な文字列でなければエラーに含めない', async () => {
-    const client = createOpenAIChatClient({ apiKey: 'dummy-key' });
+    const client = createOpenAIChatClient({ apiKey: 'placeholder' });
     axios.post.mockRejectedValue({
       response: {
         status: 400,
@@ -144,4 +144,13 @@ describe('OpenAIのチャットクライアント', () => {
     expect(error).not.toHaveProperty('param');
     expect(error).not.toHaveProperty('requestId');
   });
+});
+
+
+test('応答診断は本文・認証情報を含まず呼出元へ返す', async () => {
+  const onResponse = jest.fn();
+  axios.post.mockResolvedValue({status:200, headers:{'x-request-id':'req-test'}, data:{choices:[{finish_reason:'stop', message:{content:'private answer'}}]}});
+  await createOpenAIChatClient({apiKey:'placeholder'}).chatCompletions({model:'test-model',messages:[],onResponse});
+  expect(onResponse).toHaveBeenCalledWith({finish_reason:'stop',request_id:'req-test',http_status:200});
+  expect(JSON.stringify(onResponse.mock.calls)).not.toContain('private');
 });

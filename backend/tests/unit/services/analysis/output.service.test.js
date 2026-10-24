@@ -177,31 +177,16 @@ describe('AI解析結果の整形', () => {
     });
   });
 
-  test('文字起こし以外は300文字を許可し、301文字を拒否する', async () => {
-    const log = logger();
-    const accepted = await buildAnalysisSupplement({
-      snapshot: snapshot({ targetLangs: [] }),
-      providerOutput: '界'.repeat(300),
-      logger: log,
-    });
-    const rejected = await buildAnalysisSupplement({
-      snapshot: snapshot({ targetLangs: [] }),
-      providerOutput: '界'.repeat(301),
-      logger: log,
-    });
-
-    expect(accepted).not.toBeNull();
-    expect(rejected).toBeNull();
-    expect(log.error).toHaveBeenCalledWith(
-      'AI_ANALYSIS_OUTPUT_INVALID',
-      expect.objectContaining({ reason: 'provider_code_points' })
-    );
+  test.each(['vision','video','audioScene','conversation','speech'])('%sは400を超える本文を省略せず保持する', async (kind) => {
+    const content = '界'.repeat(1500);
+    const value = await buildAnalysisSupplement({ snapshot: snapshot({kind,targetLangs:[]}), providerOutput:content, logger:logger() });
+    expect(value.content.endsWith(content)).toBe(true);
   });
 
-  test('文字起こし以外は接頭辞込みの400文字を保存し、401文字なら変更しない', async () => {
+  test('文字起こし以外は接頭辞込みの2000文字を保存し、2001文字なら変更しない', async () => {
     const longLabel = 'T'.repeat(99);
     const baseSnapshot = snapshot({
-      targetLangs: [],
+      kind: 'vision', targetLangs: [],
       triggerTag: { _id: 'tag-1', name: longLabel, translations: [] },
     });
     const prefixLength = `#${longLabel} `.length;
@@ -216,7 +201,7 @@ describe('AI解析結果の整形', () => {
       logger: logger(),
     });
 
-    expect(atLimit.content).toHaveLength(400);
+    expect(atLimit.content).toHaveLength(2000);
     expect(aboveLimit).toBeNull();
   });
 
@@ -224,11 +209,11 @@ describe('AI解析結果の整形', () => {
     const log = logger();
     const value = await buildAnalysisSupplement({
       snapshot: snapshot({ kind: 'speech', targetLangs: [], source: { _id: 'post-1', lang: 'ja' } }),
-      providerOutput: `text${'😀'.repeat(300)}`,
+      providerOutput: `text${'😀'.repeat(1200)}`,
       logger: log,
     });
 
-    expect(value.content.length).toBeLessThanOrEqual(400);
+    expect(value.content.length).toBeLessThanOrEqual(2000);
     expect(value.content.endsWith('…')).toBe(true);
     const lastBeforeEllipsis = value.content.charCodeAt(value.content.length - 2);
     expect(lastBeforeEllipsis >= 0xd800 && lastBeforeEllipsis <= 0xdbff).toBe(false);
@@ -302,7 +287,7 @@ describe('AI解析結果の整形', () => {
   });
 
   test('文字起こしの原文は省略し、翻訳には省略前の本文を渡して長い結果を保持する', async () => {
-    const providerOutput = '文字起こし'.repeat(120);
+    const providerOutput = '文字起こし'.repeat(500);
     const translated = 'transcribed '.repeat(60);
     const translateContent = jest.fn().mockResolvedValue([{ lang: 'en', content: translated }]);
     const log = logger();
@@ -313,7 +298,7 @@ describe('AI解析結果の整形', () => {
       logger: log,
     });
 
-    expect(value.content).toHaveLength(400);
+    expect(value.content).toHaveLength(2000);
     expect(value.content.endsWith('…')).toBe(true);
     expect(translateContent).toHaveBeenCalledWith('user-1', providerOutput, 'ja', ['en'], expect.objectContaining({
       post_id: 'post-1', setting_id: 'setting-1', field: 'body',
@@ -344,12 +329,12 @@ describe('AI解析結果の整形', () => {
     ]);
   });
 
-  test('翻訳タグ名を解析原文に付けた結果が400文字を超える場合は拒否する', async () => {
+  test('翻訳タグ名を会話原文に付けた結果が2000文字を超える場合は拒否する', async () => {
     const log = logger();
     const translateContent = jest.fn();
     const value = await buildAnalysisSupplement({
       snapshot: snapshot({
-        triggerTag: { _id: 'tag-1', name: '相談', translations: [{ lang: 'en', name: 'T'.repeat(399) }] },
+        triggerTag: { _id: 'tag-1', name: '相談', translations: [{ lang: 'en', name: 'T'.repeat(1999) }] },
       }),
       providerOutput: 'valid',
       translateContent,
@@ -362,10 +347,10 @@ describe('AI解析結果の整形', () => {
   });
 
   test('接頭辞付きの文字起こしを切り詰めてもサロゲートペアを分割しない', () => {
-    const result = truncateSpeechWithPrefix({ label: 'T', text: '😀'.repeat(400) });
+    const result = truncateSpeechWithPrefix({ label: 'T', text: '😀'.repeat(1200) });
     const beforeEllipsis = result.slice(0, -1);
     const last = beforeEllipsis.charCodeAt(beforeEllipsis.length - 1);
     expect(last >= 0xd800 && last <= 0xdbff).toBe(false);
-    expect(result.length).toBeLessThanOrEqual(400);
+    expect(result.length).toBeLessThanOrEqual(2000);
   });
 });

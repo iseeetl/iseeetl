@@ -1,3 +1,4 @@
+const { MAX_POST_UTF16_UNITS, MAX_SUPPLEMENT_UTF16_UNITS } = require('../constants/contentLimits');
 const AppError = require('../utils/appError');
 const { ALLOWED_LANGUAGES } = require('../constants/languages');
 const { normalizeTitle } = require('../utils/supplementTitle');
@@ -70,7 +71,7 @@ function mapTimelineRequest(params, body, operation, kind = 'post') {
     data.title_lang = body.title_lang;
   }
   if (own(body, 'content')) {
-    data.content = nullableString(body.content, 400);
+    data.content = nullableString(body.content, supplement ? MAX_SUPPLEMENT_UTF16_UNITS : MAX_POST_UTF16_UNITS);
     if (data.content !== null && !data.content.trim()) invalid();
   }
   if (own(body, 'lang')) {

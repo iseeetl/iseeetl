@@ -144,3 +144,7 @@
 - `backend/tests/integration/routes/timeline.core.int.test.js`
 - `backend/tests/unit/services/timeline/postSupplements.service.test.js`
 - `backend/tests/unit/services/timeline/postSupplementReactions.service.test.js`
+
+## 会話AIの長文編集
+
+本文は作成・更新とも、人・AIの区別なく2000 UTF-16単位までです。通常API・v1 APIと保存処理で検査し、既存の編集権限は維持します。投稿・返信の本文は400単位です。詳細は[AI解析仕様](../../ai-analysis.md#共通の生成量長文表示編集)を参照してください。

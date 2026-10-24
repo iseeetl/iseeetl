@@ -1,3 +1,4 @@
+const { analysisBodyLimit } = require('./conversationBudget');
 const defaultLogger = require('../../utils/logger');
 const { errorLogDetails, safeDiagnostic } = require('../../utils/errorLogDetails');
 const { isAIAnalysisExecutionEnabled } = require('./settings/capability');
@@ -91,7 +92,9 @@ const createAnalysisExecutor = ({
           // メディア変換中の変更に備え、参照先の変更・削除と同じロック内で再確認し、送信を開始する。
           // 外部APIの応答はロックを解放してから待つ。
           context.stage = 'before_send';
-          const send = await withSendLock(async () => {
+          let lastResponse = {};
+          const beginSend = (previousAnswer) => withSendLock(async () => {
+            if (signal?.aborted) throw Object.assign(new Error('AI analysis aborted'), { name: 'AbortError' });
             const snapshot = await buildSnapshot({
               chatId,
               sourceType,
@@ -114,15 +117,68 @@ const createAnalysisExecutor = ({
                 additionalPrompt: snapshot.prompt,
                 media,
                 signal,
+                maxAnswerUtf16: analysisBodyLimit(snapshot),
+                ...(snapshot.kind === 'conversation' ? {
+                  previousAnswer,
+                  onResponse: (details) => {
+                    lastResponse = details;
+                    logger.info('AI_CONVERSATION_RESPONSE', {
+                    ...context, attempt: previousAnswer ? 2 : 1,
+                    finish_reason: safeDiagnostic(details.finish_reason),
+                    request_id: safeDiagnostic(details.request_id),
+                    http_status: details.http_status, elapsed_ms: Date.now() - startedAt,
+                    });
+                  },
+                } : {}),
               }),
             };
           });
+          const send = await beginSend();
           if (!send) {
             return { status: 'changed-before-send' };
           }
           if (send.skipStatus) return { status: send.skipStatus, value: null };
           const { snapshot } = send;
-          const providerOutput = await send.responsePromise;
+          let providerOutput;
+          if (snapshot.kind === 'conversation') {
+            const limit = analysisBodyLimit(snapshot);
+            let attempt = 1;
+            try {
+              providerOutput = await send.responsePromise;
+              if (typeof providerOutput === 'string' && providerOutput.trim().length > limit) {
+                logger.warn('AI_CONVERSATION_SHORTENING', {
+                  ...context, attempt, utf16_units: providerOutput.trim().length,
+                  code_points: [...providerOutput.trim()].length, limit,
+                  elapsed_ms: Date.now() - startedAt,
+                });
+                const retry = await beginSend(providerOutput.trim());
+                if (!retry) return { status: 'changed-before-send' };
+                if (retry.skipStatus) return { status: retry.skipStatus, value: null };
+                attempt = 2;
+                providerOutput = await retry.responsePromise;
+              }
+              const text = typeof providerOutput === 'string' ? providerOutput.trim() : '';
+              if (!text || text.length > limit) {
+                throw Object.assign(new Error('Invalid conversation output'), {
+                  code: 'AI_ANALYSIS_OUTPUT_INVALID', reason: text ? 'too_long' : 'empty',
+                  outputUnits: text.length, outputCodePoints: [...text].length,
+                });
+              }
+              providerOutput = text;
+            } catch (error) {
+              if (isAbortError(error, signal)) throw error;
+              logger.error('AI_CONVERSATION_FAILED', {
+                ...context, attempt, ...errorLogDetails(error), reason: safeDiagnostic(error.reason),
+                finish_reason: safeDiagnostic(lastResponse.finish_reason),
+                response_request_id: safeDiagnostic(lastResponse.request_id),
+                utf16_units: error.outputUnits ?? null, code_points: error.outputCodePoints ?? null,
+                limit, elapsed_ms: Date.now() - startedAt,
+              });
+              providerOutput = { status: 'conversation-failed' };
+            }
+          } else {
+            providerOutput = await send.responsePromise;
+          }
           if (!providerOutput) {
             logger.error('AI_ANALYSIS_OUTPUT_INVALID', {
               ...context, stage: 'output_validation', reason: 'empty', elapsed_ms: Date.now() - startedAt,

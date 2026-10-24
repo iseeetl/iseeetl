@@ -1,3 +1,4 @@
+const { assertSupplementContentLimit } = require('./shared/supplementContentLimit');
 const { titleFields, titleChanged } = require('../../utils/supplementTitle');
 const { scheduleSupplementTitleTranslation } = require('./shared/supplementTitleTranslation');
 const { publishSocketEvent } = require('../../socket/publication');
@@ -39,6 +40,7 @@ const hasDefinedOwn = (value, key) =>
 
 exports.create = async (body, jwtPayload, io, { errors, requireContentOrMedia = false } = {}) => {
   const postId = body.post_id;
+  assertSupplementContentLimit(body);
   const content = body.content;
 
   const decodedUserId = jwtPayload.user_id;
@@ -151,6 +153,7 @@ exports.update = async (body, jwtPayload, io, { errors, requireContentOrMedia = 
     code: errors?.post?.code || 'NOT_FOUND',
     excludeDeleted: true,
   });
+  assertSupplementContentLimit(body);
   const effectiveBody = {
     ...mergeTimelinePatch(supplement, body, SUPPLEMENT_MUTABLE_FIELDS),
     ...titleFields(body, supplement, { fallbackLang: supplement.lang }),
