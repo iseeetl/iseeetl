@@ -37,7 +37,8 @@ export default {
   computed: {
     sourceOptions() {
       const result = new Map(this.sources.map((tag) => [tag._id, tag]));
-      this.tags.filter((tag) => tag.ai_enabled).forEach((tag) => result.set(tag._id, tag));
+      // This response includes active settings and historical sources. Room tags
+      // may predate a rename or setting change made while the timeline is open.
       this.modelValue.hiddenTagIds.forEach((id) => { if (!result.has(id)) result.set(id, { _id: id, unknown: id === '__unknown__', unavailable: true }); });
       return [...result.values()];
     },
