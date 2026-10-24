@@ -937,5 +937,9 @@
     "expandLabel": "Read all supplementary information: {title}",
     "collapseLabel": "Show less supplementary information: {title}",
     "contentLimit": "Comments can be up to {count} characters."
+  },
+  "editorActions": {
+    "top": "Actions d’envoi en haut",
+    "bottom": "Actions d’envoi en bas"
   }
 }

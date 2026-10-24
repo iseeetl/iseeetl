@@ -23,7 +23,7 @@
           :aria-label="$t('流す')"
           :disabled="sending || recording || transcribing"
           data-testid="dialog-edit-reply-flow-submit"
-          @click.stop="submitReply(true)"
+          @click.stop="submitReply(true, 'top')"
         >
           <UiIcon name="arrow_back" />
         </UiButton>
@@ -36,7 +36,7 @@
           :aria-label="$t('返信')"
           :disabled="sending || recording || transcribing"
           data-testid="dialog-edit-reply-submit"
-          @click.stop="submitReply(false)"
+          @click.stop="submitReply(false, 'top')"
         >
           <UiIcon class="reply-submit-icon" name="reply" />
         </UiButton>
@@ -402,26 +402,26 @@
         </div>
       </div>
 
-      <template #actions>
+      <template #actions="{ position }">
         <UiButton
-          class="desktop-item"
+
           appearance="filled"
           tone="primary"
           :disabled="sending || recording || transcribing"
           data-testid="dialog-edit-reply-flow-submit"
-          @click.stop="submitReply(true)"
+          @click.stop="submitReply(true, position)"
         >
           <UiIcon name="arrow_back" />
           {{ $t('流す') }}
         </UiButton>
         <UiButton
           v-if="!isGuestReactionOnly"
-          class="desktop-item"
+
           appearance="filled"
           tone="primary"
           data-testid="dialog-edit-reply-submit"
           :disabled="sending || recording || transcribing"
-          @click.stop="submitReply(false)"
+          @click.stop="submitReply(false, position)"
         >
           <UiIcon class="reply-submit-icon" name="reply" />
           {{ $t('返信') }}
@@ -455,6 +455,7 @@
 </template>
 
 <script>
+import { editorSubmissionMixin } from '@/features/analytics/editorSubmission.js';
 import { useId } from 'vue';
 import chatApi from '@/api/chat';
 import { buildPostCreate, buildPostPatch } from '@/api/postPayload';
@@ -508,6 +509,7 @@ import UiIcon from '@/components/ui/UiIcon.vue';
 import UiTooltip from '@/components/ui/UiTooltip.vue';
 
 export default {
+  mixins: [editorSubmissionMixin],
   emits: ['close', 'content-saved', 'quick-text-inserted'],
   name: 'EditReplyDialog',
   setup() {
@@ -1083,10 +1085,12 @@ export default {
       };
     },
 
-    async submitReply(isFlow = false) {
+    async submitReply(isFlow = false, position = 'shortcut') {
       if (this.recording || this.transcribing || this.sending) return;
 
       this.sending = true;
+      const attempt = this.editorSubmissionTracker.begin({ position, mode: isFlow ? 'flow' : 'single', content: 'reply', action: this.replyId === null ? 'create' : 'update' });
+      let outcome = 'validation_error';
 
       this.progressAmount = 0;
 
@@ -1110,6 +1114,7 @@ export default {
           return;
         }
         if (!this.validateMedia()) return;
+        outcome = 'request_error';
         const actionType = this.replyId === null ? 'create' : 'update';
         const mediaType = this.imageFile ? 'image' : this.videoFile ? 'video' : this.audioFile ? 'audio' : null;
         const previousTagIds = Array.isArray(this.replyValue?.room_tags) ? [...this.replyValue.room_tags] : [];
@@ -1142,6 +1147,7 @@ export default {
           nextTagIds: Array.isArray(response?.data?.room_tags) ? [...response.data.room_tags] : [],
         };
         success = true;
+        outcome = 'success';
       } catch (e) {
         const status = e?.response?.status;
         if (didUpload && status >= 400 && status < 500) {
@@ -1156,6 +1162,7 @@ export default {
           throw e;
         }
       } finally {
+        this.editorSubmissionTracker.finish(attempt, outcome);
         this.sending = false;
         this.progressAmount = 0;
       }

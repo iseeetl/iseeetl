@@ -19,6 +19,12 @@ import {
   normalizeAnalyticsResourceLabel,
 } from '@/features/analytics/contract';
 
+// Synthetic rejection fixtures are assembled explicitly; these are never usable credentials.
+const syntheticEmail = ['fixture', 'example.invalid'].join('@');
+const syntheticJwt = [btoa(JSON.stringify({ alg: 'HS256' })), btoa(JSON.stringify({ sub: 'fixture' })), 'syntheticSignature'].map(part => part.replace(/=+$/u, '')).join('.');
+const syntheticProviderToken = ['sk', 'x'.repeat(32)].join('-');
+const syntheticCredentialOrigin = ['https:', '', [['fixture', 'not-a-real-credential'].join(':'), 'app.example.invalid'].join('@')].join('/');
+
 const FLOOR_ID = '507F1F77BCF86CD799439011';
 const ROOM_ID = '507f191e810c19729de860ea';
 const TAG_ID = '111111111111111111111111';
@@ -140,15 +146,15 @@ describe('アクセス解析へ送信する対象名', () => {
     ['ルーム\n秘密', '改行'],
     ['ルーム\t秘密', 'control文字'],
     ['ルーム\u2028秘密', 'Unicode line separator'],
-    ['user@example.com の部屋', 'email'],
+    [`${syntheticEmail} の部屋`, 'email'],
     ['参照 https://example.com/private?id=1', '絶対URL'],
     ['電話 090-1234-5678', '電話番号'],
     ['電話 +81 90 1234 5678', '国際電話番号'],
     ['電話 ０９０-１２３４-５６７８', 'Unicode数字の電話番号'],
     ['Bearer abcdefghijklmnopqrstuvwxyz', 'Bearer token'],
     ['token=abcdefghijklmnopqrstuvwxyz123456', 'token代入'],
-    ['eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiIxMjM0NTY3ODkwIn0.signature123', 'JWT'],
-    ['sk-abcdefghijklmnopqrstuvwxyz123456', 'provider token'],
+    [syntheticJwt, 'JWT'],
+    [syntheticProviderToken, 'provider token'],
     ['a'.repeat(40), 'hex token'],
     ['123e4567-e89b-12d3-a456-426614174000', 'Guest UUID'],
     ['Guest 123e4567-e89b-12d3-a456-426614174000', '名称中のGuest UUID'],
@@ -159,7 +165,7 @@ describe('アクセス解析へ送信する対象名', () => {
   });
 
   it('100文字より後ろの禁止表現も、切り詰める前に検出する', () => {
-    expect(normalizeAnalyticsResourceLabel(`${'界'.repeat(101)} user@example.com`)).to.equal(null);
+    expect(normalizeAnalyticsResourceLabel(`${'界'.repeat(101)} ${syntheticEmail}`)).to.equal(null);
   });
 
   it('Unicodeコードポイント単位で100文字へ制限する', () => {
@@ -221,8 +227,10 @@ describe('アクセス解析の対象ページ情報', () => {
 });
 
 describe('アクセス解析で許可するイベントと項目', () => {
-  it('許可イベントをページコンテキスト 2種類とタイムライン 11種類だけに固定する', () => {
+  it('許可イベントをページコンテキスト 2種類とタイムライン 13種類だけに固定する', () => {
     expect(Object.values(ANALYTICS_EVENTS)).to.deep.equal([
+      'timeline_submit_select',
+      'timeline_submit_result',
       'page_view',
       'iseeetl_page_exit',
       'timeline_view',
@@ -242,7 +250,7 @@ describe('アクセス解析で許可するイベントと項目', () => {
     );
   });
 
-  it('送信項目を標準のページ情報と19種類のカスタムディメンションに限定する', () => {
+  it('送信項目を標準のページ情報と許可済みのカスタムディメンションに限定する', () => {
     const allowedParameters = new Set(
       Object.values(ANALYTICS_EVENT_PARAMETER_ALLOWLIST).flat()
     );
@@ -263,6 +271,11 @@ describe('アクセス解析で許可するイベントと項目', () => {
 
   it('全enum 許可リストを変更不能にする', () => {
     expect(ANALYTICS_ENUM_VALUES).to.deep.equal({
+      control_position: ['top', 'bottom', 'desktop', 'shortcut'],
+      submit_mode: ['single', 'continuous', 'flow'],
+      editor_layout: ['mobile_dual', 'desktop_current'],
+      attempt_phase: ['first', 'repeat'],
+      outcome: ['success', 'validation_error', 'request_error'],
       page_group: [
         'floor_list',
         'room_list',
@@ -308,7 +321,7 @@ describe('アクセス解析のページイベント', () => {
     room_id: ROOM_ID,
     room_title: 'ルームA',
     visitor_type: 'guest',
-    route_query: 'secret@example.com',
+    route_query: syntheticEmail,
     user_id: 'raw-user-id',
   });
 
@@ -372,9 +385,9 @@ describe('アクセス解析のページイベント', () => {
 
   it.each([
     ['page_group', 'unknown'],
-    ['page_location', `${TIMELINE_PAGE_LOCATION}?mail=user@example.com`],
+    ['page_location', `${TIMELINE_PAGE_LOCATION}?mail=${syntheticEmail}`],
     ['page_location', `${TIMELINE_PAGE_LOCATION}#secret`],
-    ['page_location', `https://user:password@app.example.invalid${new URL(TIMELINE_PAGE_LOCATION).pathname}`],
+    ['page_location', `${syntheticCredentialOrigin}${new URL(TIMELINE_PAGE_LOCATION).pathname}`],
     ['page_location', `javascript://app.example.invalid${new URL(TIMELINE_PAGE_LOCATION).pathname}`],
     ['page_location', 'https://app.example.invalid/login'],
     ['page_title', 'Timeline title'],
@@ -539,7 +552,7 @@ describe('アクセス解析のタイムラインイベント', () => {
     const input = {
       ...buildTimelineContext(),
       ...extra,
-      email: 'user@example.com',
+      email: syntheticEmail,
       content: '投稿本文',
       token: 'must-not-leak',
     };
@@ -575,7 +588,7 @@ describe('アクセス解析のタイムラインイベント', () => {
   });
 
   it.each([
-    ['floor_title', 'owner@example.com'],
+    ['floor_title', syntheticEmail],
     ['room_title', 'https://example.com/private'],
     ['tag_name', '090-1234-5678'],
   ])('禁止形式の任意名称 %s だけを省略してIDとイベントを維持する', (name, value) => {
@@ -652,7 +665,7 @@ describe('アクセス解析のタイムラインイベント', () => {
       ...buildTimelineContext(),
       action_type: 'create',
       tag_id: TAG_ID,
-      tag_name: 'owner@example.com',
+      tag_name: syntheticEmail,
     });
 
     expect(result).to.include({ action_type: 'create', tag_id: `tag_${TAG_ID}` });

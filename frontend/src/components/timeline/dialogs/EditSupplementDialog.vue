@@ -22,7 +22,7 @@
           icon-only
           :aria-label="$t('決定')"
           :disabled="sending || recording || transcribing"
-          @click.stop="onPressDoneButton"
+          @click.stop="submitSupplement('top')"
         >
           <UiIcon name="done" />
         </UiButton>
@@ -225,14 +225,14 @@
           </div>
         </fieldset>
       </div>
-      <template #actions>
+      <template #actions="{ position }">
         <UiButton
-          class="desktop-item"
+
           appearance="filled"
           tone="primary"
           :disabled="sending || recording || transcribing"
           data-testid="dialog-edit-supplement-submit"
-          @click.stop="onPressDoneButton"
+          @click.stop="submitSupplement(position)"
         >
           <UiIcon name="done" />
           {{ $t('決定') }}
@@ -256,6 +256,7 @@
 </template>
 
 <script>
+import { editorSubmissionMixin } from '@/features/analytics/editorSubmission.js';
 import { supplementContentLimit } from '@/features/timeline/supplementLength';
 import { isValidSupplementTitle, supplementTitleLanguage } from '@/features/timeline/supplementTitle';
 import { useId } from 'vue';
@@ -302,6 +303,7 @@ import UiIcon from '@/components/ui/UiIcon.vue';
 import UiTooltip from '@/components/ui/UiTooltip.vue';
 
 export default {
+  mixins: [editorSubmissionMixin],
   emits: ['close', 'content-saved', 'quick-text-inserted'],
   name: 'EditSupplementDialog',
   setup() {
@@ -776,9 +778,11 @@ export default {
       };
     },
 
-    async submitSupplement() {
+    async submitSupplement(position = 'shortcut') {
       if (this.recording || this.transcribing || this.sending) return;
       this.sending = true;
+      const attempt = this.editorSubmissionTracker.begin({ position, mode: 'single', content: this.replyIdLocal ? 'reply_supplement' : 'post_supplement', action: this.supplementId === null ? 'create' : 'update' });
+      let outcome = 'validation_error';
       this.progressAmount = 0;
       let success = false;
       let successPayload = null;
@@ -799,6 +803,7 @@ export default {
           return;
         }
         if (!this.validateMedia()) return;
+        outcome = 'request_error';
         const actionType = this.supplementId === null ? 'create' : 'update';
         const mediaType = this.imageFile ? 'image' : this.videoFile ? 'video' : this.audioFile ? 'audio' : null;
 
@@ -823,6 +828,7 @@ export default {
           mediaType,
         };
         success = true;
+        outcome = 'success';
       } catch (e) {
         const status = e?.response?.status;
         if (didUpload && status >= 400 && status < 500) {
@@ -837,6 +843,7 @@ export default {
           throw e;
         }
       } finally {
+        this.editorSubmissionTracker.finish(attempt, outcome);
         this.sending = false;
         this.progressAmount = 0;
       }

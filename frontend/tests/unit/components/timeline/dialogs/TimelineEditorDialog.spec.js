@@ -1,4 +1,4 @@
-import { expect } from 'vitest';
+import { expect, vi } from 'vitest';
 import { shallowMount } from '../../../helpers/testUtils';
 import TimelineEditorDialog from '@/components/timeline/dialogs/TimelineEditorDialog.vue';
 
@@ -12,6 +12,7 @@ const UiDialogStub = {
 
 const createWrapper = (props = {}) =>
   shallowMount(TimelineEditorDialog, {
+    mocks: { $t: key => key },
     stubs: {
       UiDialog: UiDialogStub,
       UiButton: {
@@ -94,5 +95,27 @@ describe('タイムラインの共通編集ダイアログ', () => {
 
     expect(wrapper.emitted().opened).to.have.length(1);
     expect(wrapper.emitted().closed[0]).to.deep.equal([payload]);
+  });
+});
+
+
+describe('スマホの表示領域', () => {
+  it('通常倍率のキーボード領域へ追随し、ピンチズームは打ち消さない', async () => {
+    const previous = window.visualViewport; const previousMatch = window.matchMedia;
+    const viewport = new EventTarget(); Object.assign(viewport, { height: 430, offsetTop: 18, scale: 1 });
+    Object.defineProperty(window, 'visualViewport', { configurable: true, value: viewport });
+    window.matchMedia = () => ({ matches: true });
+    const remove = vi.spyOn(viewport, 'removeEventListener');
+    let wrapper;
+    try {
+      wrapper = createWrapper(); await wrapper.vm.$nextTick();
+      expect(wrapper.vm.mobileLayout).toBe(true);
+      expect(wrapper.vm.viewportStyle).toEqual({ '--editor-visible-height': '430px', '--editor-visible-top': '18px' });
+      viewport.height = 700; viewport.dispatchEvent(new Event('resize')); await wrapper.vm.$nextTick();
+      expect(wrapper.vm.viewportStyle['--editor-visible-height']).toBe('700px');
+      viewport.scale = 2; viewport.dispatchEvent(new Event('resize')); await wrapper.vm.$nextTick();
+      expect(wrapper.vm.viewportStyle).toEqual({});
+      wrapper.unmount(); wrapper = null; expect(remove).toHaveBeenCalledTimes(2);
+    } finally { wrapper?.unmount(); window.matchMedia = previousMatch; Object.defineProperty(window, 'visualViewport', { configurable: true, value: previous }); }
   });
 });
