@@ -45,3 +45,5 @@
 タグの選択元表示は投稿作成・編集・返信で共通です。初期値と「元投稿」の参照先は[tag-selection.md](tag-selection.md)に定義しています。
 
 投稿作成・編集・返信の5ボタンは同じ順序です。「このタブ」の発生元の列と無効条件も[tag-selection.md](tag-selection.md)に定義しています。
+
+Googleログインはサーバーの公開クライアントIDを優先して表示します。[取得とフォールバック](../backend/api/capabilities.md#googleログインの公開設定)を参照してください。

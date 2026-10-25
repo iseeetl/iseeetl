@@ -23,6 +23,7 @@ export const createCapabilityValues = () =>
 
 export const createCapabilitiesState = () => ({
   status: 'idle',
+  googleLoginClientId: null,
   values: createCapabilityValues(),
 });
 
@@ -55,13 +56,17 @@ const hasPublicConfigValue = (value) => typeof value === 'string' && value.trim(
 const capabilityEnabled = (state, key) =>
   state.capabilities.status === 'ready' && state.capabilities.values[key] === true;
 
+const googleLoginClientId = (state) =>
+  state.capabilities.googleLoginClientId ?? import.meta.env.VITE_GOOGLE_OAUTH_CLIENT_ID ?? '';
+
 export const capabilitiesDomain = {
   getters: {
     capabilityStatus: (state) => state.capabilities.status,
     capabilitiesFailed: (state) => state.capabilities.status === 'error',
+    googleLoginClientId,
     googleLoginAvailable: (state) =>
       capabilityEnabled(state, 'googleLogin') &&
-      hasPublicConfigValue(import.meta.env.VITE_GOOGLE_OAUTH_CLIENT_ID),
+      hasPublicConfigValue(googleLoginClientId(state)),
     lineLoginAvailable: (state) => capabilityEnabled(state, 'lineLogin'),
     mailDeliveryAvailable: (state) => capabilityEnabled(state, 'mailDelivery'),
     oneSignalPushAvailable: (state) =>
@@ -74,7 +79,11 @@ export const capabilitiesDomain = {
   mutations: {
     startCapabilitiesLoad(state) {
       state.capabilities.status = 'loading';
+      state.capabilities.googleLoginClientId = null;
       state.capabilities.values = createCapabilityValues();
+    },
+    setGoogleLoginClientId(state, clientId) {
+      state.capabilities.googleLoginClientId = clientId;
     },
     setCapabilitiesReady(state, values) {
       state.capabilities.status = 'ready';
@@ -82,6 +91,7 @@ export const capabilitiesDomain = {
     },
     setCapabilitiesError(state) {
       state.capabilities.status = 'error';
+      state.capabilities.googleLoginClientId = null;
       state.capabilities.values = createCapabilityValues();
     },
   },
@@ -92,6 +102,15 @@ export const capabilitiesDomain = {
         const capabilitiesApi = await getCapabilitiesApi();
         const response = await capabilitiesApi.fetchCapabilities();
         const values = normalizeCapabilityValues(response?.data);
+        if (values.googleLogin) {
+          try {
+            const config = await capabilitiesApi.fetchGoogleLoginConfig();
+            if (typeof config?.data?.clientId !== 'string') throw new TypeError('invalid public client ID');
+            commit('setGoogleLoginClientId', config.data.clientId.trim());
+          } catch {
+            // Older servers can use the build-time ID; other login methods remain available.
+          }
+        }
         commit('setCapabilitiesReady', values);
         return values;
       } catch {

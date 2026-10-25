@@ -50,6 +50,7 @@
 | `GOOGLE_OAUTH_CLIENT_ID` | Google ID トークンのaudience検証 |
 
 - フラグが`true`の場合だけクライアント IDを必須とする。
+- この公開IDは`GET /api/capabilities/google-login`でフロントエンドへ返す。ビルド時のID省略でもGoogleログインを表示でき、トークン検証と同じ設定を使う。詳細は[公開設定API](api/capabilities.md#googleログインの公開設定)を参照する。
 
 #### Google Analytics
 
