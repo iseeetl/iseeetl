@@ -40,9 +40,13 @@ const createActionContext = (state) => ({
 });
 
 describe('機能の有効状態の管理', () => {
+  beforeEach(() => {
+    vi.spyOn(capabilitiesApi, 'fetchGoogleLoginConfig').mockRejectedValue(new Error('unavailable'));
+  });
   it('初期状態は全機能falseかつidleである', () => {
     expect(createCapabilitiesState()).to.deep.equal({
       status: 'idle',
+      googleLoginClientId: null,
       values: createCapabilityValues(),
     });
     expect([...CAPABILITY_KEYS]).to.deep.equal([...EXPECTED_CAPABILITY_KEYS]);
@@ -81,7 +85,7 @@ describe('機能の有効状態の管理', () => {
     const result = await capabilitiesDomain.actions.doLoadCapabilities(createActionContext(state));
 
     expect(result).to.deep.equal(normalizedValues);
-    expect(state.capabilities).to.deep.equal({ status: 'ready', values: normalizedValues });
+    expect(state.capabilities).to.deep.equal({ status: 'ready', googleLoginClientId: null, values: normalizedValues });
   });
 
   it('8項目を取得した場合は準備完了として応答値を保存する', async () => {
@@ -92,7 +96,7 @@ describe('機能の有効状態の管理', () => {
     const result = await capabilitiesDomain.actions.doLoadCapabilities(createActionContext(state));
 
     expect(result).to.deep.equal(values);
-    expect(state.capabilities).to.deep.equal({ status: 'ready', values });
+    expect(state.capabilities).to.deep.equal({ status: 'ready', googleLoginClientId: null, values });
   });
 
   it('通信失敗時はエラーと全falseを保存して例外を送出しない', async () => {
@@ -102,7 +106,7 @@ describe('機能の有効状態の管理', () => {
     const result = await capabilitiesDomain.actions.doLoadCapabilities(createActionContext(state));
 
     expect(result).to.deep.equal(createCapabilityValues());
-    expect(state.capabilities).to.deep.equal({ status: 'error', values: createCapabilityValues() });
+    expect(state.capabilities).to.deep.equal({ status: 'error', googleLoginClientId: null, values: createCapabilityValues() });
   });
 
   it('スキーマ不正時もエラーと全falseへ戻す', async () => {
@@ -111,7 +115,7 @@ describe('機能の有効状態の管理', () => {
 
     await capabilitiesDomain.actions.doLoadCapabilities(createActionContext(state));
 
-    expect(state.capabilities).to.deep.equal({ status: 'error', values: createCapabilityValues() });
+    expect(state.capabilities).to.deep.equal({ status: 'error', googleLoginClientId: null, values: createCapabilityValues() });
   });
 
   it('GoogleとOneSignalはバックエンド capabilityとフロントエンド公開IDのANDで判定する', () => {
@@ -190,4 +194,46 @@ describe('機能の有効状態の管理', () => {
     expect(capabilitiesDomain.getters.googleAnalyticsCapabilityEnabled(state)).to.equal(false);
   });
 
+});
+
+
+describe('Google login runtime public configuration', () => {
+  const id = 'synthetic-client.apps.googleusercontent.com';
+  it('shows Google without a build-time ID and uses the server audience', async () => {
+    vi.stubEnv('VITE_GOOGLE_OAUTH_CLIENT_ID', '');
+    vi.spyOn(capabilitiesApi, 'fetchCapabilities').mockResolvedValue({ data: enabledCapabilities() });
+    vi.spyOn(capabilitiesApi, 'fetchGoogleLoginConfig').mockResolvedValue({ data: { clientId: id } });
+    const state = createState();
+    await capabilitiesDomain.actions.doLoadCapabilities(createActionContext(state));
+    expect(capabilitiesDomain.getters.googleLoginAvailable(state)).to.equal(true);
+    expect(capabilitiesDomain.getters.googleLoginClientId(state)).to.equal(id);
+  });
+  it.each([null, {}, { clientId: 123 }])('keeps LINE and mail available when config is malformed: %j', async (data) => {
+    vi.stubEnv('VITE_GOOGLE_OAUTH_CLIENT_ID', '');
+    vi.spyOn(capabilitiesApi, 'fetchCapabilities').mockResolvedValue({ data: enabledCapabilities() });
+    vi.spyOn(capabilitiesApi, 'fetchGoogleLoginConfig').mockResolvedValue({ data });
+    const state = createState();
+    await capabilitiesDomain.actions.doLoadCapabilities(createActionContext(state));
+    expect(capabilitiesDomain.getters.googleLoginAvailable(state)).to.equal(false);
+    expect(capabilitiesDomain.getters.lineLoginAvailable(state)).to.equal(true);
+    expect(capabilitiesDomain.getters.mailDeliveryAvailable(state)).to.equal(true);
+  });
+  it('does not load Google config when disabled and clears stale state on reload', async () => {
+    vi.spyOn(capabilitiesApi, 'fetchCapabilities').mockResolvedValue({ data: createCapabilityValues() });
+    const config = vi.spyOn(capabilitiesApi, 'fetchGoogleLoginConfig');
+    const state = createState();
+    state.capabilities.googleLoginClientId = id;
+    await capabilitiesDomain.actions.doLoadCapabilities(createActionContext(state));
+    expect(config).not.toHaveBeenCalled();
+    expect(capabilitiesDomain.getters.googleLoginAvailable(state)).to.equal(false);
+    expect(state.capabilities.googleLoginClientId).to.equal(null);
+  });
+  it('server ID overrides a stale build-time ID', async () => {
+    vi.stubEnv('VITE_GOOGLE_OAUTH_CLIENT_ID', 'old-client');
+    vi.spyOn(capabilitiesApi, 'fetchCapabilities').mockResolvedValue({ data: enabledCapabilities() });
+    vi.spyOn(capabilitiesApi, 'fetchGoogleLoginConfig').mockResolvedValue({ data: { clientId: id } });
+    const state = createState();
+    await capabilitiesDomain.actions.doLoadCapabilities(createActionContext(state));
+    expect(capabilitiesDomain.getters.googleLoginClientId(state)).to.equal(id);
+  });
 });

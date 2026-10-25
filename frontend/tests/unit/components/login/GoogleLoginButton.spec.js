@@ -48,7 +48,7 @@ describe('Googleログインボタン', () => {
 
       expect(wrapper.emitted().error.length).to.be.at.least(1);
       expect(wrapper.emitted().error[0][0].code).to.equal('GOOGLE_OAUTH_CLIENT_ID_MISSING');
-      expect(wrapper.emitted().error[0][0].message).to.include('VITE_GOOGLE_OAUTH_CLIENT_ID');
+      expect(wrapper.emitted().error[0][0].message).to.include('Google OAuth client ID');
       expect(consoleErrors.length).to.be.at.least(1);
     } finally {
       if (consoleObject) {
@@ -78,6 +78,14 @@ describe('Googleログインボタン', () => {
     expect(calls.initialize).to.have.lengthOf(1);
     expect(calls.initialize[0].client_id).to.equal('client-id');
     expect(calls.renderButton).to.have.lengthOf(1);
+  });
+
+  it('uses the runtime ID rather than a missing build-time ID', async () => {
+    const initialize = vi.fn();
+    window.google = { accounts: { id: { initialize, renderButton: (host) => host.appendChild(document.createElement('span')) } } };
+    const wrapper = createWrapper({ props: { clientId: '' }, mocks: { $store: { getters: { googleLoginClientId: 'synthetic-client.apps.googleusercontent.com' } } } });
+    await wrapper.vm.render();
+    expect(initialize).toHaveBeenCalledWith(expect.objectContaining({ client_id: 'synthetic-client.apps.googleusercontent.com' }));
   });
 
   it('表示先に子要素がある場合は描画しない', async () => {

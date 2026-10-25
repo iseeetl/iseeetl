@@ -8,6 +8,13 @@ const fetchCapabilities = () =>
     skipGuestRefresh: true,
   });
 
+const fetchGoogleLoginConfig = () =>
+  apiClient.get('/api/capabilities/google-login', {
+    timeout: CAPABILITIES_REQUEST_TIMEOUT_MS,
+    skipGuestRefresh: true,
+  });
+
 export default {
+  fetchGoogleLoginConfig,
   fetchCapabilities,
 };

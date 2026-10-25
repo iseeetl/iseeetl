@@ -48,9 +48,9 @@ export default {
         const host = this.$refs.host;
         if (!host || host.childElementCount > 0) return;
 
-        const clientId = this.clientId.trim();
+        const clientId = (this.$store?.getters?.googleLoginClientId ?? this.clientId).trim();
         if (!clientId) {
-          const err = new Error('VITE_GOOGLE_OAUTH_CLIENT_ID が未設定です');
+          const err = new Error('Google OAuth client ID is not configured');
           err.code = 'GOOGLE_OAUTH_CLIENT_ID_MISSING';
           this.$emit('error', err);
           console.error(err);
