@@ -99,3 +99,5 @@ Googleログインの公開クライアントIDはサーバーの設定から取
 テストのメール例は予約ドメインの[合成データヘルパー](backend/tests/_helpers/README.md)で作成します。
 
 共同編集の保存通知は、代替テキストと付加情報の本文を区別します。詳細は[共同編集仕様](docs/spec/frontend/shared-alternative-text.md)を参照してください。
+
+未登録の代替テキストは、編集できる利用者に追加アイコンを表示し、閲覧のみの利用者には空枠を出しません。読み上げ用の説明との関連付けは維持します。[共同編集の表示仕様](docs/spec/frontend/shared-alternative-text.md#表示設定アクセシビリティ)を参照してください。
