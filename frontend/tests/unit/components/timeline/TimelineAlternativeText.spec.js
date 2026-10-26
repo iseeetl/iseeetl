@@ -6,6 +6,40 @@ vi.mock('@/api/chat', () => ({ default: { updateAlternativeText: vi.fn(), fetchD
 const make = (options={}) => mount(TimelineAlternativeText, { attachTo: document.body, props: { item:{_id:'p',image_name:'a.png',image_caption:'あ'.repeat(2000)}, kind:'image',postId:'p',descriptionId:'alt-description',...options.props },
   global:{ mocks:{$t:k=>k,$store:{getters:{userId:'other',roomId:'room',collaborativeTextEditing:true,displayAlternativeText:options.show ?? true,...options.getters}}},stubs:{BaseEditDialog:true} } });
 describe('shared alternative text',()=>{
+ describe.each(['image', 'video', 'audio'])('missing %s description', kind => {
+  const item = { _id:'p', user:'owner', [`${kind}_name`]:'sample', image_caption:'', video_description:'', audio_description:'' };
+  it.each([
+   ['guest', {userId:undefined}, false],
+   ['other reader', {userId:'reader',collaborativeTextEditing:false}, false],
+   ['collaborative author', {userId:'reader',collaborativeTextEditing:true}, true],
+   ['owner', {userId:'owner',collaborativeTextEditing:false}, true],
+   ['administrator', {userId:'admin',userRole:'Administrator',collaborativeTextEditing:false}, true],
+  ])('keeps the description association and shows an add control only for %s with permission', async (_role, getters, allowed) => {
+   const w=make({props:{item,kind},getters});
+   expect(w.get('#alt-description').text()).toBe('altText.missing');
+   expect(w.get('#alt-description').attributes()).toHaveProperty('hidden');
+   expect(w.find('section.alternative-text').exists()).toBe(allowed);
+   expect(w.find('.alt-copy').exists()).toBe(false);
+   expect(w.find('.shared-text-edit').exists()).toBe(allowed);
+   if(allowed) {
+    expect(w.get('.shared-text-edit').attributes('aria-label')).toBe('altText.add');
+    await w.get('.shared-text-edit').trigger('click');
+    expect(w.vm.editing).toBe(true);expect(w.vm.draft).toBe('');
+   }
+   await w.setProps({item:{...item,[kind==='image'?'image_caption':`${kind}_description`]:'Description'}});
+   expect(w.get('#alt-description').text()).toBe('Description');
+   expect(w.get('.alt-copy p').text()).toBe('Description');
+   await w.setProps({item});
+   expect(w.find('section.alternative-text').exists()).toBe(allowed);
+   w.unmount();
+  });
+  it('does not show an empty frame or edit control in read-only views', () => {
+   const w=make({props:{item,kind,readOnly:true}});
+   expect(w.find('section.alternative-text').exists()).toBe(false);
+   expect(w.get('#alt-description').text()).toBe('altText.missing');w.unmount();
+  });
+ });
+
  it('uses the existing reaction icon and restores focus after Escape or an outside click',async()=>{
   const w=make({getters:{displayActionButton:true}});
   const trigger=w.get('.alt-react-button');

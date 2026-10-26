@@ -1,6 +1,6 @@
 <template>
-  <section class="alternative-text" :data-alt-kind="kind" :aria-label="$t('altText.heading')">
-    <span :id="descriptionId" hidden>{{ text || $t('altText.missing') }}</span>
+  <span :id="descriptionId" hidden>{{ text || $t('altText.missing') }}</span>
+  <section v-if="text || editable" class="alternative-text" :data-alt-kind="kind" :aria-label="$t('altText.heading')">
     <template v-if="text">
       <div :id="bodyId" v-show="inline || opened" class="alt-copy">
         <strong>{{ $t('altText.heading') }}</strong>
