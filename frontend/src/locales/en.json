@@ -985,7 +985,8 @@
     "content": "Supplementary text",
     "edit": "Edit supplementary text",
     "hint": "Edit text only, using its original language. The author, AI source and attached files stay the same.",
-    "noHistory": "Edit history and undo are not available yet. Check the text before saving."
+    "noHistory": "Edit history and undo are not available yet. Check the text before saving.",
+    "saved": "Additional information text saved."
   },
   "絵文字": "Emoji",
   "updateNotice": {

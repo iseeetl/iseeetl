@@ -97,3 +97,5 @@ Googleログインの公開クライアントIDはサーバーの設定から取
 [更新のお知らせと絵文字候補](docs/spec/frontend/update-notices-emoji.md)は既存の返信表示と単語管理を利用します。通知はルーム別の閲覧設定で初期オフ。リアクション候補は画面・列幅に追従し、収まらない場合は矢印と横スクロールで選べます。
 
 テストのメール例は予約ドメインの[合成データヘルパー](backend/tests/_helpers/README.md)で作成します。
+
+共同編集の保存通知は、代替テキストと付加情報の本文を区別します。詳細は[共同編集仕様](docs/spec/frontend/shared-alternative-text.md)を参照してください。

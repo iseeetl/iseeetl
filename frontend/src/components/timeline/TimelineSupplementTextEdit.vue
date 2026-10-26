@@ -69,7 +69,7 @@ export default {
       try {
         const { data } = await chatApi.updateSupplementText({ room_id: this.effectiveRoom, post_id: this.postId,
           reply_id: this.replyId, supplement_id: this.supplementId, text: this.draft, lang: this.current.lang || this.$i18n.locale, expected: this.expected });
-        this.savedItem = this.extract(data); this.editing = false; this.status = this.$t('altText.saved');
+        this.savedItem = this.extract(data); this.editing = false; this.status = this.$t('sharedText.saved');
       } catch (error) {
         this.conflicted = error.response?.status === 409;
         this.error = this.$t(this.conflicted ? 'altText.conflict' : 'altText.failed');
