@@ -180,6 +180,13 @@
         </div>
 
         <div class="edit-input-field">
+          <input type="checkbox" id="collaborative_text_editing" class="input-checkbox"
+            :disabled="sending" v-model="collaborativeTextEditing" aria-describedby="collaborative-text-hint" />
+          <label class="input-checkbox-label" for="collaborative_text_editing">{{ $t('sharedText.option') }}</label>
+          <p id="collaborative-text-hint">{{ $t('sharedText.optionHint') }}</p>
+        </div>
+
+        <div class="edit-input-field">
           <input
             type="checkbox"
             id="guest_conversation_enabled"
@@ -356,6 +363,7 @@ export default {
       imageLoadRequestVersion: 0,
       guestReactionOnly: false,
       guestConversationEnabled: false,
+      collaborativeTextEditing: false,
       memberOnly: false,
       notification: true,
       showExternalShareButton: false,
@@ -434,6 +442,7 @@ export default {
         this.guestReactionOnly =
           typeof this.room.guest_reaction_only !== 'undefined' ? this.room.guest_reaction_only : false;
         this.guestConversationEnabled = this.room.guest_conversation_enabled === true;
+        this.collaborativeTextEditing = this.room.collaborative_text_editing === true;
         this.memberOnly = this.room.member_only;
         this.notification = this.room.notification;
         this.showExternalShareButton = Boolean(this.room.external_sns_button);
@@ -455,6 +464,7 @@ export default {
         hasSelectedImage: this.imageFile !== null || this.imageProcessing,
         guestReactionOnly: Boolean(this.guestReactionOnly),
         guestConversationEnabled: Boolean(this.guestConversationEnabled),
+        collaborativeTextEditing: Boolean(this.collaborativeTextEditing),
         memberOnly: Boolean(this.memberOnly),
         notification: Boolean(this.notification),
         showExternalShareButton: Boolean(this.showExternalShareButton),
@@ -554,6 +564,7 @@ export default {
           lang: this.lang,
           guest_reaction_only: this.guestReactionOnly,
           guest_conversation_enabled: this.guestConversationEnabled,
+          collaborative_text_editing: this.collaborativeTextEditing,
           member_only: this.memberOnly,
           room_display_hidden: this.roomDisplayHidden,
           notification: this.notification,
@@ -589,6 +600,7 @@ export default {
             image_name: uploadedImageName,
             guest_reaction_only: createdRoom.guest_reaction_only,
             guest_conversation_enabled: createdRoom.guest_conversation_enabled,
+            collaborative_text_editing: createdRoom.collaborative_text_editing,
             member_only: createdRoom.member_only,
             room_display_hidden: createdRoom.room_display_hidden,
             notification: createdRoom.notification,
@@ -648,6 +660,7 @@ export default {
           image_name: imageNameForUpdate,
           guest_reaction_only: this.guestReactionOnly,
           guest_conversation_enabled: this.guestConversationEnabled,
+          collaborative_text_editing: this.collaborativeTextEditing,
           member_only: this.memberOnly,
           room_display_hidden: this.roomDisplayHidden,
           notification: this.notification,
@@ -744,6 +757,7 @@ export default {
       this.imageName = null;
       this.guestReactionOnly = false;
       this.guestConversationEnabled = false;
+      this.collaborativeTextEditing = false;
       this.memberOnly = false;
       this.roomDisplayHidden = false;
       this.notification = true;

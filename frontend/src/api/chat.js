@@ -85,6 +85,15 @@ const tagPost = ({ room_id, _id, room_tags }, options) =>
 const tagReply = ({ room_id, post_id, _id, room_tags }, options) =>
   apiClient.put(`${replyPath(room_id, post_id, _id)}/tags`, { room_tags }, buildRequestConfig(options));
 
+const updateSupplementText = ({room_id, post_id, reply_id, supplement_id, ...body}) =>
+  apiClient.put(`${supplementPath(room_id,post_id,reply_id,supplement_id)}/text`,body);
+
+const updateAlternativeText = ({ room_id, post_id, reply_id = null, supplement_id = null, ...body }) => {
+  const target = supplement_id ? supplementPath(room_id, post_id, reply_id, supplement_id)
+    : reply_id ? replyPath(room_id, post_id, reply_id) : postPath(room_id, post_id);
+  return apiClient.put(`${target}/alternative-text`, body);
+};
+
 const transcribeAudio = (formData, options) =>
   apiClient.post('/api/chat/transcription/audio', formData, buildRequestConfig(options));
 
@@ -204,6 +213,8 @@ export default {
   deleteReplySupplement,
   tagPost,
   tagReply,
+  updateAlternativeText,
+  updateSupplementText,
   transcribeAudio,
   managementTimelineEstimate,
   managementTimeline,

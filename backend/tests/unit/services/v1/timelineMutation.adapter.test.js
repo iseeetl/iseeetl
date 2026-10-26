@@ -235,14 +235,14 @@ describe('v1のタイムライン変更データの変換', () => {
   });
 
   test.each([
-    ['image_caption', 200, { image_name: 'image.png', image_thumbnail_name: 'image_thumbnail.png' }],
+    ['image_caption', 2000, { image_name: 'image.png', image_thumbnail_name: 'image_thumbnail.png' }],
     ['video_subtitle_originalname', 100, {
       video_name: 'video.mp4',
       video_thumbnail_name: 'video_thumbnail.png',
       video_subtitle_name: 'subtitle.vtt',
     }],
     ['audio_title', 200, { audio_name: 'audio.mp3' }],
-    ['audio_description', 200, { audio_name: 'audio.mp3' }],
+    ['audio_description', 2000, { audio_name: 'audio.mp3' }],
   ])('%sは通常APIと同じ最大%d文字まで受理する', (field, limit, media) => {
     expect(() => adapter.adaptPostCreate({
       floor_id: floorId,

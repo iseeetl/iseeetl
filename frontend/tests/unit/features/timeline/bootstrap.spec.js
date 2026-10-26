@@ -43,7 +43,7 @@ describe('タイムラインの初期化', () => {
     };
 
     const result = await checkKickedUser({
-      $store: { getters: { userIsLogin: false } },
+      $store: { commit: () => {}, getters: { userIsLogin: false } },
     });
 
     expect(result).to.equal(false);
@@ -56,7 +56,7 @@ describe('タイムラインの初期化', () => {
 
     const result = await checkKickedUser({
       $route: { params: { floor_id: 'floor-1' } },
-      $store: { getters: { userIsLogin: true }, dispatch: (type, payload) => dispatchCalls.push({ type, payload }) },
+      $store: { commit: () => {}, getters: { userIsLogin: true }, dispatch: (type, payload) => dispatchCalls.push({ type, payload }) },
       $router: { push: (payload) => pushCalls.push(payload) },
       $t: (key) => key,
     });
@@ -74,7 +74,7 @@ describe('タイムラインの初期化', () => {
     try {
       await checkKickedUser({
         $route: { params: { floor_id: 'floor-1' } },
-        $store: { getters: { userIsLogin: true }, dispatch: () => {} },
+        $store: { commit: () => {}, getters: { userIsLogin: true }, dispatch: () => {} },
         $router: { push: () => {} },
         $t: (key) => key,
       });
@@ -94,7 +94,7 @@ describe('タイムラインの初期化', () => {
     };
     const ctx = {
       $route: { params: { floor_id: 'floor-1', room_id: 'room-1' } },
-      $store: {
+      $store: { commit: () => {},
         getters: { userIsLogin: true, floorId: 'floor-old', roomId: 'room-old' },
         dispatch: (type, payload) => dispatchCalls.push({ type, payload }),
       },
@@ -129,7 +129,7 @@ describe('タイムラインの初期化', () => {
     const dispatched = [];
     const ctx = {
       $route: { params: { floor_id: 'floor-1', room_id: 'room-1' } },
-      $store: {
+      $store: { commit: () => {},
         getters: { userIsLogin: true, roomTitle: 'Room title' },
         dispatch: (type) => dispatched.push(type),
       },
@@ -176,7 +176,7 @@ describe('タイムラインの初期化', () => {
 
     const ctx = {
       $route: { params: { floor_id: 'floor-2', room_id: 'room-1' } },
-      $store: { getters: { userIsLogin: false } },
+      $store: { commit: () => {}, getters: { userIsLogin: false } },
       $t: (key) => key,
       room: {},
     };
@@ -207,7 +207,7 @@ describe('タイムラインの初期化', () => {
 
     const ctx = {
       $route: { params: { floor_id: 'floor-1', room_id: 'room-2' } },
-      $store: { getters: { userIsLogin: false } },
+      $store: { commit: () => {}, getters: { userIsLogin: false } },
       $t: (key) => key,
       room: {
         isAdmin: false,
@@ -244,7 +244,7 @@ describe('タイムラインの初期化', () => {
 
     const ctx = {
       $route: { params: { floor_id: 'floor-1', room_id: 'room-3' } },
-      $store: { getters: { userIsLogin: true }, dispatch: () => {} },
+      $store: { commit: () => {}, getters: { userIsLogin: true }, dispatch: () => {} },
       $t: (key) => key,
       room: {
         isAdmin: false,
@@ -279,7 +279,7 @@ describe('タイムラインの初期化', () => {
     const ctx = {
       $route: { params: { floor_id: 'floor-1', room_id: 'room-stale' } },
       $router: { push: () => {} },
-      $store: {
+      $store: { commit: () => {},
         getters: { userIsLogin: false },
         dispatch: (type, payload) => dispatchCalls.push({ type, payload }),
       },
@@ -313,7 +313,7 @@ describe('タイムラインの初期化', () => {
     const ctx = {
       $route: { params: { floor_id: 'floor-1', room_id: 'room-leave' } },
       $router: { push: () => {} },
-      $store: {
+      $store: { commit: () => {},
         getters: { userIsLogin: false },
         dispatch: (type, payload) => dispatchCalls.push({ type, payload }),
       },
@@ -352,7 +352,7 @@ describe('タイムラインの初期化', () => {
     const ctx = {
       $route: { params: { floor_id: 'floor-1', room_id: 'room-initial' }, query: {} },
       $router: { push: () => {} },
-      $store: {
+      $store: { commit: () => {},
         getters: {
           userIsLogin: false,
           guestId: 'guest-1',
@@ -434,7 +434,7 @@ describe('タイムラインの初期化', () => {
           query: {},
         },
         $router: { push: () => {} },
-        $store: {
+        $store: { commit: () => {},
           getters: {
             userIsLogin: false,
             guestId: 'guest-1',
@@ -503,7 +503,7 @@ describe('タイムラインの初期化', () => {
     const ctx = {
       $route: route,
       $router: { push: () => {} },
-      $store: {
+      $store: { commit: () => {},
         getters: {
           userIsLogin: false,
           guestId: 'guest-1',
@@ -566,7 +566,7 @@ describe('タイムラインの初期化', () => {
     const ctx = {
       $route: { params: { floor_id: 'floor-1', room_id: 'room-10' } },
       $router: { push: (payload) => pushCalls.push(payload) },
-      $store: { getters: { userIsLogin: false }, dispatch: (type, payload) => dispatchCalls.push({ type, payload }) },
+      $store: { commit: () => {}, getters: { userIsLogin: false }, dispatch: (type, payload) => dispatchCalls.push({ type, payload }) },
       $t: (key) => key,
       room: {
         isAdmin: false,
@@ -602,7 +602,7 @@ describe('タイムラインの初期化', () => {
     const ctx = {
       $route: { params: { floor_id: 'floor-1', room_id: 'room-10' } },
       $router: { push: () => {} },
-      $store: { getters: { userIsLogin: false }, dispatch: (type, payload) => dispatchCalls.push({ type, payload }) },
+      $store: { commit: () => {}, getters: { userIsLogin: false }, dispatch: (type, payload) => dispatchCalls.push({ type, payload }) },
       $t: (key) => key,
       room: {},
       clearTimelineAnalytics: () => {
@@ -628,7 +628,7 @@ describe('タイムラインの初期化', () => {
     const ctx = {
       $route: { params: { floor_id: 'floor-1', room_id: 'room-10' } },
       $router: { push: (payload) => pushCalls.push(payload) },
-      $store: { getters: { userIsLogin: true }, dispatch: (type, payload) => dispatchCalls.push({ type, payload }) },
+      $store: { commit: () => {}, getters: { userIsLogin: true }, dispatch: (type, payload) => dispatchCalls.push({ type, payload }) },
       $t: (key) => key,
       room: {
         isAdmin: false,
@@ -661,7 +661,7 @@ describe('タイムラインの初期化', () => {
 
     const ctx = {
       $route: { params: { floor_id: 'floor-1', room_id: 'room-4' } },
-      $store: { getters: { userIsLogin: false, roomTitle: '' }, dispatch: () => {} },
+      $store: { commit: () => {}, getters: { userIsLogin: false, roomTitle: '' }, dispatch: () => {} },
       $t: (key) => key,
       room: {
         title: '',
@@ -697,7 +697,7 @@ describe('タイムラインの初期化', () => {
     let appliedQuery = null;
     const ctx = {
       $route: { query: { tag: 'tag' } },
-      $store: {
+      $store: { commit: () => {},
         getters: {
           userIsLogin: false,
           guestSoundTags: [],
@@ -748,7 +748,7 @@ describe('タイムラインの初期化', () => {
     quickTextAPI.getItems = () => Promise.resolve({ data: [] });
 
     const ctx = {
-      $store: {
+      $store: { commit: () => {},
         getters: {
           userIsLogin: false,
           guestSoundTags: [],
@@ -787,7 +787,7 @@ describe('タイムラインの初期化', () => {
     quickTextAPI.getItems = () => Promise.resolve({ data: { docs: [{ _id: 'i1' }] } });
 
     const ctx = {
-      $store: {
+      $store: { commit: () => {},
         getters: {
           userIsLogin: false,
           guestSoundTags: [],
@@ -828,7 +828,7 @@ describe('タイムラインの初期化', () => {
 
     const dispatchCalls = [];
     const ctx = {
-      $store: {
+      $store: { commit: () => {},
         getters: {
           userIsLogin: false,
           guestSoundTags: [{ roomId: 'room-1', soundTags: ['sound-a'] }],
@@ -870,7 +870,7 @@ describe('タイムラインの初期化', () => {
 
     const dispatchCalls = [];
     const ctx = {
-      $store: {
+      $store: { commit: () => {},
         getters: {
           userIsLogin: true,
           guestSoundTags: [],

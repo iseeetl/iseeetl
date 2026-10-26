@@ -119,6 +119,9 @@
         :name="editorGroup.title"
       />
 
+      <label v-if="editorKind === 'group'" class="emoji-choice"><input type="checkbox" v-model="formIsEmoji" />{{ $t('roomEmoji.group') }}</label>
+      <p v-if="editorKind === 'group' && formIsEmoji">{{ $t('roomEmoji.help') }}</p>
+      <label v-if="editorKind === 'item' && editorGroup?.is_emoji" class="emoji-choice">{{ $t('絵文字') }}<input v-model="formEmoji" maxlength="32" :aria-label="$t('絵文字')" style="width:70px;font-size:24px" /></label>
       <UiField
         :control-id="formControlId"
         :label="`${formLabel} ${$t('200文字まで')} ${$t('必須')}`"
@@ -301,6 +304,9 @@ export default {
       editorValue: null,
       editorGroup: null,
       formValue: '',
+      formIsEmoji: false,
+      formEmoji: '',
+      initialEmojiState: '',
       initialFormValue: '',
       formTouched: false,
       formSubmitted: false,
@@ -373,7 +379,7 @@ export default {
       return this.editorValue ? this.$t('managementUi.save') : this.$t('作成');
     },
     formDirty() {
-      return this.formValue !== this.initialFormValue;
+      return (this.formValue !== this.initialFormValue || JSON.stringify([this.formIsEmoji,this.formEmoji]) !== this.initialEmojiState);
     },
     confirmTargetName() {
       if (!this.confirmTarget) return '';
@@ -520,6 +526,9 @@ export default {
       this.editorValue = group;
       this.editorGroup = null;
       this.formValue = group?.title || '';
+      this.formIsEmoji = group?.is_emoji === true;
+      this.formEmoji = '';
+      this.initialEmojiState = JSON.stringify([this.formIsEmoji,this.formEmoji]);
       this.initialFormValue = this.formValue;
       this.formTouched = false;
       this.formSubmitted = false;
@@ -532,6 +541,9 @@ export default {
       this.editorValue = item;
       this.editorGroup = group;
       this.formValue = item?.label || '';
+      this.formIsEmoji = group?.is_emoji === true;
+      this.formEmoji = item?.emoji || '';
+      this.initialEmojiState = JSON.stringify([this.formIsEmoji,this.formEmoji]);
       this.initialFormValue = this.formValue;
       this.formTouched = false;
       this.formSubmitted = false;
@@ -626,21 +638,21 @@ export default {
           response = editingValue
             ? await quickTextAPI.updateGroup(this.userToken, this.buildPayload({
                 id: editingValue._id,
-                title: value,
+                title: value, is_emoji: this.formIsEmoji,
                 lang,
               }))
-            : await quickTextAPI.createGroup(this.userToken, this.buildPayload({ title: value, lang }));
+            : await quickTextAPI.createGroup(this.userToken, this.buildPayload({ title: value, is_emoji: this.formIsEmoji, lang }));
           this.showMessage(editingValue ? '単語グループを更新しました' : '単語グループを作成しました');
         } else if (editorKind === 'item' && editorGroup) {
           response = editingValue
             ? await quickTextAPI.updateItem(this.userToken, this.buildPayload({
                 id: editingValue._id,
-                label: value,
+                label: value, emoji: this.formEmoji,
                 lang,
               }))
             : await quickTextAPI.createItem(this.userToken, this.buildPayload({
                 groupId: editorGroup._id,
-                label: value,
+                label: value, emoji: this.formEmoji,
                 lang,
               }));
           this.showMessage(editingValue ? '単語を更新しました' : '単語を作成しました');

@@ -62,7 +62,7 @@ exports.createPost = async (body, io) => {
 
   const foundRoom = await findActiveRoom(roomId, { error: { code: 'INVALID_PARAMS' } });
 
-  if (foundRoom.guest_reaction_only && !containsOnlyAllowedEmojis(content)) {
+  if (foundRoom.guest_reaction_only && !await containsOnlyAllowedEmojis(content, roomId)) {
     throw new AppError({ code: 'INVALID_PARAMS' });
   }
 

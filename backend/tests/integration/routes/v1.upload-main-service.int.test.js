@@ -19,6 +19,13 @@ const mediaRoot = testRuntimePath('v1-upload-main-service', 'media');
 process.env.JWT_DEV_SECRET = 'v1-upload-main-service-test-secret';
 process.env.MEDIA_PATH = trailingSlash(mediaRoot);
 
+// Keep this authorization-order probe small while still exceeding the upload limit.
+// A multi-megabyte body can hit a client EPIPE after the server correctly rejects it.
+jest.mock('../../../constants/uploads', () => ({
+  ...jest.requireActual('../../../constants/uploads'),
+  AUDIO_LIMIT: 4096,
+}));
+
 const v1Router = require('../../../routes/v1');
 const Chat = require('../../../models/Chat');
 const KickedUser = require('../../../models/KickedUser');

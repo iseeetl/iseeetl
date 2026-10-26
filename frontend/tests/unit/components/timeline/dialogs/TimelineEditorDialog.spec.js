@@ -71,6 +71,15 @@ describe('タイムラインの共通編集ダイアログ', () => {
     expect(dialog.attributes('aria-busy')).to.equal('true');
   });
 
+  it('添付メニューが開いている間は親だけのEscape終了を抑える', async () => {
+    const wrapper = createWrapper({ escapeBlocked: true });
+    const dialog = wrapper.findComponent(UiDialogStub);
+    expect(dialog.props('closeOnEscape')).to.equal(false);
+    expect(dialog.props('closeOnBackdrop')).to.equal(true);
+    await wrapper.setProps({ escapeBlocked: false });
+    expect(dialog.props('closeOnEscape')).to.equal(true);
+  });
+
   it('blocked中は終了操作とEscape、背景クリックを無効にする', async () => {
     const wrapper = createWrapper({ blocked: true });
     const dialog = wrapper.findComponent(UiDialogStub);

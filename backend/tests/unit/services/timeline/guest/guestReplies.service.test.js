@@ -1,3 +1,6 @@
+jest.mock('../../../../../models/RoomQuickTextGroup', () => ({
+  find: jest.fn(() => ({ select: () => ({ lean: async () => [] }) })),
+}));
 const mockAnalysisEnabled = jest.fn(() => false);
 jest.mock('../../../../../services/analysis/settings/capability', () => ({
   isAIAnalysisExecutionEnabled: mockAnalysisEnabled,

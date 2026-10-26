@@ -17,14 +17,14 @@ exports.listItems = handleService((req) => {
 // 作成・更新・削除では、ログインとフロアの操作権限を確認する。
 exports.createGroup = handleService((req) => {
   const { roomId } = req.params;
-  const { order, title, lang } = req.body;
-  return svc.createGroup({ roomId, order, title, lang, jwtPayload: req.jwtPayload });
+  const { order, title, lang, is_emoji } = req.body;
+  return svc.createGroup({ roomId, order, title, lang, is_emoji, jwtPayload: req.jwtPayload });
 });
 
 exports.updateGroup = handleService((req) => {
   const { roomId, id } = req.params;
-  const { order, title, lang } = req.body;
-  return svc.updateGroup({ roomId, id, order, title, lang, jwtPayload: req.jwtPayload });
+  const { order, title, lang, is_emoji } = req.body;
+  return svc.updateGroup({ roomId, id, order, title, lang, is_emoji, jwtPayload: req.jwtPayload });
 });
 
 exports.deleteGroup = handleService((req) => {
@@ -34,14 +34,14 @@ exports.deleteGroup = handleService((req) => {
 
 exports.createItem = handleService((req) => {
   const { roomId, groupId } = req.params;
-  const { order, label, lang } = req.body;
-  return svc.createItem({ roomId, groupId, order, label, lang, jwtPayload: req.jwtPayload });
+  const { order, label, lang, emoji } = req.body;
+  return svc.createItem({ roomId, groupId, order, label, lang, emoji, jwtPayload: req.jwtPayload });
 });
 
 exports.updateItem = handleService((req) => {
   const { roomId, id } = req.params;
-  const { order, label, lang } = req.body;
-  return svc.updateItem({ roomId, id, order, label, lang, jwtPayload: req.jwtPayload });
+  const { order, label, lang, emoji } = req.body;
+  return svc.updateItem({ roomId, id, order, label, lang, emoji, jwtPayload: req.jwtPayload });
 });
 
 exports.deleteItem = handleService((req) => {

@@ -1,3 +1,4 @@
+import { collectUpdateNotices, normalizeUpdatePreference } from '@/features/timeline/updateNotices';
 import {
   getConditionlessIndexes,
   normalizeFiltersFromStore,
@@ -70,6 +71,11 @@ export const bindSocketHandlers = (socket, ctx, deps = {}) => {
     on: (event, handler) => {
       const guardedHandler = (...args) => {
         if (!isActiveSocket()) return;
+        if (['POST_UPDATE','SUPPLEMENT_CREATE','SUPPLEMENT_UPDATE','REPLY_UPDATE',
+          'REPLY_SUPPLEMENT_CREATE','REPLY_SUPPLEMENT_UPDATE','REACTION_CREATE',
+          'SUPPLEMENT_REACTION_CREATE','REPLY_REACTION_CREATE','REPLY_SUPPLEMENT_REACTION_CREATE'].includes(event)) {
+          collectUpdateNotices(ctx, args[0]);
+        }
         handler(...args);
       };
       socketHandlers.push({ event, handler: guardedHandler });
@@ -462,6 +468,8 @@ export const bindSocketHandlers = (socket, ctx, deps = {}) => {
     .on('REACTION_CREATE', (post) => {
       ctx.updateExistingInFilters(post);
 
+      const preference = normalizeUpdatePreference(ctx.$store?.getters.roomUpdatePreference?.(String(post.room?._id || post.room)));
+      if (preference.enabled && preference.reaction) return; // This viewer chose the grouped update notice instead.
       const reaction = post.reactions[post.reactions.length - 1];
 
       const canNotify = shouldNotifyReaction({

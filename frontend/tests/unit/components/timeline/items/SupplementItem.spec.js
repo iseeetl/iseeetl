@@ -119,7 +119,7 @@ describe('付加情報の表示と操作', () => {
           user: { _id: 'user-1', username: 'user' },
           reactions: [],
           audio_name: 'supplement.m4a',
-          audio_description: '付加情報の録音',
+          audio_description: '',
         },
       },
     });
@@ -130,7 +130,7 @@ describe('付加情報の表示と操作', () => {
       src: '/media/floor-1/room-1/supplement.m4a',
       fileName: 'supplement.m4a',
       audioTitle: '',
-      description: '付加情報の録音',
+      description: '',
       preload: 'none',
       downloadTestId: 'timeline-supplement-audio-download-button-supp-1',
     });

@@ -152,6 +152,10 @@ const handleUnauthorized = async (error) => {
     await refreshGuestToken(authSnapshot);
     if (!isAuthSnapshotCurrent(authSnapshot)) return Promise.reject(error);
     config._guestRetry = true;
+    // 再送時は更新済みトークンをリクエスト処理で付与する。
+    for (const name of Object.keys(config.headers || {})) {
+      if (name.toLowerCase() === 'x-guest-token') delete config.headers[name];
+    }
     if (!isAuthSnapshotCurrent(authSnapshot)) return Promise.reject(error);
     return apiClient(config);
   } catch {

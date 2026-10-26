@@ -40,6 +40,7 @@ function buildQuickTextService({
       user: context.user._id,
       order: nextOrder,
       title: params.title,
+      is_emoji: params.is_emoji === true,
       lang: params.lang,
       translations,
     };
@@ -58,6 +59,7 @@ function buildQuickTextService({
     let needTranslate = false;
 
     if (typeof params.order !== 'undefined') updateData.order = params.order;
+    if (typeof params.is_emoji === 'boolean') updateData.is_emoji = params.is_emoji;
     if (typeof params.title !== 'undefined') {
       updateData.title = params.title;
       needTranslate = true;
@@ -121,6 +123,7 @@ function buildQuickTextService({
       group: params.groupId,
       order: nextOrder,
       label: params.label,
+      emoji: params.emoji || '',
       lang: params.lang,
       translations,
     };
@@ -144,6 +147,7 @@ function buildQuickTextService({
     let needTranslate = false;
 
     if (typeof params.order !== 'undefined') updateData.order = params.order;
+    if (typeof params.emoji === 'string') updateData.emoji = params.emoji;
     if (typeof params.label !== 'undefined') {
       updateData.label = params.label;
       needTranslate = true;

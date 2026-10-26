@@ -54,11 +54,19 @@ describe('メディアの選択・入力（MediaInput）', () => {
     return input;
   };
 
+  it('外部の添付メニューを使う場合も入力とプレビューは維持する', () => {
+    const wrapper = factory({ hideChoices: true, imageData: 'image-data' });
+    expect(wrapper.findAll('.media-button')).to.have.lengthOf(0);
+    expect(wrapper.findAll('input[type="file"]')).to.have.lengthOf(5);
+    expect(wrapper.find('.image-preview-wrapper img').exists()).to.equal(true);
+    expect(wrapper.find('.media-remove-button').exists()).to.equal(true);
+  });
+
   it('ボタンから開くファイル入力を読み上げ対象とTab移動順から除く', () => {
     const wrapper = factory({ videoData: 'video-data' });
     const fileInputs = wrapper.findAll('input[type="file"]');
 
-    expect(fileInputs).to.have.lengthOf(4);
+    expect(fileInputs).to.have.lengthOf(6);
     fileInputs.forEach((input) => {
       expect(input.attributes('aria-hidden')).to.equal('true');
       expect(input.attributes('tabindex')).to.equal('-1');
@@ -110,7 +118,7 @@ describe('メディアの選択・入力（MediaInput）', () => {
         const prefix = wrapper.props('idPrefix');
         expect(wrapper.get('[data-testid="media-image-caption"]').attributes('id')).to.include(prefix);
         expect(wrapper.get('[data-testid="media-video-preview"]').attributes('id')).to.include(prefix);
-        expect(wrapper.get('[data-testid="media-audio-title"]').attributes('id')).to.include(prefix);
+        expect(wrapper.get('[data-testid="media-video-description"]').attributes('id')).to.include(prefix);
         expect(wrapper.get('[data-testid="media-audio-description"]').attributes('id')).to.include(prefix);
       });
     } finally {
@@ -361,4 +369,22 @@ describe('メディアの選択・入力（MediaInput）', () => {
       expect(b.element.disabled).to.equal(true);
     });
   });
+});
+
+describe('source-based file selection', () => {
+  it('routes files by supported type without changing tags, and rejects non-media', () => {
+    const emitted=[];const ctx={guard:()=>false,$emit:(...args)=>emitted.push(args),sourceError:false};
+    for(const [name,type,event] of [['a.jpg','image/jpeg','image-change'],['a.mp4','video/mp4','video-change'],['a.wav','audio/wav','audio-change']]) {
+      MediaInput.methods.handleSourceSelection.call(ctx,{target:{files:[new File(['x'],name,{type})]}},false);expect(emitted.at(-1)[0]).to.equal(event);
+    }
+    MediaInput.methods.handleSourceSelection.call(ctx,{target:{files:[new File(['x'],'notes.pdf',{type:'application/pdf'})]}},false);expect(ctx.sourceError).to.equal(true);expect(emitted).to.have.length(3);
+  });
+});
+
+it('uses 2000-unit alternative text and no separate title input', async () => {
+ const w=factory({imageData:'image-data',audioData:'audio-data'});
+ const caption=w.get('[data-testid="media-image-caption"]');const description=w.get('[data-testid="media-audio-description"]');
+ expect(caption.attributes('maxlength')).to.equal('2000');expect(description.attributes('maxlength')).to.equal('2000');expect(w.find('[data-testid="media-audio-title"]').exists()).to.equal(false);
+ await caption.setValue('あ'.repeat(2000));await description.setValue('a'.repeat(2000));
+ expect(w.emitted('image-caption-change').at(-1)[0]).to.equal('あ'.repeat(2000));expect(w.emitted('audio-description-change').at(-1)[0]).to.equal('a'.repeat(2000));w.unmount();
 });

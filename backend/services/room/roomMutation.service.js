@@ -69,6 +69,7 @@ exports.create = async (body, jwtPayload) => {
     lang,
     translations: titleAndDescriptionTranslations,
     guest_reaction_only: guestReactionOnly,
+    collaborative_text_editing: body.collaborative_text_editing === true,
     guest_conversation_enabled: body.guest_conversation_enabled === true,
     member_only: memberOnly,
     room_display_hidden: roomDisplayHidden,
@@ -159,6 +160,9 @@ exports.update = async (body, jwtPayload, io) => {
   };
   if (translationEnabled && (isContentModified || isLangChanged)) {
     updateRoom.translations = titleAndDescriptionTranslations;
+  }
+  if (body.collaborative_text_editing !== undefined) {
+    updateRoom.collaborative_text_editing = body.collaborative_text_editing;
   }
   if (body.guest_conversation_enabled !== undefined) {
     updateRoom.guest_conversation_enabled = body.guest_conversation_enabled;

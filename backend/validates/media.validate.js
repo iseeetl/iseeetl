@@ -1,3 +1,4 @@
+const { MAX_SUPPLEMENT_UTF16_UNITS } = require('../constants/contentLimits');
 const mongoose = require('mongoose');
 const { body } = require('express-validator');
 
@@ -37,7 +38,7 @@ const validateFileThumbnailName = (fieldName) => {
 const validateImageCaption = (fieldName) => {
   return body(fieldName)
     .exists()
-    .custom((value) => value === null || (typeof value === 'string' && value.length <= 200));
+    .custom((value) => value === null || (typeof value === 'string' && value.length <= MAX_SUPPLEMENT_UTF16_UNITS));
 };
 
 const validateVideoSubtitleOriginalname = (fieldName) => {
@@ -55,7 +56,7 @@ const validateAudioTitle = (fieldName) => {
 const validateAudioDescription = (fieldName) => {
   return body(fieldName)
     .exists()
-    .custom((value) => value === null || (typeof value === 'string' && value.length <= 200));
+    .custom((value) => value === null || (typeof value === 'string' && value.length <= MAX_SUPPLEMENT_UTF16_UNITS));
 };
 
 const validateImageName = (fieldName) => {

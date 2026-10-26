@@ -34,6 +34,7 @@ const createWrapper = (overrides = {}) =>
       ...(overrides.props || {}),
     },
     mocks: {
+      $store: {getters:{roomId:"room-1"},state:{updateNotices:[]}},
       $t(key) {
         if (!this.$i18n) {
           throw new Error('$i18nが必要です');
@@ -206,6 +207,7 @@ describe('タイムラインのカラム', () => {
     const wrapper = createWrapper({
       props: { index: 2 },
       mocks: {
+      $store: {getters:{roomId:"room-1"},state:{updateNotices:[]}},
         $i18n: { locale: 'ja' },
         $t: (key, params) => (params?.title ? key.replace('{title}', params.title) : key),
       },

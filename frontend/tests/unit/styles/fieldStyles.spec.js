@@ -15,7 +15,7 @@ const COUNTER_FIELDS = [
   ['components/timeline/dialogs/EditPostDialog.vue', ['post_content']],
   ['components/timeline/dialogs/EditReplyDialog.vue', ['reply_content']],
   ['components/timeline/dialogs/EditSupplementDialog.vue', ['supplement_content']],
-  ['components/timeline/inputs/MediaInput.vue', ['image_caption', 'audio_title', 'audio_description']],
+  ['components/timeline/inputs/MediaInput.vue', ['image_caption', 'video_description', 'audio_description']],
   ['views/ResetPassword.vue', ['password', 'confirm-password']],
   ['views/management/CategoryTagManagement.vue', ['category-tag-name']],
 ];

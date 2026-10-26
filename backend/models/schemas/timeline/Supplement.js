@@ -111,6 +111,7 @@ const SupplementSchema = new Schema({
     type: String,
     default: null,
   },
+  video_description: { type: String, default: null, maxlength: 2000 },
   video_name: {
     type: String,
     default: null,
@@ -139,6 +140,7 @@ const SupplementSchema = new Schema({
     type: String,
     default: null,
   },
+  alternative_reactions: { type: [ReactionSchema], default: [] },
   reactions: {
     type: [ReactionSchema],
     default: [],

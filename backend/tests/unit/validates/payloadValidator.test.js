@@ -1,3 +1,4 @@
+const syntheticMail = require('../../_helpers/syntheticMail');
 const { buildReq, runValidators } = require('./_helpers');
 const { ALLOWED_LANGUAGES } = require('../../../constants/languages');
 const base = require('../../../validates/base.validate');
@@ -306,7 +307,7 @@ describe('リクエストの入力検証と確定処理', () => {
       (
         await request(app)
           .post('/test')
-          .send({ cap: 'a'.repeat(201) })
+          .send({ cap: 'a'.repeat(2001) })
       ).status
     ).toBe(400);
   });
@@ -362,13 +363,13 @@ describe('リクエストの入力検証と確定処理', () => {
 
     app = {};
     createTestEndpoint(validators.validateMail('mail'));
-    expect((await request(app).post('/test').send({ mail: 'test@example.com' })).status).toBe(200);
+    expect((await request(app).post('/test').send({ mail: syntheticMail('test') })).status).toBe(200);
     expect((await request(app).post('/test').send({})).status).toBe(400);
 
     app = {};
     createTestEndpoint(validators.validateNullableMail('mail'));
     expect((await request(app).post('/test').send({ mail: null })).status).toBe(200);
-    expect((await request(app).post('/test').send({ mail: 'test@example.com' })).status).toBe(200);
+    expect((await request(app).post('/test').send({ mail: syntheticMail('test') })).status).toBe(200);
     expect((await request(app).post('/test').send({})).status).toBe(400);
     expect((await request(app).post('/test').send({ mail: '' })).status).toBe(400);
 

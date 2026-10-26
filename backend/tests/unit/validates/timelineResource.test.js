@@ -62,3 +62,14 @@ describe('投稿データの入力検証', () => {
     expect(() => mapPostRequest({ ...params, room_id: 'abcdefghijkl' }, {}, 'delete')).toThrow();
   });
 });
+
+test.each(['post','reply','postSupplement','replySupplement'])('%s: description limits apply to create and update', kind => {
+  const scope={...params,reply_id:'3'.repeat(24),supplement_id:'4'.repeat(24)};
+  for(const operation of ['create','update']) {
+    for(const [type,field,limit] of [['image','caption',2000],['audio','description',2000],['audio','title',200]]) {
+      const request=value=>mapTimelineRequest(scope,{content:'x',lang:'ja',media:{[type]:{[field]:value}}},operation,kind);
+      expect(()=>request('あ'.repeat(limit))).not.toThrow();
+      expect(()=>request('a'.repeat(limit+1))).toThrow();
+    }
+  }
+});

@@ -183,11 +183,10 @@ describe('返信の作成・編集', () => {
     expect(warnings.some((warning) => warning.includes('[UiButton] iconOnly requires'))).to.equal(false);
 
     const toggles = [
-      { controlId: wrapper.vm.accIds.reaction, targetName: 'リアクション' },
+      { controlId: wrapper.vm.accIds.reaction, targetName: '絵文字' },
       { controlId: wrapper.vm.qtPanelId('g1'), targetName: '同名グループ', expectedPosition: '1' },
       { controlId: wrapper.vm.qtPanelId('g2'), targetName: '同名グループ', expectedPosition: '2' },
       { controlId: wrapper.vm.accIds.tags, targetName: 'タグ' },
-      { controlId: wrapper.vm.accIds.media, targetName: 'メディア' },
     ];
 
     for (const { controlId, targetName, expectedPosition } of toggles) {
@@ -409,7 +408,7 @@ describe('返信の作成・編集', () => {
       { name: 'replacement.mp4', type: 'video/mp4', size: 10 },
       'uploadTimelineVideo',
       { video_name: 'replacement.mp4', video_thumbnail_name: 'replacement-thumbnail.png' },
-      { image: null, video: { file_name: 'replacement.mp4', thumbnail_name: 'replacement-thumbnail.png', subtitle: null } },
+      { image: null, video: { description: null, file_name: 'replacement.mp4', thumbnail_name: 'replacement-thumbnail.png', subtitle: null } },
     ],
     [
       '音声',

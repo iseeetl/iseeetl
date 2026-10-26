@@ -175,7 +175,6 @@ describe('付加情報の作成・編集', () => {
     const toggles = [
       { controlId: wrapper.vm.qtPanelId('g1'), targetName: '同名グループ', expectedPosition: '1' },
       { controlId: wrapper.vm.qtPanelId('g2'), targetName: '同名グループ', expectedPosition: '2' },
-      { controlId: wrapper.vm.accIds.media, targetName: 'メディア' },
     ];
 
     for (const { controlId, targetName, expectedPosition } of toggles) {
@@ -250,18 +249,11 @@ describe('付加情報の作成・編集', () => {
     expect(wrapper.vm.isQuickTextOpen('g1')).to.equal(!initial);
   });
 
-  it('メディアタイトルクリックでメディアアコーディオンを開閉できる', async () => {
+  it('添付プレビューをコメント直下に置き、独立したメディア欄を表示しない', () => {
     const wrapper = createWrapper();
-    const titleButton = wrapper.find('[data-testid="dialog-edit-supplement-media-title-toggle"]');
-
-    expect(titleButton.exists()).to.equal(true);
-    expect(wrapper.vm.isAccordionOpen('media')).to.equal(true);
-
-    await titleButton.trigger('click');
-    expect(wrapper.vm.isAccordionOpen('media')).to.equal(false);
-
-    await titleButton.trigger('click');
-    expect(wrapper.vm.isAccordionOpen('media')).to.equal(true);
+    expect(wrapper.find('[data-testid="dialog-edit-supplement-media-title-toggle"]').exists()).to.equal(false);
+    expect(wrapper.find('.composer-attachment-preview').exists()).to.equal(true);
+    wrapper.unmount();
   });
 
   it('ダイアログを開くと表示フラグがtrueになる', () => {
@@ -321,7 +313,7 @@ describe('付加情報の作成・編集', () => {
       'uploadTimelineVideo',
       { video_name: 'replacement.mp4', video_thumbnail_name: 'replacement-thumbnail.png' },
       'updateSupplement',
-      { image: null, video: { file_name: 'replacement.mp4', thumbnail_name: 'replacement-thumbnail.png', subtitle: null } },
+      { image: null, video: { description: null, file_name: 'replacement.mp4', thumbnail_name: 'replacement-thumbnail.png', subtitle: null } },
     ],
     [
       'Reply付加情報の選択中画像から音声',

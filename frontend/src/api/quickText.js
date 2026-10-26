@@ -34,8 +34,8 @@ const buildPayload = (fields) => {
   return payload;
 };
 
-const buildGroupPayload = ({ order, title, lang }) => buildPayload({ order, title, lang });
-const buildItemPayload = ({ order, label, lang }) => buildPayload({ order, label, lang });
+const buildGroupPayload = ({ order, title, lang, is_emoji }) => buildPayload({ order, title, lang, is_emoji });
+const buildItemPayload = ({ order, label, lang, emoji }) => buildPayload({ order, label, lang, emoji });
 
 export default {
   getGroupsAll(tokenOrOptions, options) {

@@ -48,7 +48,7 @@
 | `video` | `file_name`、`thumbnail_name`、`subtitle` |
 | `audio` | `file_name`、`title`、`description` |
 
-`subtitle`は`file_name`と`original_name`を持つオブジェクトで、nullを指定すると字幕全体を解除します。`caption`・`title`・`description`は200文字以内、`original_name`は100文字以内、保存ファイル名は255文字以内です。画像とサムネイル、動画とサムネイル、字幕の保存名と元名は、それぞれ対で指定します。保存名・所属・発行者・参照保護は[メディア共通検証](timeline.md#メディア参照の共通検証)に従います。変更しない既存メディアは保持します。
+`subtitle`は`file_name`と`original_name`を持つオブジェクトで、nullを指定すると字幕全体を解除します。`caption`・`description`は2,000文字以内、`title`は200文字以内、`original_name`は100文字以内、保存ファイル名は255文字以内です。画像とサムネイル、動画とサムネイル、字幕の保存名と元名は、それぞれ対で指定します。保存名・所属・発行者・参照保護は[メディア共通検証](timeline.md#メディア参照の共通検証)に従います。変更しない既存メディアは保持します。
 
 ### 投稿の成功応答
 
@@ -140,3 +140,16 @@ Socket.IO配信は`REPLY_CREATE/UPDATE/DELETE`、`SUPPLEMENT_CREATE/UPDATE/DELET
 - `frontend/tests/unit/components/timeline/dialogs/EditPostDialog.spec.js`
 - `frontend/tests/unit/components/timeline/dialogs/EditReplyDialog.spec.js`
 - `frontend/tests/unit/components/timeline/dialogs/EditSupplementDialog.spec.js`
+
+## 代替テキスト（ローカル試作）
+動画の `media.video.description` は最大2,000文字。画像caption・音descriptionと共通の共同編集UIを利用する。専用PUT経路、権限、期待値を使った409応答は[共同編集仕様](../../frontend/shared-alternative-text.md#apiと互換性)を参照。
+
+付加情報の共同編集は末尾`/text`の専用PUTを使う。ルームの`collaborative_text_editing`がオンでも、既存PATCH/DELETEや投稿本文/添付の権限は広げない。詳細は[共同編集仕様](../../frontend/shared-alternative-text.md)。
+
+## 対象別リアクション（ローカル試作）
+
+`/rooms/:room_id/timeline/posts/:post_id`、その `/replies/:reply_id`、各 `/supplements/:supplement_id` の下に `POST /reactions` と `DELETE /reactions/:reaction_id` を追加。本文は `{type, media_kind?, guest_name?}`、削除では `media_kind?` を指定。media_kind=image/video/audioはその添付の代替テキスト、未指定は対象本体。typeは従来5種または同ルーム絵文字の `room:<itemId>`。
+
+ユーザBearer/ゲストx-guest-tokenを必須とし、ルーム閲覧権限・対象所在・添付有無・本人/既存管理者の削除権限を検証。二重付与は409、入力不正400、対象なし404。既存の限定ルーム権限エラー401も維持。成功200は最新の親投稿を返し、POST_UPDATEを配信。投稿本文や投稿時刻は変更しない。
+
+フロア/ルームquick-text APIのgroup作成/編集で `is_emoji:boolean`、item作成/編集で `emoji:string`（最大32 UTF-16単位）を任意受付。既存の管理権限を使用。詳細は [仕様](../../frontend/update-notices-emoji.md)。

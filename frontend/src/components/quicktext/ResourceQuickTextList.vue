@@ -43,7 +43,7 @@
             <div class="group-top-left">
               <div class="field-row">
                 <span class="field-label">{{ $t('単語グループ名') }}</span>
-                <span class="field-value" dir="auto">{{ group.title }}</span>
+                <span class="field-value" dir="auto">{{ group.title }} <small v-if="group.is_emoji">{{ $t('絵文字') }}</small></span>
               </div>
               <div class="group-meta">
                 <span>{{ $t('表示順番') }}: {{ group.order }}</span>
@@ -137,7 +137,7 @@
                       </UiButton>
 
                       <div class="item-main">
-                        <div class="item-title" dir="auto">{{ item.label }}</div>
+                        <div class="item-title" dir="auto"><span v-if="item.emoji" aria-hidden="true">{{ item.emoji }} </span>{{ item.label }}</div>
                         <div class="item-meta">
                           <span>{{ $t('表示順番') }}: {{ item.order }}</span>
                           <span> / </span>

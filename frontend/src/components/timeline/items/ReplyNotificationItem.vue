@@ -60,7 +60,7 @@
                 preload="none"
                 controls
               ></audio>
-              <figcaption dir="auto">{{ reply.audio_description }}</figcaption>
+              <TimelineAlternativeText :item="reply" kind="audio" read-only />
             </figure>
           </template>
           <template v-else>
@@ -131,7 +131,7 @@
                 preload="none"
                 controls
               ></audio>
-              <figcaption dir="auto">{{ post.audio_description }}</figcaption>
+              <TimelineAlternativeText :item="post" kind="audio" read-only />
             </figure>
           </template>
           <template v-else>
@@ -159,6 +159,7 @@
 </template>
 
 <script>
+import TimelineAlternativeText from '@/components/timeline/TimelineAlternativeText.vue';
 import UiAvatar from '@/components/ui/UiAvatar.vue';
 import UiIcon from '@/components/ui/UiIcon.vue';
 import TimelineText from '@/components/timeline/TimelineText.vue';
@@ -171,6 +172,7 @@ export default {
   emits: ['onPressNotification'],
   name: 'ReplyNotificationItem',
   components: {
+    TimelineAlternativeText,
     TimelineText,
     UiAvatar,
     UiIcon,

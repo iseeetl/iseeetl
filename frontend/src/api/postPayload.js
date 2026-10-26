@@ -1,7 +1,8 @@
+import { mediaTextSnapshot } from '@/features/timeline/alternativeText';
 const scalarFields = ['content', 'lang', 'room_tags', 'animation'];
 const groups = {
   image: { file_name: 'image_name', thumbnail_name: 'image_thumbnail_name', caption: 'image_caption' },
-  video: { file_name: 'video_name', thumbnail_name: 'video_thumbnail_name' },
+  video: { file_name: 'video_name', thumbnail_name: 'video_thumbnail_name', description: 'video_description' },
   audio: { file_name: 'audio_name', title: 'audio_title', description: 'audio_description' },
 };
 
@@ -40,7 +41,7 @@ function buildPatch(value, initial, fields) {
     else media[kind] = Object.fromEntries(Object.entries(after[kind])
       .filter(([key, next]) => !equal(next, before[kind][key])));
   }
-  if (Object.keys(media).length) body.media = media;
+  if (Object.keys(media).length) { body.media = media; body.expected_media_text = mediaTextSnapshot(initial); }
   return body;
 }
 

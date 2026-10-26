@@ -1,5 +1,7 @@
+import { roomEmojiChoices } from '@/features/timeline/roomEmoji';
 export const contextDomain = {
   getters: {
+    roomEmojiChoices: state => roomEmojiChoices(state.room.emojiCatalog, state.user.lang),
     floorId: (state) => state.floor.id,
     floorTitle: (state) => state.floor.title,
     floorTargetLangs: (state) => state.floor.targetLangs,
@@ -7,6 +9,7 @@ export const contextDomain = {
     roomTitle: (state) => state.room.title,
     roomMemberOnly: (state) => state.room.memberOnly,
     roomRole: (state) => state.room.role,
+    collaborativeTextEditing: (state) => state.room.collaborativeTextEditing === true,
     tagList: (state) => state.tag.list,
     tagClipboardList: (state) => state.tagClipboard.list,
     guestSoundTags: (state) => state.guestSoundTags,
@@ -14,6 +17,8 @@ export const contextDomain = {
     tempRoomId: (state) => state.tempRoomId,
   },
   mutations: {
+    setRoomEmojiCatalog(state, catalog) { state.room.emojiCatalog = catalog; },
+    setCollaborativeTextEditing(state, enabled) { state.room.collaborativeTextEditing = enabled === true; },
     setFloor(state, data) {
       state.floor.id = data.id;
       state.floor.title = data.title;
@@ -28,11 +33,13 @@ export const contextDomain = {
       state.floor.targetLangs = data.targetLangs;
     },
     setRoom(state, data) {
+      state.room.emojiCatalog = null;
       Object.assign(state.room, {
         id: data.id,
         title: data.title,
         memberOnly: data.memberOnly,
         role: data.role,
+        collaborativeTextEditing: data.collaborativeTextEditing === true,
       });
     },
     setRoomId(state, data) {
@@ -65,6 +72,7 @@ export const contextDomain = {
     },
   },
   actions: {
+    doUpdateCollaborativeTextEditing: ({ commit }, enabled) => commit('setCollaborativeTextEditing', enabled),
     doUpdateFloor: ({ commit }, data) => commit('setFloor', data),
     doUpdateFloorId: ({ commit }, data) => commit('setFloorId', data),
     doUpdateFloorTitle: ({ commit }, data) => commit('setFloorTitle', data),

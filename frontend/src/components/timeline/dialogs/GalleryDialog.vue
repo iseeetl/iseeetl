@@ -44,7 +44,7 @@
 
       <div v-if="videoName" class="gallery-video">
         <video
-          :src="videoUrl"
+          :src="videoUrl" :aria-describedby="descriptionId"
           controls
           playsinline
           autoplay
@@ -59,6 +59,8 @@
         </video>
       </div>
 
+      <TimelineAlternativeText v-if="propsValue && (imageName || videoName)" :item="propsValue"
+        :kind="imageName ? 'image' : 'video'" :description-id="descriptionId" read-only />
       <UiTooltip ref="closeButtonTooltipRef" :text="$t('閉じる')">
         <UiButton
           class="gallery-close"
@@ -77,15 +79,19 @@
 </template>
 
 <script>
+import { useId } from 'vue';
+import TimelineAlternativeText from '@/components/timeline/TimelineAlternativeText.vue';
 import UiButton from '@/components/ui/UiButton.vue';
 import UiDialog from '@/components/ui/UiDialog.vue';
 import UiIcon from '@/components/ui/UiIcon.vue';
 import UiTooltip from '@/components/ui/UiTooltip.vue';
 
 export default {
+  setup() { return { descriptionId: `gallery-alt-${useId()}` }; },
   emits: ['close'],
   name: 'GalleryDialog',
   components: {
+    TimelineAlternativeText,
     UiButton,
     UiDialog,
     UiIcon,

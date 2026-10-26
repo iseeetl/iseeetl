@@ -1,4 +1,4 @@
-import { expect } from 'vitest';
+import { expect, vi } from 'vitest';
 import { shallowMount } from '../../../helpers/testUtils';
 import chatApi from '@/api/chat';
 import ReactionPicker from '@/components/timeline/inputs/ReactionPicker.vue';
@@ -51,6 +51,78 @@ const createOperationReporter = (events, reportImpl) => ({
 });
 
 describe('リアクションの選択', () => {
+  it('隠れている候補側だけスクロール矢印を使え、押すと末尾へ移動できる', async () => {
+    const wrapper = createWrapper();
+    await wrapper.vm.$nextTick();
+    const scroller = wrapper.vm.$refs.reactionScroll;
+    Object.defineProperty(wrapper.vm.$refs.reactionRow, 'clientWidth', { value: 300 });
+    Object.defineProperty(scroller, 'clientWidth', { value: 236 });
+    Object.defineProperty(scroller, 'scrollWidth', { value: 396 });
+    wrapper.vm.updateScrollState();
+    await wrapper.vm.$nextTick();
+    await wrapper.vm.$nextTick();
+    expect(wrapper.findAll('.scroll-button')).to.have.lengthOf(2);
+    expect(wrapper.get('[aria-label="roomEmoji.scrollPrevious"]').element.disabled).to.equal(true);
+    expect(wrapper.get('[aria-label="roomEmoji.scrollNext"]').element.disabled).to.equal(false);
+    await wrapper.get('[aria-label="roomEmoji.scrollNext"]').trigger('click');
+    expect(scroller.scrollLeft).to.be.greaterThan(0);
+    expect(wrapper.get('[aria-label="roomEmoji.scrollPrevious"]').element.disabled).to.equal(false);
+    expect(wrapper.get('[aria-label="roomEmoji.scrollNext"]').element.disabled).to.equal(true);
+    wrapper.unmount();
+  });
+
+  it('列だけの幅変更でも再計算し、高さだけの変更は無視して終了時に監視を解除する', async () => {
+    let callback;
+    const observe = vi.fn();
+    const disconnect = vi.fn();
+    vi.stubGlobal('ResizeObserver', class {
+      constructor(fn) { callback = fn; }
+      observe = observe;
+      disconnect = disconnect;
+    });
+    const host = document.createElement('div');
+    host.style.overflowX = 'hidden';
+    document.body.appendChild(host);
+    let width = 800;
+    host.getBoundingClientRect = () => ({ left: 0, right: width, width });
+    const wrapper = createWrapper({ attachTo: host });
+    try {
+      await wrapper.vm.$nextTick();
+      expect(observe.mock.calls.some(([element]) => element === host)).to.equal(true);
+      const fit = vi.spyOn(wrapper.vm, 'fitPickerToViewport');
+      for (const nextWidth of [300, 800]) {
+        width = nextWidth;
+        callback([{ target: host, contentRect: { width, height: 500 } }]);
+        await wrapper.vm.$nextTick();
+        expect(wrapper.vm.pickerMaxWidth).to.equal(width - 40);
+      }
+      expect(fit).toHaveBeenCalledTimes(2);
+      callback([{ target: host, contentRect: { width, height: 600 } }]);
+      expect(fit).toHaveBeenCalledTimes(2);
+    } finally {
+      wrapper.unmount();
+      host.remove();
+      vi.unstubAllGlobals();
+    }
+    expect(disconnect).toHaveBeenCalledTimes(1);
+  });
+
+  it('左右の画面端からはみ出した候補枠を内側へ補正する', async () => {
+    const wrapper = createWrapper();
+    await wrapper.vm.$nextTick();
+    wrapper.vm.pickerShift = 0;
+    const picker = wrapper.vm.$refs.picker;
+    picker.getBoundingClientRect = () => ({ left: -120, width: 320 });
+    await wrapper.vm.fitPickerToViewport();
+    expect(wrapper.vm.pickerShift).to.equal(136);
+    expect(wrapper.vm.pickerMaxWidth).to.equal(window.innerWidth - 40);
+    wrapper.vm.pickerShift = 0;
+    picker.getBoundingClientRect = () => ({ left: window.innerWidth - 100, width: 320 });
+    await wrapper.vm.fitPickerToViewport();
+    expect(wrapper.vm.pickerShift).to.equal(-244);
+    wrapper.unmount();
+  });
+
   const originalAddReaction = chatApi.addReaction;
 
   afterEach(() => {

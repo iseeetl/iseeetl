@@ -125,7 +125,7 @@ describe('投稿の表示と操作', () => {
           room: 'room-1',
           audio_name: 'post.m4a',
           audio_title: '投稿音声',
-          audio_description: '投稿の録音',
+          audio_description: '',
         },
       },
     });
@@ -136,7 +136,7 @@ describe('投稿の表示と操作', () => {
       src: '/media/floor-1/room-1/post.m4a',
       fileName: 'post.m4a',
       audioTitle: '投稿音声',
-      description: '投稿の録音',
+      description: '',
       preload: 'metadata',
       downloadTestId: 'timeline-post-audio-download-button-post-1',
     });

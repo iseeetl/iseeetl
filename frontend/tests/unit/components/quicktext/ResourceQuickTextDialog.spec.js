@@ -472,7 +472,7 @@ describe('フロア・ルームの単語管理ダイアログ', () => {
 
     await wrapper.vm.saveForm();
 
-    expect(calls).to.deep.equal([['token', expectedPayload]]);
+    expect(calls).to.deep.equal([['token', {...expectedPayload, ...(kind === 'group' ? {is_emoji:false} : {emoji:''})}]]);
     expect(loadCalls).to.equal(1);
     expect(wrapper.vm.editorVisible).to.equal(false);
     expect(wrapper.vm.formValue).to.equal('');

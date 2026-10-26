@@ -24,7 +24,7 @@
           tone="primary"
           icon-only
           :aria-label="$t('連続投稿')"
-          :disabled="sending || recording || transcribing"
+          :disabled="submissionDisabled"
           type="button"
           @click.stop="submit(true, 'top')"
         >
@@ -37,7 +37,7 @@
             tone="primary"
             icon-only
             :aria-label="isAnimationPost ? $t('流す') : $t('投稿')"
-            :disabled="sending || recording || transcribing"
+            :disabled="submissionDisabled"
             data-testid="dialog-edit-post-submit"
             type="submit"
           >
@@ -81,26 +81,62 @@
               @deviceReady="handleDeviceReady"
               @deviceError="handleDeviceError"
             />
-            <UiTooltip
-              v-if="showMediaInput"
-              :text="transcribing ? $t('テキスト化中') : recording ? $t('録音停止') : $t('録音開始')"
-            >
-              <UiButton
-                class="record-button"
-                :class="{ 'guest-locked': isGuest }"
-                appearance="text"
-                :tone="recording ? 'danger' : 'primary'"
-                icon-only
-                :aria-disabled="isGuest ? 'true' : 'false'"
-                :aria-label="transcribing ? $t('テキスト化中') : recording ? $t('録音停止') : $t('録音開始')"
-                :disabled="sending || transcribing"
-                @click="toggleRecording"
-              >
-                <UiIcon :name="recording ? 'stop' : 'mic'" />
-              </UiButton>
-            </UiTooltip>
+            <MobileComposerTools v-if="showMediaInput" class="composer-comment-tools"
+              :sending="sending" :recording="recording" :transcribing="transcribing" :locked="isGuest"
+              @choose="chooseComposerMedia" @record="toggleRecording" />
           </template>
         </UiField>
+        <div v-if="showMediaInput" class="composer-attachment-preview">
+          <media-input
+              ref="composerMedia"
+              hideChoices
+              class="composer-body-media"
+              id-prefix="timeline-post-media"
+              :locked="isGuest"
+              @guest-attempt="onGuestMediaAttempt"
+              :image-data="imageData"
+              :image-caption="imageCaption"
+              :video-description="videoDescription"
+              :video-description-error="v$.videoDescription.maxLength.$invalid"
+              @video-description-change="(val) => (videoDescription = val)"
+              :image-caption-error="v$.imageCaption.maxLength.$invalid"
+              :video-data="videoData"
+              :video-name="videoName"
+              :video-size="videoSize"
+              :video-duration="videoDuration"
+              :max-video-size="maxVideoSize"
+              :max-video-duration="maxVideoDuration"
+              :video-subtitle-data="videoSubtitleData"
+              :video-subtitle-original-name="videoSubtitleOriginalName"
+              :video-subtitle-error="videoSubtitleFileSizeError"
+              :audio-data="audioData"
+              :audio-name="audioName"
+              :audio-title="audioTitle"
+              :audio-title-error="v$.audioTitle.maxLength.$invalid"
+              :audio-description="audioDescription"
+              :audio-description-error="v$.audioDescription.maxLength.$invalid"
+              :audio-size="audioSize"
+              :audio-duration="audioDuration"
+              :max-audio-size="maxAudioSize"
+              :max-audio-duration="maxAudioDuration"
+              :current-locale="$i18n.locale"
+              :allowed-image-types="allowedImageTypes"
+              :allowed-video-types="allowedVideoTypes"
+              :allowed-audio-types="allowedAudioTypes"
+              :sending="sending"
+              :recording="recording"
+              @image-change="handleImageChange"
+              @video-change="handleVideoChange"
+              @audio-change="handleAudioChange"
+              @remove-media="handleRemoveMedia"
+              @video-subtitle-change="handleVideoSubtitleChange"
+              @image-caption-change="(val) => (imageCaption = val)"
+              @audio-title-change="(val) => (audioTitle = val)"
+              @audio-description-change="(val) => (audioDescription = val)"
+              @video-duration-change="videoDuration = $event"
+              @audio-duration-change="audioDuration = $event"
+            />
+        </div>
       </div>
       <div class="edit-input-field">
         <fieldset :class="['acc-fieldset', { 'is-collapsed': !isAccordionOpen('reaction') }]">
@@ -109,7 +145,7 @@
               class="acc-legend-toggle"
               density="dense"
               icon-only
-              :aria-label="$t('リアクション') + ' ' + (isAccordionOpen('reaction') ? $t('閉じる') : $t('開く'))"
+              :aria-label="$t('絵文字') + ' ' + (isAccordionOpen('reaction') ? $t('閉じる') : $t('開く'))"
               :aria-expanded="isAccordionOpen('reaction') ? 'true' : 'false'"
               :aria-controls="accIds.reaction"
               :disabled="sending || recording"
@@ -127,7 +163,7 @@
               data-testid="dialog-edit-post-reaction-title-toggle"
               @click="toggleAccordion('reaction')"
             >
-              {{ $t('リアクション') }}
+              {{ $t('絵文字') }}
             </button>
           </legend>
 
@@ -138,7 +174,7 @@
                 :key="reaction.type"
                 density="dense"
                 icon-only
-                :aria-label="$t('リアクション追加') + ': ' + $t(reaction.type)"
+                :aria-label="$t('絵文字') + ': ' + (reaction.label || $t(reaction.type))"
                 :disabled="sending || recording"
                 @click="insertReaction(reaction.emoji)"
               >
@@ -258,96 +294,27 @@
           </div>
         </fieldset>
       </div>
-      <div class="edit-input-field" v-if="showMediaInput">
-        <fieldset :class="['acc-fieldset', { 'is-collapsed': !isAccordionOpen('media') }]">
-          <legend class="acc-legend">
-            <UiButton
-              class="acc-legend-toggle"
-              density="dense"
-              icon-only
-              :aria-label="$t('メディア') + ' ' + (isAccordionOpen('media') ? $t('閉じる') : $t('開く'))"
-              :aria-expanded="isAccordionOpen('media') ? 'true' : 'false'"
-              :aria-controls="accIds.media"
-              :disabled="sending || recording"
-              data-testid="dialog-edit-post-media-toggle"
-              :title="isAccordionOpen('media') ? $t('閉じる') : $t('開く')"
-              @click.stop="toggleAccordion('media')"
-            >
-              <UiIcon :name="isAccordionOpen('media') ? 'expand_less' : 'expand_more'" />
-            </UiButton>
-            <button
-              type="button"
-              class="acc-legend-title acc-legend-title-button"
-              :aria-expanded="isAccordionOpen('media') ? 'true' : 'false'"
-              :aria-controls="accIds.media"
-              :disabled="sending || recording"
-              data-testid="dialog-edit-post-media-title-toggle"
-              @click="toggleAccordion('media')"
-            >
-              {{ $t('メディア') }}
-            </button>
-          </legend>
 
-          <div class="acc-panel" :id="accIds.media" v-show="isAccordionOpen('media')">
-            <media-input
-              id-prefix="timeline-post-media"
-              :locked="isGuest"
-              @guest-attempt="onGuestMediaAttempt"
-              :image-data="imageData"
-              :image-caption="imageCaption"
-              :image-caption-error="v$.imageCaption.maxLength.$invalid"
-              :video-data="videoData"
-              :video-name="videoName"
-              :video-size="videoSize"
-              :video-duration="videoDuration"
-              :max-video-size="maxVideoSize"
-              :max-video-duration="maxVideoDuration"
-              :video-subtitle-data="videoSubtitleData"
-              :video-subtitle-original-name="videoSubtitleOriginalName"
-              :video-subtitle-error="videoSubtitleFileSizeError"
-              :audio-data="audioData"
-              :audio-name="audioName"
-              :audio-title="audioTitle"
-              :audio-title-error="v$.audioTitle.maxLength.$invalid"
-              :audio-description="audioDescription"
-              :audio-description-error="v$.audioDescription.maxLength.$invalid"
-              :audio-size="audioSize"
-              :audio-duration="audioDuration"
-              :max-audio-size="maxAudioSize"
-              :max-audio-duration="maxAudioDuration"
-              :current-locale="$i18n.locale"
-              :allowed-image-types="allowedImageTypes"
-              :allowed-video-types="allowedVideoTypes"
-              :allowed-audio-types="allowedAudioTypes"
-              :sending="sending"
-              :recording="recording"
-              @image-change="handleImageChange"
-              @video-change="handleVideoChange"
-              @audio-change="handleAudioChange"
-              @remove-media="handleRemoveMedia"
-              @video-subtitle-change="handleVideoSubtitleChange"
-              @image-caption-change="(val) => (imageCaption = val)"
-              @audio-title-change="(val) => (audioTitle = val)"
-              @audio-description-change="(val) => (audioDescription = val)"
-              @video-duration-change="videoDuration = $event"
-              @audio-duration-change="audioDuration = $event"
-            />
-          </div>
-        </fieldset>
-      </div>
+      <template #input-actions>
+        <MobileComposerTools v-if="showMediaInput"
+          :sending="sending" :recording="recording" :transcribing="transcribing" :locked="isGuest"
+          @choose="chooseComposerMedia" @record="toggleRecording" />
+      </template>
+
       <template #actions="{ position }">
         <UiTooltip v-if="!isAnimationPost" :text="$t('ショートカットキー Ctrl + Shift + Enter')">
           <UiButton
 
+            class="composer-continuous"
             appearance="filled"
             tone="primary"
             type="button"
-            :disabled="sending || recording || transcribing"
+            :disabled="submissionDisabled"
             :aria-label="`${$t('連続投稿')} ${$t('ショートカットキー Ctrl + Shift + Enter')}`"
             @click.stop="submit(true, position)"
           >
             <UiIcon name="outbox_alt" family="symbols" />
-            {{ $t('連続投稿') }}
+            <span class="composer-submit-label">{{ $t('連続投稿') }}</span>
           </UiButton>
         </UiTooltip>
         <form class="desktop-submit-form" @submit.prevent="submit(false, position)">
@@ -363,13 +330,13 @@
               "
               data-testid="dialog-edit-post-submit"
               type="submit"
-              :disabled="sending || recording || transcribing"
+              :disabled="submissionDisabled"
             >
               <UiIcon name="send" />
-              <span v-if="isAnimationPost">
+              <span v-if="isAnimationPost" class="composer-submit-label">
                 {{ $t('流す') }}
               </span>
-              <span v-else>
+              <span v-else class="composer-submit-label">
                 {{ $t('投稿') }}
               </span>
             </UiButton>
@@ -400,10 +367,12 @@
       @confirm="onLoginConfirmOk"
     >
     </LoginRequiredDialog>
+    <CameraCaptureDialog :open="cameraVisible" @close="cameraVisible = false" @capture="onCameraCapture" />
   </div>
 </template>
 
 <script>
+import { SUPPLEMENT_CONTENT_LIMIT } from '@/features/timeline/supplementLength';
 import { editorSubmissionMixin } from '@/features/analytics/editorSubmission.js';
 import { useId } from 'vue';
 import { initialPostTags } from '@/features/timeline/postDefaults';
@@ -447,6 +416,8 @@ import TagSelector from '@/components/timeline/inputs/TagSelector.vue';
 import WaveformRecord from '@/components/timeline/inputs/WaveformRecord.vue';
 import { showSnackbar } from '@/utils/snackbar';
 import { handleAuthError as handleAuthErrorUtil } from '@/utils/authError';
+import CameraCaptureDialog from '@/components/timeline/inputs/CameraCaptureDialog.vue';
+import MobileComposerTools from '@/components/timeline/inputs/MobileComposerTools.vue';
 import UiButton from '@/components/ui/UiButton.vue';
 import UiField from '@/components/ui/UiField.vue';
 import UiIcon from '@/components/ui/UiIcon.vue';
@@ -468,6 +439,8 @@ export default {
     };
   },
   components: {
+    MobileComposerTools,
+    CameraCaptureDialog,
     ConfirmDialog,
     MediaInput,
     TagSelector,
@@ -499,14 +472,15 @@ export default {
     content: {
       maxLength: maxLength(400),
     },
+    videoDescription: { maxLength: maxLength(SUPPLEMENT_CONTENT_LIMIT) },
     imageCaption: {
-      maxLength: maxLength(200),
+      maxLength: maxLength(SUPPLEMENT_CONTENT_LIMIT),
     },
     audioTitle: {
       maxLength: maxLength(200),
     },
     audioDescription: {
-      maxLength: maxLength(200),
+      maxLength: maxLength(SUPPLEMENT_CONTENT_LIMIT),
     },
   },
   watch: {
@@ -515,6 +489,11 @@ export default {
     },
   },
   computed: {
+    submissionDisabled() {
+      const hasContent = !!(String(this.content || '').trim() || this.imageFile || this.imageName || this.videoFile || this.videoName || this.audioFile || this.audioName);
+      const invalidMedia = (this.videoFile && (this.videoSize > this.maxVideoSize || this.videoDuration > this.maxVideoDuration)) || (this.audioFile && (this.audioSize > this.maxAudioSize || this.audioDuration > this.maxAudioDuration));
+      return !!(this.sending || this.recording || this.transcribing || !hasContent || this.v$?.$invalid || invalidMedia);
+    },
     allowedImageTypes() {
       return ALLOWED_IMAGE_TYPES.join(',');
     },
@@ -537,7 +516,7 @@ export default {
       return MAX_VIDEO_DURATION_IN_SECONDS;
     },
     reactionTypes() {
-      return REACTION_TYPES;
+      return this.$store.getters.roomEmojiChoices || REACTION_TYPES;
     },
     previousTagSelectorTags() {
       if (this.propsPost) return this.$store.getters.tagList || [];
@@ -562,7 +541,7 @@ export default {
       return (this.$i18n && this.$i18n.locale) || 'ja';
     },
     sortedQuickTextGroups() {
-      const arr = Array.isArray(this.roomQuickTextGroups) ? [...this.roomQuickTextGroups] : [];
+      const arr = Array.isArray(this.roomQuickTextGroups) ? this.roomQuickTextGroups.filter(g => !g.is_emoji) : [];
       return arr.sort((a, b) => (a.order || 0) - (b.order || 0));
     },
     hasQuickTextGroups() {
@@ -597,6 +576,7 @@ export default {
       audioDuration: null,
 
       imageCaption: null,
+      videoDescription: null,
       videoSubtitleOriginalName: null, // 表示用の元ファイル名
       videoSubtitleName: null,
       videoSubtitleFile: null,
@@ -619,12 +599,25 @@ export default {
       accordion: { tags: true, media: true, reaction: true },
       quickTextExpanded: Object.create(null), // グループIDごとの開閉状態（trueで開く）
 
+      cameraVisible: false,
       sending: false,
       progressAmount: 0,
       continuousPosting: false,
     };
   },
   methods: {
+    onCameraCapture({ file, kind }) {
+      this.cameraVisible = false;
+      if (kind === 'image') this.handleImageChange(file);
+      else this.handleVideoChange(file);
+    },
+    chooseComposerMedia(kind) {
+      if (this.sending || this.recording || this.transcribing) return;
+      if (kind === 'camera') {
+        if (this.isGuest) { this.onGuestMediaAttempt(); return; }
+        this.cameraVisible = true;
+      } else this.$refs.composerMedia?.chooseSourceFile(kind === 'library');
+    },
     openAndFocus() {
       this.visible = true;
     },
@@ -648,6 +641,7 @@ export default {
         this.audioName = this.propsPost.audio_name;
 
         this.imageCaption = this.propsPost.image_caption;
+        this.videoDescription = this.propsPost.video_description ?? null;
         this.videoSubtitleOriginalName = this.propsPost.video_subtitle_originalname;
         this.videoSubtitleName = this.propsPost.video_subtitle_name;
         this.audioTitle = this.propsPost.audio_title;
@@ -680,7 +674,7 @@ export default {
     },
 
     handleEditorShortcut(keyboardEvent) {
-      if (this.sending || this.recording || this.transcribing) return;
+      if (this.cameraVisible || this.sending || this.recording || this.transcribing) return;
 
       const isEnter = keyboardEvent.key === 'Enter' || keyboardEvent.keyCode === 13;
       const isCtrlOrCmd = keyboardEvent.ctrlKey || keyboardEvent.metaKey;
@@ -743,9 +737,6 @@ export default {
         blob,
         duration,
         revokeExistingAudioData: true,
-        onTranscribe: this.$store.getters.openaiTranscriptionAvailable
-          ? (file) => this.transcribeAudio(file)
-          : undefined,
       });
     },
 
@@ -956,6 +947,7 @@ export default {
         audio_name: this.audioName,
 
         image_caption: this.imageCaption,
+        video_description: this.videoDescription,
         video_subtitle_originalname: this.videoSubtitleOriginalName,
         video_subtitle_name: this.videoSubtitleName,
         audio_title: this.audioTitle,
@@ -1197,6 +1189,7 @@ export default {
         this.imageName = null;
         this.imageThumbnailName = null;
         this.imageCaption = null;
+      this.videoDescription = null;
       } else if (type === 'video') {
         if (typeof this.videoData === 'string' && this.videoData.startsWith('blob:')) {
           window.URL.revokeObjectURL(this.videoData);
@@ -1304,6 +1297,7 @@ export default {
       this.imageName = null;
       this.imageThumbnailName = null;
       this.imageCaption = null;
+      this.videoDescription = null;
 
       if (typeof this.videoData === 'string' && this.videoData.startsWith('blob:')) {
         window.URL.revokeObjectURL(this.videoData);
@@ -1348,6 +1342,7 @@ export default {
       this.removeMedia();
 
       this.imageCaption = null;
+      this.videoDescription = null;
       this.videoSubtitleOriginalName = null;
       this.videoSubtitleName = null;
       this.videoSubtitleFile = null;
@@ -1458,6 +1453,10 @@ export default {
 </script>
 
 <style scoped>
+.composer-comment-tools { position: absolute; bottom: 4px; inset-inline-end: 4px; z-index: 3; }
+.timeline-comment-field :deep(textarea) { padding-bottom: 52px; }
+.composer-attachment-preview { margin-top: 4px; }
+
 /* ゲストへの案内を表示できるよう、無効な見た目でもクリックを受け付ける。 */
 .record-button.guest-locked {
   opacity: 0.5;
