@@ -41,6 +41,8 @@ const bodyLangRequired = () =>
     .customSanitizer((v) => (typeof v === 'string' ? v.trim().toLowerCase() : v))
     .custom(langCheck);
 
+const bodyEmojiGroup = () => body('is_emoji').optional().custom(v => typeof v === 'boolean');
+const bodyEmoji = () => body('emoji').optional().isString().isLength({max:32}).custom(v => typeof v === 'string' && v.length <= 32 && (!v || /^[\p{Extended_Pictographic}\p{Regional_Indicator}\p{Emoji_Modifier}\u200d\ufe0f\u20e3#*0-9]+$/u.test(v)));
 const bodyOrderOptional = () => body('order').optional().isInt({ min: 1, max: 100 });
 const bodyTitleOptional = () => body('title').optional().isString().trim().isLength({ min: 1, max: 200 });
 const bodyLabelOptional = () => body('label').optional().isString().trim().isLength({ min: 1, max: 200 });
@@ -85,28 +87,30 @@ const master = {
 const floor = {
   group: {
     list: [paramFloorId(), queryLangOptional(), finalize],
-    create: [paramFloorId(), bodyTitleRequired(), bodyLangRequired(), finalize],
+    create: [paramFloorId(), bodyTitleRequired(), bodyLangRequired(), bodyEmojiGroup(), finalize],
     update: [
       paramFloorId(),
       paramId(),
       bodyOrderOptional(),
       bodyTitleOptional(),
+      bodyEmojiGroup(),
       bodyLangOptional(),
-      requireAtLeastOneOf(['order', 'title', 'lang']),
+      requireAtLeastOneOf(['order', 'title', 'lang', 'is_emoji']),
       finalize,
     ],
     remove: [paramFloorId(), paramId(), finalize],
   },
   item: {
     list: [paramFloorId(), paramGroupId(), queryLangOptional(), finalize],
-    create: [paramFloorId(), paramGroupId(), bodyLabelRequired(), bodyLangRequired(), finalize],
+    create: [paramFloorId(), paramGroupId(), bodyLabelRequired(), bodyLangRequired(), bodyEmoji(), finalize],
     update: [
       paramFloorId(),
       paramId(),
       bodyOrderOptional(),
       bodyLabelOptional(),
+      bodyEmoji(),
       bodyLangOptional(),
-      requireAtLeastOneOf(['order', 'label', 'lang']),
+      requireAtLeastOneOf(['order', 'label', 'lang', 'emoji']),
       finalize,
     ],
     remove: [paramFloorId(), paramId(), finalize],
@@ -117,28 +121,30 @@ const floor = {
 const room = {
   group: {
     list: [paramRoomId(), queryLangOptional(), finalize],
-    create: [paramRoomId(), bodyTitleRequired(), bodyLangRequired(), finalize],
+    create: [paramRoomId(), bodyTitleRequired(), bodyLangRequired(), bodyEmojiGroup(), finalize],
     update: [
       paramRoomId(),
       paramId(),
       bodyOrderOptional(),
       bodyTitleOptional(),
+      bodyEmojiGroup(),
       bodyLangOptional(),
-      requireAtLeastOneOf(['order', 'title', 'lang']),
+      requireAtLeastOneOf(['order', 'title', 'lang', 'is_emoji']),
       finalize,
     ],
     remove: [paramRoomId(), paramId(), finalize],
   },
   item: {
     list: [paramRoomId(), paramGroupId(), queryLangOptional(), finalize],
-    create: [paramRoomId(), paramGroupId(), bodyLabelRequired(), bodyLangRequired(), finalize],
+    create: [paramRoomId(), paramGroupId(), bodyLabelRequired(), bodyLangRequired(), bodyEmoji(), finalize],
     update: [
       paramRoomId(),
       paramId(),
       bodyOrderOptional(),
       bodyLabelOptional(),
+      bodyEmoji(),
       bodyLangOptional(),
-      requireAtLeastOneOf(['order', 'label', 'lang']),
+      requireAtLeastOneOf(['order', 'label', 'lang', 'emoji']),
       finalize,
     ],
     remove: [paramRoomId(), paramId(), finalize],

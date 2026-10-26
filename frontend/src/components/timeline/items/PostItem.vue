@@ -74,7 +74,7 @@
           <button
             :data-testid="'timeline-post-gallery-image-button-' + post._id"
             @click.stop="showGalleryDialog(post, $event)"
-            :aria-label="$t('画像を拡大表示')"
+            :aria-label="$t('画像を拡大表示')" :aria-describedby="`${idPrefix}-image-alt-${post._id}`"
           >
             <img
               :alt="post.image_caption ? post.image_caption : $t('投稿された画像')"
@@ -83,11 +83,11 @@
           </button>
         </div>
         <div class="audio" v-if="post.audio_name">
-          <TimelineAudioPlayer
+          <TimelineAudioPlayer :description-id="`${idPrefix}-audio-alt-${post._id}`"
             :src="'/media/' + post.floor + '/' + post.room + '/' + post.audio_name"
             :file-name="post.audio_name"
             :audio-title="post.audio_title || ''"
-            :description="post.audio_description || ''"
+            :description="''"
             preload="metadata"
             :download-test-id="'timeline-post-audio-download-button-' + post._id"
           />
@@ -95,7 +95,7 @@
         <div class="video" v-if="post.video_name !== null" :class="videoThumbClass(post)">
           <button
             :data-testid="'timeline-post-gallery-video-button-' + post._id"
-            :aria-label="$t('動画を再生する')"
+            :aria-label="$t('動画を再生する')" :aria-describedby="`${idPrefix}-video-alt-${post._id}`"
             @click.stop="showGalleryDialog(post, $event)"
           >
             <img
@@ -108,6 +108,11 @@
             <UiIcon class="play-icon" name="play_arrow" :size="48" />
           </button>
         </div>
+        <template v-for="kind in ['image', 'video', 'audio']" :key="kind">
+          <TimelineAlternativeText v-if="post[`${kind}_name`]" :item="post" :kind="kind"
+            :description-id="`${idPrefix}-${kind}-alt-${post._id}`" :post-id="post._id" :read-only="readOnly" />
+        </template>
+
         <div v-if="post.reactions">
           <ReactionItem v-if="!readOnly"
             :postId="post._id"
@@ -138,7 +143,7 @@
 
           <div class="reaction-container">
             <div class="reaction-picker-wrapper" v-if="reactionPickerVisible">
-              <ReactionPicker
+              <ReactionPicker :target-label="$t('roomEmoji.postTarget')"
                 ref="reactionPicker"
                 :pickerId="reactionPickerId"
                 :reactionPickerVisible="reactionPickerVisible"
@@ -311,6 +316,7 @@ import { formatLocaleNumber } from '@/utils/numberFormat';
 import SupplementItem from '@/components/timeline/items/SupplementItem.vue';
 import ReactionItem from '@/components/timeline/items/ReactionItem.vue';
 import ReactionPicker from '@/components/timeline/inputs/ReactionPicker.vue';
+import TimelineAlternativeText from '@/components/timeline/TimelineAlternativeText.vue';
 import TimelineAudioPlayer from '@/components/timeline/TimelineAudioPlayer.vue';
 import TimelineText from '@/components/timeline/TimelineText.vue';
 import UiAvatar from '@/components/ui/UiAvatar.vue';
@@ -338,6 +344,7 @@ export default {
     SupplementItem,
     ReactionItem,
     ReactionPicker,
+    TimelineAlternativeText,
     TimelineAudioPlayer,
     TimelineText,
     UiAvatar,

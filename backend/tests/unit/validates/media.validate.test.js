@@ -55,3 +55,13 @@ describe('メディアの入力検証', () => {
     expect(result.isEmpty()).toBe(true);
   });
 });
+
+for (const name of ['validateImageCaption', 'validateAudioDescription']) {
+  test(`${name}: 2000 UTF-16 units accepted, 2001 rejected`, async () => {
+    const validate = require('../../../validates/media.validate')[name];
+    for (const [value, valid] of [['あ'.repeat(2000), true], ['a'.repeat(2001), false], ['😀'.repeat(1000), true], ['😀'.repeat(1000)+'a', false]]) {
+      const result = await runValidators(validate('text'), buildReq({body:{text:value}}));
+      expect(result.isEmpty()).toBe(valid);
+    }
+  });
+}

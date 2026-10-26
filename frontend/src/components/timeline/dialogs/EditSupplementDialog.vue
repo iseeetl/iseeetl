@@ -21,7 +21,7 @@
           tone="primary"
           icon-only
           :aria-label="$t('決定')"
-          :disabled="sending || recording || transcribing"
+          :disabled="submissionDisabled"
           @click.stop="submitSupplement('top')"
         >
           <UiIcon name="done" />
@@ -83,24 +83,60 @@
               @deviceError="handleDeviceError"
             />
 
-            <UiTooltip
-              v-if="$store.getters.userIsLogin"
-              :text="transcribing ? $t('テキスト化中') : recording ? $t('録音停止') : $t('録音開始')"
-            >
-              <UiButton
-                class="record-button"
-                appearance="text"
-                :tone="recording ? 'danger' : 'primary'"
-                icon-only
-                :aria-label="transcribing ? $t('テキスト化中') : recording ? $t('録音停止') : $t('録音開始')"
-                :disabled="sending || transcribing"
-                @click="toggleRecording"
-              >
-                <UiIcon :name="recording ? 'stop' : 'mic'" />
-              </UiButton>
-            </UiTooltip>
+            <MobileComposerTools v-if="$store.getters.userIsLogin" class="composer-comment-tools"
+              :sending="sending" :recording="recording" :transcribing="transcribing"
+              @choose="chooseComposerMedia" @record="toggleRecording" />
           </template>
         </UiField>
+        <div v-if="$store.getters.userIsLogin" class="composer-attachment-preview">
+          <media-input
+              ref="composerMedia"
+              hideChoices
+              class="composer-body-media"
+              id-prefix="timeline-supplement-media"
+              :image-data="imageData"
+              :image-caption="imageCaption"
+              :video-description="videoDescription"
+              :video-description-error="v$.videoDescription.maxLength.$invalid"
+              @video-description-change="(val) => (videoDescription = val)"
+              :image-caption-error="v$.imageCaption.maxLength.$invalid"
+              :video-data="videoData"
+              :video-name="videoName"
+              :video-size="videoSize"
+              :video-duration="videoDuration"
+              :max-video-size="maxVideoSize"
+              :max-video-duration="maxVideoDuration"
+              :video-subtitle-data="videoSubtitleData"
+              :video-subtitle-original-name="videoSubtitleOriginalName"
+              :video-subtitle-error="videoSubtitleFileSizeError"
+              :audio-data="audioData"
+              :audio-name="audioName"
+              :audio-title="audioTitle"
+              :audio-title-error="v$.audioTitle.maxLength.$invalid"
+              :audio-description="audioDescription"
+              :audio-description-error="v$.audioDescription.maxLength.$invalid"
+              :audio-size="audioSize"
+              :audio-duration="audioDuration"
+              :max-audio-size="maxAudioSize"
+              :max-audio-duration="maxAudioDuration"
+              :current-locale="$i18n.locale"
+              :allowed-image-types="allowedImageTypes"
+              :allowed-video-types="allowedVideoTypes"
+              :allowed-audio-types="allowedAudioTypes"
+              :sending="sending"
+              :recording="recording"
+              @image-change="handleImageChange"
+              @video-change="handleVideoChange"
+              @audio-change="handleAudioChange"
+              @remove-media="handleRemoveMedia"
+              @video-subtitle-change="handleVideoSubtitleChange"
+              @image-caption-change="(val) => (imageCaption = val)"
+              @audio-title-change="(val) => (audioTitle = val)"
+              @audio-description-change="(val) => (audioDescription = val)"
+              @video-duration-change="videoDuration = $event"
+              @audio-duration-change="audioDuration = $event"
+            />
+        </div>
       </div>
       <div class="edit-input-field" v-if="hasQuickTextGroups">
         <div class="quicktext-accordion">
@@ -152,85 +188,19 @@
           </fieldset>
         </div>
       </div>
-      <div class="edit-input-field" v-if="$store.getters.userIsLogin">
-        <fieldset :class="['acc-fieldset', { 'is-collapsed': !isAccordionOpen('media') }]">
-          <legend class="acc-legend">
-            <UiButton
-              class="acc-legend-toggle"
-              density="dense"
-              icon-only
-              :aria-label="$t('メディア') + ' ' + (isAccordionOpen('media') ? $t('閉じる') : $t('開く'))"
-              :aria-expanded="isAccordionOpen('media') ? 'true' : 'false'"
-              :aria-controls="accIds.media"
-              :disabled="sending || recording"
-              :title="isAccordionOpen('media') ? $t('閉じる') : $t('開く')"
-              @click.stop="toggleAccordion('media')"
-            >
-              <UiIcon :name="isAccordionOpen('media') ? 'expand_less' : 'expand_more'" />
-            </UiButton>
-            <button
-              type="button"
-              class="acc-legend-title acc-legend-title-button"
-              :aria-expanded="isAccordionOpen('media') ? 'true' : 'false'"
-              :aria-controls="accIds.media"
-              :disabled="sending || recording"
-              data-testid="dialog-edit-supplement-media-title-toggle"
-              @click="toggleAccordion('media')"
-            >
-              {{ $t('メディア') }}
-            </button>
-          </legend>
-          <div class="acc-panel" :id="accIds.media" v-show="isAccordionOpen('media')">
-            <media-input
-              id-prefix="timeline-supplement-media"
-              :image-data="imageData"
-              :image-caption="imageCaption"
-              :image-caption-error="v$.imageCaption.maxLength.$invalid"
-              :video-data="videoData"
-              :video-name="videoName"
-              :video-size="videoSize"
-              :video-duration="videoDuration"
-              :max-video-size="maxVideoSize"
-              :max-video-duration="maxVideoDuration"
-              :video-subtitle-data="videoSubtitleData"
-              :video-subtitle-original-name="videoSubtitleOriginalName"
-              :video-subtitle-error="videoSubtitleFileSizeError"
-              :audio-data="audioData"
-              :audio-name="audioName"
-              :audio-title="audioTitle"
-              :audio-title-error="v$.audioTitle.maxLength.$invalid"
-              :audio-description="audioDescription"
-              :audio-description-error="v$.audioDescription.maxLength.$invalid"
-              :audio-size="audioSize"
-              :audio-duration="audioDuration"
-              :max-audio-size="maxAudioSize"
-              :max-audio-duration="maxAudioDuration"
-              :current-locale="$i18n.locale"
-              :allowed-image-types="allowedImageTypes"
-              :allowed-video-types="allowedVideoTypes"
-              :allowed-audio-types="allowedAudioTypes"
-              :sending="sending"
-              :recording="recording"
-              @image-change="handleImageChange"
-              @video-change="handleVideoChange"
-              @audio-change="handleAudioChange"
-              @remove-media="handleRemoveMedia"
-              @video-subtitle-change="handleVideoSubtitleChange"
-              @image-caption-change="(val) => (imageCaption = val)"
-              @audio-title-change="(val) => (audioTitle = val)"
-              @audio-description-change="(val) => (audioDescription = val)"
-              @video-duration-change="videoDuration = $event"
-              @audio-duration-change="audioDuration = $event"
-            />
-          </div>
-        </fieldset>
-      </div>
+
+      <template #input-actions>
+        <MobileComposerTools v-if="$store.getters.userIsLogin"
+          :sending="sending" :recording="recording" :transcribing="transcribing"
+          @choose="chooseComposerMedia" @record="toggleRecording" />
+      </template>
+
       <template #actions="{ position }">
         <UiButton
 
           appearance="filled"
           tone="primary"
-          :disabled="sending || recording || transcribing"
+          :disabled="submissionDisabled"
           data-testid="dialog-edit-supplement-submit"
           @click.stop="submitSupplement(position)"
         >
@@ -252,12 +222,13 @@
       @cancel="onPressCancelConfirmButton"
       @close="closedConfirm"
     />
+    <CameraCaptureDialog :open="cameraVisible" @close="cameraVisible = false" @capture="onCameraCapture" />
   </div>
 </template>
 
 <script>
 import { editorSubmissionMixin } from '@/features/analytics/editorSubmission.js';
-import { supplementContentLimit } from '@/features/timeline/supplementLength';
+import { supplementContentLimit, SUPPLEMENT_CONTENT_LIMIT } from '@/features/timeline/supplementLength';
 import { isValidSupplementTitle, supplementTitleLanguage } from '@/features/timeline/supplementTitle';
 import { useId } from 'vue';
 import chatApi from '@/api/chat';
@@ -297,10 +268,11 @@ import TimelineEditorDialog from '@/components/timeline/dialogs/TimelineEditorDi
 import WaveformRecord from '@/components/timeline/inputs/WaveformRecord.vue';
 import { showSnackbar } from '@/utils/snackbar';
 import { handleAuthError as handleAuthErrorUtil } from '@/utils/authError';
+import CameraCaptureDialog from '@/components/timeline/inputs/CameraCaptureDialog.vue';
+import MobileComposerTools from '@/components/timeline/inputs/MobileComposerTools.vue';
 import UiButton from '@/components/ui/UiButton.vue';
 import UiField from '@/components/ui/UiField.vue';
 import UiIcon from '@/components/ui/UiIcon.vue';
-import UiTooltip from '@/components/ui/UiTooltip.vue';
 
 export default {
   mixins: [editorSubmissionMixin],
@@ -314,13 +286,14 @@ export default {
     };
   },
   components: {
+    MobileComposerTools,
+    CameraCaptureDialog,
     ConfirmDialog,
     MediaInput,
     TimelineEditorDialog,
     UiButton,
     UiField,
     UiIcon,
-    UiTooltip,
     WaveformRecord,
   },
   props: {
@@ -342,14 +315,15 @@ export default {
       required,
       maxLength: (value) => value == null || value.length <= this.contentLimit,
     },
+    videoDescription: { maxLength: maxLength(SUPPLEMENT_CONTENT_LIMIT) },
     imageCaption: {
-      maxLength: maxLength(200),
+      maxLength: maxLength(SUPPLEMENT_CONTENT_LIMIT),
     },
     audioTitle: {
       maxLength: maxLength(200),
     },
     audioDescription: {
-      maxLength: maxLength(200),
+      maxLength: maxLength(SUPPLEMENT_CONTENT_LIMIT),
     },
   }; },
   watch: {
@@ -358,6 +332,11 @@ export default {
     },
   },
   computed: {
+    submissionDisabled() {
+      const hasContent = !!(String(this.content || '').trim() || this.imageFile || this.imageName || this.videoFile || this.videoName || this.audioFile || this.audioName);
+      const invalidMedia = (this.videoFile && (this.videoSize > this.maxVideoSize || this.videoDuration > this.maxVideoDuration)) || (this.audioFile && (this.audioSize > this.maxAudioSize || this.audioDuration > this.maxAudioDuration));
+      return !!(this.sending || this.recording || this.transcribing || !hasContent || this.v$?.$invalid || invalidMedia);
+    },
     contentLimit() { return supplementContentLimit(this.supplementValue); },
     allowedImageTypes() {
       return ALLOWED_IMAGE_TYPES.join(',');
@@ -385,7 +364,7 @@ export default {
       return (this.$i18n && this.$i18n.locale) || 'ja';
     },
     sortedQuickTextGroups() {
-      const arr = Array.isArray(this.roomQuickTextGroups) ? [...this.roomQuickTextGroups] : [];
+      const arr = Array.isArray(this.roomQuickTextGroups) ? this.roomQuickTextGroups.filter(g => !g.is_emoji) : [];
       return arr.sort((a, b) => (a.order || 0) - (b.order || 0));
     },
     hasQuickTextGroups() {
@@ -421,6 +400,7 @@ export default {
       audioDuration: null,
 
       imageCaption: null,
+      videoDescription: null,
       videoSubtitleOriginalName: null,
       videoSubtitleName: null,
       videoSubtitleFile: null,
@@ -440,11 +420,23 @@ export default {
 
       visible: this.dialogVisible,
       confirmVisible: false,
+      cameraVisible: false,
       sending: false,
       progressAmount: 0,
     };
   },
   methods: {
+    onCameraCapture({ file, kind }) {
+      this.cameraVisible = false;
+      if (kind === 'image') this.handleImageChange(file);
+      else this.handleVideoChange(file);
+    },
+    chooseComposerMedia(kind) {
+      if (this.sending || this.recording || this.transcribing) return;
+      if (kind === 'camera') {
+        this.cameraVisible = true;
+      } else this.$refs.composerMedia?.chooseSourceFile(kind === 'library');
+    },
     openAndFocus() {
       this.visible = true;
     },
@@ -463,6 +455,7 @@ export default {
         this.audioName = this.supplementValue.audio_name;
 
         this.imageCaption = this.supplementValue.image_caption;
+        this.videoDescription = this.supplementValue.video_description ?? null;
         this.videoSubtitleOriginalName = this.supplementValue.video_subtitle_originalname;
         this.videoSubtitleName = this.supplementValue.video_subtitle_name;
         this.audioTitle = this.supplementValue.audio_title;
@@ -525,9 +518,6 @@ export default {
         blob,
         duration,
         revokeExistingAudioData: true,
-        onTranscribe: this.$store.getters.openaiTranscriptionAvailable
-          ? (file) => this.transcribeAudio(file)
-          : undefined,
       });
     },
 
@@ -623,6 +613,7 @@ export default {
         this.imageName = null;
         this.imageThumbnailName = null;
         this.imageCaption = null;
+      this.videoDescription = null;
       } else if (type === 'video') {
         if (typeof this.videoData === 'string' && this.videoData.startsWith('blob:')) {
           window.URL.revokeObjectURL(this.videoData);
@@ -869,6 +860,7 @@ export default {
         video_thumbnail_name: this.videoThumbnailName,
         audio_name: this.audioName,
         image_caption: this.imageCaption,
+        video_description: this.videoDescription,
         video_subtitle_originalname: this.videoSubtitleOriginalName,
         video_subtitle_name: this.videoSubtitleName,
         audio_title: this.audioTitle,
@@ -1001,6 +993,7 @@ export default {
       this.imageName = null;
       this.imageThumbnailName = null;
       this.imageCaption = null;
+      this.videoDescription = null;
 
       if (typeof this.videoData === 'string' && this.videoData.startsWith('blob:')) {
         window.URL.revokeObjectURL(this.videoData);
@@ -1046,6 +1039,7 @@ export default {
       this.removeMedia();
 
       this.imageCaption = null;
+      this.videoDescription = null;
       this.videoSubtitleOriginalName = null;
       this.videoSubtitleName = null;
       this.videoSubtitleFile = null;
@@ -1117,6 +1111,10 @@ export default {
 </script>
 
 <style scoped>
+.composer-comment-tools { position: absolute; bottom: 4px; inset-inline-end: 4px; z-index: 3; }
+.timeline-comment-field :deep(textarea) { padding-bottom: 52px; }
+.composer-attachment-preview { margin-top: 4px; }
+
 .acc-fieldset {
   border: 1px solid #ddd;
   border-radius: 4px;

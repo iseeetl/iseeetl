@@ -9,14 +9,14 @@ exports.listGroups = handleService((req) => {
 
 exports.createGroup = handleService((req) => {
   const { floorId } = req.params;
-  const { order, title, lang } = req.body;
-  return svc.createGroup({ floorId, order, title, lang, jwtPayload: req.jwtPayload });
+  const { order, title, lang, is_emoji } = req.body;
+  return svc.createGroup({ floorId, order, title, lang, is_emoji, jwtPayload: req.jwtPayload });
 });
 
 exports.updateGroup = handleService((req) => {
   const { floorId, id } = req.params;
-  const { order, title, lang } = req.body;
-  return svc.updateGroup({ floorId, id, order, title, lang, jwtPayload: req.jwtPayload });
+  const { order, title, lang, is_emoji } = req.body;
+  return svc.updateGroup({ floorId, id, order, title, lang, is_emoji, jwtPayload: req.jwtPayload });
 });
 
 exports.deleteGroup = handleService((req) => {
@@ -32,14 +32,14 @@ exports.listItems = handleService((req) => {
 
 exports.createItem = handleService((req) => {
   const { floorId, groupId } = req.params;
-  const { order, label, lang } = req.body;
-  return svc.createItem({ floorId, groupId, order, label, lang, jwtPayload: req.jwtPayload });
+  const { order, label, lang, emoji } = req.body;
+  return svc.createItem({ floorId, groupId, order, label, lang, emoji, jwtPayload: req.jwtPayload });
 });
 
 exports.updateItem = handleService((req) => {
   const { floorId, id } = req.params;
-  const { order, label, lang } = req.body;
-  return svc.updateItem({ floorId, id, order, label, lang, jwtPayload: req.jwtPayload });
+  const { order, label, lang, emoji } = req.body;
+  return svc.updateItem({ floorId, id, order, label, lang, emoji, jwtPayload: req.jwtPayload });
 });
 
 exports.deleteItem = handleService((req) => {

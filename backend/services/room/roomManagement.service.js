@@ -99,6 +99,9 @@ exports.managementUpdate = async (body, jwtPayload, io) => {
     updated_at: Date.now(),
   };
 
+  if (body.collaborative_text_editing !== undefined) {
+    updateRoom.collaborative_text_editing = body.collaborative_text_editing;
+  }
   if (body.guest_conversation_enabled !== undefined) {
     updateRoom.guest_conversation_enabled = body.guest_conversation_enabled;
   }

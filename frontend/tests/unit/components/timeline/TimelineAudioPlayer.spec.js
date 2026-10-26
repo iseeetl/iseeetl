@@ -11,6 +11,7 @@ const UiTooltipStub = {
 const createWrapper = (props = {}) =>
   shallowMount(TimelineAudioPlayer, {
     stubs: {
+      TimelineMediaDescription: false,
       UiButton: true,
       UiIcon: true,
       UiTooltip: UiTooltipStub,

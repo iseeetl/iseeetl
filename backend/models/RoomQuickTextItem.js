@@ -25,6 +25,7 @@ const RoomQuickTextItemSchema = new Schema(
       min: 1,
       max: 100,
     },
+    emoji: { type: String, default: '', maxlength: 32 },
     label: {
       type: String,
       required: true,

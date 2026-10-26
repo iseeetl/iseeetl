@@ -1,3 +1,4 @@
+import { sanitizeUpdatePreferences } from '@/features/timeline/updateNotices';
 import { sanitizeRoomAIVisibility } from '@/features/timeline/aiVisibility';
 
 const STORAGE_KEY = 'iseeetl_store';
@@ -28,6 +29,7 @@ const SETTING_FIELDS = [
   'displayDate',
   'displayTag',
   'displaySupplement',
+  'displayAlternativeText',
   'displayActionButton',
   'enableTextAnimation',
   'animationSpeed',
@@ -188,6 +190,7 @@ const sanitizeGuestSoundTags = (value) => {
 
 const buildPersistedState = (state) => ({
   schemaVersion: SCHEMA_VERSION,
+  roomUpdatePreferences: sanitizeUpdatePreferences(state.roomUpdatePreferences),
   roomAIVisibility: sanitizeRoomAIVisibility(state.roomAIVisibility),
   user: pick(state.user, USER_FIELDS),
   guestCache: pick(state.guestCache, GUEST_CACHE_FIELDS),
@@ -205,6 +208,7 @@ const buildPersistedState = (state) => ({
 const applyStoredState = (state, storage) => {
   applyUser(state.user, storage.user);
   state.roomAIVisibility = sanitizeRoomAIVisibility(storage.roomAIVisibility);
+  state.roomUpdatePreferences = sanitizeUpdatePreferences(storage.roomUpdatePreferences);
 
   assignNullableStrings(state.guestCache, storage.guestCache, GUEST_CACHE_FIELDS);
   assignNullableStrings(state.floor, storage.floor, ['id', 'title']);
@@ -285,6 +289,7 @@ export const persistenceDomain = {
       });
       Object.assign(state.floor, { id: null, title: null, targetLangs: null });
       Object.assign(state.room, { id: null, title: null, memberOnly: false, role: null });
+      state.updateNotices = [];
       state.tag.list = [];
       state.tagClipboard.list = [];
       Object.assign(state.ariahidden, { appToolbar: false, appMenu: true, appView: false });

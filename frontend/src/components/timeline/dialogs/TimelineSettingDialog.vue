@@ -56,6 +56,10 @@
           <input type="checkbox" id="display_tag" v-model="displayTag" />
           <span>{{ $t('「タグ」を表示する') }}</span>
         </label>
+        <label class="setting-choice" for="display_alternative_text">
+          <input type="checkbox" id="display_alternative_text" v-model="displayAlternativeText" />
+          <span>{{ $t('altText.display') }} <small>({{ $t('aiVisibility.allRooms') }})</small></span>
+        </label>
         <label class="setting-choice" for="display_supplement">
           <input type="checkbox" id="display_supplement" v-model="displaySupplement" />
           <span>{{ $t('「付加情報」を表示する') }} <small>({{ $t('aiVisibility.allRooms') }})</small></span>
@@ -77,6 +81,7 @@
       </div>
     </section>
 
+    <UpdateNoticeSettings v-if="visible && editingRoomId" v-model="updatePreference" :room-title="roomTitle" />
     <section class="setting-section" aria-labelledby="timeline_setting_animation_title">
       <h3 id="timeline_setting_animation_title" class="setting-section-title">{{ $t('流す') }}</h3>
       <label class="setting-choice" for="enable_text_animation">
@@ -113,6 +118,8 @@
 </template>
 
 <script>
+import UpdateNoticeSettings from '@/components/timeline/UpdateNoticeSettings.vue';
+import { normalizeUpdatePreference } from '@/features/timeline/updateNotices';
 import AIVisibilitySettings from '@/components/timeline/inputs/AIVisibilitySettings.vue';
 import { normalizeAIVisibility } from '@/features/timeline/aiVisibility';
 import { canManageFloor } from '@/utils/floorPermissions';
@@ -124,6 +131,7 @@ export default {
   name: 'TimelineSettingDialog',
   components: {
     AIVisibilitySettings,
+    UpdateNoticeSettings,
     BaseEditDialog,
     ConfirmDialog,
   },
@@ -148,11 +156,13 @@ export default {
 
       editingRoomId: null,
       aiPreference: normalizeAIVisibility(),
+      updatePreference: normalizeUpdatePreference(),
       speechSpeed: null,
       displayName: null,
       displayDate: null,
       displayTag: null,
       displaySupplement: null,
+      displayAlternativeText: true,
       displayActionButton: null,
       enableTextAnimation: null,
       animationSpeed: 'normal',
@@ -173,12 +183,14 @@ export default {
   methods: {
     openedDialog() {
       this.editingRoomId = this.roomId;
+      this.updatePreference = normalizeUpdatePreference(this.$store.getters.roomUpdatePreference?.(this.roomId));
       this.aiPreference = normalizeAIVisibility(this.$store.getters.roomAIVisibility?.(this.roomId));
       this.speechSpeed = this.$store.getters.speechSpeed;
       this.displayName = this.$store.getters.displayName;
       this.displayDate = this.$store.getters.displayDate;
       this.displayTag = this.$store.getters.displayTag;
       this.displaySupplement = this.$store.getters.displaySupplement;
+      this.displayAlternativeText = this.$store.getters.displayAlternativeText !== false;
       this.displayActionButton = this.$store.getters.displayActionButton;
       this.enableTextAnimation = this.$store.getters.enableTextAnimation;
       this.animationSpeed = this.$store.getters.animationSpeed;
@@ -198,11 +210,13 @@ export default {
     getEditSnapshot() {
       return JSON.stringify({
         aiPreference: this.aiPreference,
+        updatePreference: this.updatePreference,
         speechSpeed: this.speechSpeed,
         displayName: this.displayName,
         displayDate: this.displayDate,
         displayTag: this.displayTag,
         displaySupplement: this.displaySupplement,
+        displayAlternativeText: this.displayAlternativeText,
         displayActionButton: this.displayActionButton,
         enableTextAnimation: this.enableTextAnimation,
         animationSpeed: this.animationSpeed,
@@ -236,6 +250,7 @@ export default {
         displayDate: this.$store.getters.displayDate,
         displayTag: this.$store.getters.displayTag,
         displaySupplement: this.$store.getters.displaySupplement,
+        displayAlternativeText: this.$store.getters.displayAlternativeText !== false,
         displayActionButton: this.$store.getters.displayActionButton,
         enableTextAnimation: this.$store.getters.enableTextAnimation,
         animationSpeed: this.$store.getters.animationSpeed,
@@ -253,12 +268,14 @@ export default {
           displayDate: this.displayDate,
           displayTag: this.displayTag,
           displaySupplement: this.displaySupplement,
+        displayAlternativeText: this.displayAlternativeText,
           displayActionButton: this.displayActionButton,
           enableTextAnimation: this.enableTextAnimation,
           animationSpeed: this.animationSpeed,
           displayUserKickButton: this.displayUserKickButton,
         });
         if ((this.editingRoomId || null) !== (this.roomId || null)) return;
+        if (this.editingRoomId) this.$store.commit('setRoomUpdatePreference', {roomId:this.editingRoomId,preference:this.updatePreference});
         if (this.editingRoomId) this.$store.commit('setRoomAIVisibility', { roomId: this.editingRoomId, preference: this.aiPreference });
         this.$emit('success', this.getCommittedSettingSnapshot());
         this.visible = false;
@@ -276,6 +293,7 @@ export default {
       this.displayDate = null;
       this.displayTag = null;
       this.displaySupplement = null;
+      this.displayAlternativeText = true;
       this.displayActionButton = null;
       this.enableTextAnimation = null;
       this.animationSpeed = 'normal';

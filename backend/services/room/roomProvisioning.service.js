@@ -65,6 +65,7 @@ const cloneRoomQuickTexts = async ({ floorId, roomId, userId }) => {
     user: userId,
     order: group.order,
     title: group.title,
+    is_emoji: group.is_emoji === true,
     lang: group.lang,
     translations: Array.isArray(group.translations) ? group.translations : [],
   }));
@@ -89,6 +90,7 @@ const cloneRoomQuickTexts = async ({ floorId, roomId, userId }) => {
         group,
         order: item.order,
         label: item.label,
+        emoji: item.emoji || '',
         lang: item.lang,
         translations: Array.isArray(item.translations) ? item.translations : [],
       };

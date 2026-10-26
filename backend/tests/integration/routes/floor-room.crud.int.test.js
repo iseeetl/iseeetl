@@ -1,3 +1,4 @@
+const syntheticMail = require('../../_helpers/syntheticMail');
 const express = require('express');
 const request = require('supertest');
 const jwt = require('jsonwebtoken');
@@ -117,7 +118,7 @@ describe('フロア・ルームの作成・取得・更新・削除と権限', (
   let app;
 
   test.each(['/room/update', '/room/management/update'])('ゲスト会話解析の許可は既定OFFで、更新・省略・入力検証に対応する（%s）', async (route) => {
-    const admin = await User.create({ username: '会話管理者', mail: 'conversation-admin@example.invalid', role: 'Administrator' });
+    const admin = await User.create({ username: '会話管理者', mail: syntheticMail('conversation-admin'), role: 'Administrator' });
     const floor = await Floor.create({ user: admin._id, title: '会話フロア', lang: 'ja' });
     const authorization = `Bearer ${buildToken(admin)}`;
     const created = await request(app).post('/room/create').set('Authorization', authorization)
@@ -148,9 +149,9 @@ describe('フロア・ルームの作成・取得・更新・削除と権限', (
   });
 
   test('ゲスト会話解析の許可はフロアメンバーが変更でき、一般ユーザは変更できない', async () => {
-    const owner = await User.create({ username: '編集者', mail: 'conversation-owner@example.invalid', role: 'Editor' });
-    const member = await User.create({ username: 'メンバー', mail: 'conversation-member@example.invalid', role: 'Author' });
-    const outsider = await User.create({ username: '一般ユーザ', mail: 'conversation-outsider@example.invalid', role: 'Author' });
+    const owner = await User.create({ username: '編集者', mail: syntheticMail('conversation-owner'), role: 'Editor' });
+    const member = await User.create({ username: 'メンバー', mail: syntheticMail('conversation-member'), role: 'Author' });
+    const outsider = await User.create({ username: '一般ユーザ', mail: syntheticMail('conversation-outsider'), role: 'Author' });
     const floor = await Floor.create({ user: owner._id, title: 'フロア', lang: 'ja' });
     const room = await Room.create({ user: owner._id, floor: floor._id, title: 'ルーム' });
     await FloorMember.create({ floor: floor._id, user: member._id });
@@ -161,6 +162,53 @@ describe('フロア・ルームの作成・取得・更新・削除と権限', (
     const allowed = await request(app).post('/room/update').set('Authorization', `Bearer ${buildToken(member)}`).send(payload);
     expect(allowed.status).toBe(200);
     expect((await Room.findById(room._id)).guest_conversation_enabled).toBe(true);
+  });
+
+  test.each(['/room/update', '/room/management/update'])('共同編集の許可は既定OFFで、更新・省略・入力検証に対応する（%s）', async (route) => {
+    const admin = await User.create({ username: '会話管理者', mail: syntheticMail('collaboration-admin'), role: 'Administrator' });
+    const floor = await Floor.create({ user: admin._id, title: '会話フロア', lang: 'ja' });
+    const authorization = `Bearer ${buildToken(admin)}`;
+    const created = await request(app).post('/room/create').set('Authorization', authorization)
+      .send(baseRoomPayload(String(floor._id)));
+    expect(created.status).toBe(200);
+    expect(created.body.collaborative_text_editing).toBe(false);
+    const payload = baseRoomPayload(String(floor._id), { _id: created.body._id, image_name: null, delete_flg: false });
+    for (const enabled of [true, false]) {
+      const updated = await request(app).post(route).set('Authorization', authorization)
+        .send({ ...payload, collaborative_text_editing: enabled });
+      expect(updated.status).toBe(200);
+      expect(updated.body.collaborative_text_editing).toBe(enabled);
+      const kept = await request(app).post(route).set('Authorization', authorization).send(payload);
+      expect(kept.status).toBe(200);
+      const detail = await request(app).post('/room/detail').send({ _id: created.body._id });
+      expect(detail.body.collaborative_text_editing).toBe(enabled);
+    }
+    const invalid = await request(app).post(route).set('Authorization', authorization)
+      .send({ ...payload, collaborative_text_editing: 'true' });
+    expect(invalid.status).toBe(400);
+    const invalidCreate = await request(app).post('/room/create').set('Authorization', authorization)
+      .send(baseRoomPayload(String(floor._id), { collaborative_text_editing: 1 }));
+    expect(invalidCreate.status).toBe(400);
+    const enabledCreate = await request(app).post('/room/create').set('Authorization', authorization)
+      .send(baseRoomPayload(String(floor._id), { collaborative_text_editing: true }));
+    expect(enabledCreate.status).toBe(200);
+    expect(enabledCreate.body.collaborative_text_editing).toBe(true);
+  });
+
+  test('共同編集の許可はフロアメンバーが変更でき、一般ユーザは変更できない', async () => {
+    const owner = await User.create({ username: '編集者', mail: syntheticMail('collaboration-owner'), role: 'Editor' });
+    const member = await User.create({ username: 'メンバー', mail: syntheticMail('collaboration-member'), role: 'Author' });
+    const outsider = await User.create({ username: '一般ユーザ', mail: syntheticMail('collaboration-outsider'), role: 'Author' });
+    const floor = await Floor.create({ user: owner._id, title: 'フロア', lang: 'ja' });
+    const room = await Room.create({ user: owner._id, floor: floor._id, title: 'ルーム' });
+    await FloorMember.create({ floor: floor._id, user: member._id });
+    const payload = baseRoomPayload(String(floor._id), { _id: String(room._id), image_name: null, collaborative_text_editing: true });
+    const denied = await request(app).post('/room/update').set('Authorization', `Bearer ${buildToken(outsider)}`).send(payload);
+    expect(denied.status).toBe(403);
+    expect((await Room.findById(room._id)).collaborative_text_editing).toBe(false);
+    const allowed = await request(app).post('/room/update').set('Authorization', `Bearer ${buildToken(member)}`).send(payload);
+    expect(allowed.status).toBe(200);
+    expect((await Room.findById(room._id)).collaborative_text_editing).toBe(true);
   });
 
   afterAll(async () => {
@@ -178,7 +226,7 @@ describe('フロア・ルームの作成・取得・更新・削除と権限', (
 
   describe('投稿がないときの案内文', () => {
     test.each(['/room/update', '/room/management/update'])('作成・再取得・省略時の保持・空欄への更新ができる（%s）', async (updateRoute) => {
-      const admin = await User.create({ username: '案内文管理者', mail: 'empty-admin@example.invalid', lang: 'ja', role: 'Administrator' });
+      const admin = await User.create({ username: '案内文管理者', mail: syntheticMail('empty-admin'), lang: 'ja', role: 'Administrator' });
       const floor = await Floor.create({ user: admin._id, title: '案内文フロア', lang: 'ja', target_langs: ['en'] });
       const authorization = `Bearer ${buildToken(admin)}`;
       const translations = require('../../../services/translation.service');
@@ -214,9 +262,9 @@ describe('フロア・ルームの作成・取得・更新・削除と権限', (
     });
 
     test('旧ルームと未設定の新規ルームを取得でき、フロアメンバーだけが案内文を編集できる', async () => {
-      const owner = await User.create({ username: '編集者', mail: 'empty-owner@example.invalid', role: 'Editor' });
-      const member = await User.create({ username: 'メンバー', mail: 'empty-member@example.invalid', role: 'Author' });
-      const outsider = await User.create({ username: '一般ユーザ', mail: 'empty-outsider@example.invalid', role: 'Author' });
+      const owner = await User.create({ username: '編集者', mail: syntheticMail('empty-owner'), role: 'Editor' });
+      const member = await User.create({ username: 'メンバー', mail: syntheticMail('empty-member'), role: 'Author' });
+      const outsider = await User.create({ username: '一般ユーザ', mail: syntheticMail('empty-outsider'), role: 'Author' });
       const floor = await Floor.create({ user: owner._id, title: 'フロア', lang: 'ja' });
       const created = await request(app).post('/room/create').set('Authorization', `Bearer ${buildToken(owner)}`)
         .send(baseRoomPayload(String(floor._id)));
@@ -240,13 +288,13 @@ describe('フロア・ルームの作成・取得・更新・削除と権限', (
   test('フロアは管理者が作成でき、一般ユーザは作成できない', async () => {
     const admin = await User.create({
       username: 'Admin',
-      mail: `admin-${Date.now()}@example.com`,
+      mail: syntheticMail(`admin-${Date.now()}`),
       lang: 'ja',
       role: 'Administrator',
     });
     const author = await User.create({
       username: 'Author',
-      mail: `author-${Date.now()}@example.com`,
+      mail: syntheticMail(`author-${Date.now()}`),
       lang: 'ja',
       role: 'Author',
     });
@@ -270,13 +318,13 @@ describe('フロア・ルームの作成・取得・更新・削除と権限', (
   test('作成者以外のフロア編集ユーザはフロアを更新できない', async () => {
     const owner = await User.create({
       username: 'Owner',
-      mail: `owner-${Date.now()}@example.com`,
+      mail: syntheticMail(`owner-${Date.now()}`),
       lang: 'ja',
       role: 'Editor',
     });
     const otherEditor = await User.create({
       username: 'Other',
-      mail: `other-${Date.now()}@example.com`,
+      mail: syntheticMail(`other-${Date.now()}`),
       lang: 'ja',
       role: 'Editor',
     });
@@ -307,13 +355,13 @@ describe('フロア・ルームの作成・取得・更新・削除と権限', (
   test('作成者はフロアを更新でき、無関係のユーザは削除できない', async () => {
     const owner = await User.create({
       username: 'OwnerUpdate',
-      mail: `owner-update-${Date.now()}@example.com`,
+      mail: syntheticMail(`owner-update-${Date.now()}`),
       lang: 'ja',
       role: 'Editor',
     });
     const outsider = await User.create({
       username: 'OutsiderUpdate',
-      mail: `outsider-update-${Date.now()}@example.com`,
+      mail: syntheticMail(`outsider-update-${Date.now()}`),
       lang: 'ja',
       role: 'Author',
     });
@@ -358,7 +406,7 @@ describe('フロア・ルームの作成・取得・更新・削除と権限', (
   test('有効なAI解析設定があってもフロアを削除でき、復元後も設定を保持する', async () => {
     const admin = await User.create({
       username: 'FloorAISettingDeleteAdmin',
-      mail: `floor-ai-setting-delete-${Date.now()}@example.com`,
+      mail: syntheticMail(`floor-ai-setting-delete-${Date.now()}`),
       lang: 'ja',
       role: 'Administrator',
     });
@@ -422,19 +470,19 @@ describe('フロア・ルームの作成・取得・更新・削除と権限', (
   test('作成者・メンバー・一般ユーザに応じたフロアのロールを返す', async () => {
     const owner = await User.create({
       username: 'Owner',
-      mail: `owner-role-${Date.now()}@example.com`,
+      mail: syntheticMail(`owner-role-${Date.now()}`),
       lang: 'ja',
       role: 'Editor',
     });
     const member = await User.create({
       username: 'Member',
-      mail: `member-role-${Date.now()}@example.com`,
+      mail: syntheticMail(`member-role-${Date.now()}`),
       lang: 'ja',
       role: 'Author',
     });
     const outsider = await User.create({
       username: 'Outsider',
-      mail: `outsider-role-${Date.now()}@example.com`,
+      mail: syntheticMail(`outsider-role-${Date.now()}`),
       lang: 'ja',
       role: 'Author',
     });
@@ -472,7 +520,7 @@ describe('フロア・ルームの作成・取得・更新・削除と権限', (
   test('作成したフロアを一覧と詳細で取得できる', async () => {
     const admin = await User.create({
       username: 'PaginateAdmin',
-      mail: `paginate-admin-${Date.now()}@example.com`,
+      mail: syntheticMail(`paginate-admin-${Date.now()}`),
       lang: 'ja',
       role: 'Administrator',
     });
@@ -501,7 +549,7 @@ describe('フロア・ルームの作成・取得・更新・削除と権限', (
   test('フロア編集ユーザがフロアの表示・非表示を一括変更できる', async () => {
     const editor = await User.create({
       username: 'DisplayEditor',
-      mail: `display-editor-${Date.now()}@example.com`,
+      mail: syntheticMail(`display-editor-${Date.now()}`),
       lang: 'ja',
       role: 'Editor',
     });
@@ -526,13 +574,13 @@ describe('フロア・ルームの作成・取得・更新・削除と権限', (
   test('フロアの表示・非表示は管理者が変更でき、一般ユーザは変更できない', async () => {
     const admin = await User.create({
       username: 'DisplayAdmin',
-      mail: `display-admin-${Date.now()}@example.com`,
+      mail: syntheticMail(`display-admin-${Date.now()}`),
       lang: 'ja',
       role: 'Administrator',
     });
     const author = await User.create({
       username: 'DisplayAuthor',
-      mail: `display-author-${Date.now()}@example.com`,
+      mail: syntheticMail(`display-author-${Date.now()}`),
       lang: 'ja',
       role: 'Author',
     });
@@ -563,13 +611,13 @@ describe('フロア・ルームの作成・取得・更新・削除と権限', (
   test('フロア編集ユーザは所属する非表示フロアを一覧で取得できる', async () => {
     const editor = await User.create({
       username: 'EditorViewer',
-      mail: `editor-viewer-${Date.now()}@example.com`,
+      mail: syntheticMail(`editor-viewer-${Date.now()}`),
       lang: 'ja',
       role: 'Editor',
     });
     const other = await User.create({
       username: 'OtherOwner',
-      mail: `other-owner-${Date.now()}@example.com`,
+      mail: syntheticMail(`other-owner-${Date.now()}`),
       lang: 'ja',
       role: 'Editor',
     });
@@ -625,13 +673,13 @@ describe('フロア・ルームの作成・取得・更新・削除と権限', (
   test('一般ユーザは所属する非表示フロアを一覧で取得できる', async () => {
     const author = await User.create({
       username: 'AuthorViewer',
-      mail: `author-viewer-${Date.now()}@example.com`,
+      mail: syntheticMail(`author-viewer-${Date.now()}`),
       lang: 'ja',
       role: 'Author',
     });
     const other = await User.create({
       username: 'AuthorOwner',
-      mail: `author-owner-${Date.now()}@example.com`,
+      mail: syntheticMail(`author-owner-${Date.now()}`),
       lang: 'ja',
       role: 'Editor',
     });
@@ -673,7 +721,7 @@ describe('フロア・ルームの作成・取得・更新・削除と権限', (
   test('管理者は管理用のフロア一覧取得と更新ができる', async () => {
     const admin = await User.create({
       username: 'ManageAdmin',
-      mail: `manage-admin-${Date.now()}@example.com`,
+      mail: syntheticMail(`manage-admin-${Date.now()}`),
       lang: 'ja',
       role: 'Administrator',
     });
@@ -736,7 +784,7 @@ describe('フロア・ルームの作成・取得・更新・削除と権限', (
   test('管理用フロア一覧で検索語と有効・削除済み・全件の条件を組み合わせる', async () => {
     const admin = await User.create({
       username: 'FloorFilterAdmin',
-      mail: `floor-filter-admin-${Date.now()}@example.com`,
+      mail: syntheticMail(`floor-filter-admin-${Date.now()}`),
       lang: 'ja',
       role: 'Administrator',
     });
@@ -797,7 +845,7 @@ describe('フロア・ルームの作成・取得・更新・削除と権限', (
   test('管理者は論理削除済みのフロアの詳細を取得できる', async () => {
     const admin = await User.create({
       username: 'FloorDetailAdmin',
-      mail: `floor-detail-admin-${Date.now()}@example.com`,
+      mail: syntheticMail(`floor-detail-admin-${Date.now()}`),
       lang: 'ja',
       role: 'Administrator',
     });
@@ -828,7 +876,7 @@ describe('フロア・ルームの作成・取得・更新・削除と権限', (
   test('フロアの削除状態を変えても入力項目とAI解析設定を復元まで保持する', async () => {
     const admin = await User.create({
       username: 'FloorLifecycleAdmin',
-      mail: `floor-lifecycle-admin-${Date.now()}@example.com`,
+      mail: syntheticMail(`floor-lifecycle-admin-${Date.now()}`),
       lang: 'ja',
       role: 'Administrator',
     });
@@ -902,19 +950,19 @@ describe('フロア・ルームの作成・取得・更新・削除と権限', (
   test('フロアメンバーはルームを作成でき、無関係のユーザは作成できない', async () => {
     const owner = await User.create({
       username: 'Owner2',
-      mail: `owner2-${Date.now()}@example.com`,
+      mail: syntheticMail(`owner2-${Date.now()}`),
       lang: 'ja',
       role: 'Editor',
     });
     const member = await User.create({
       username: 'Member2',
-      mail: `member2-${Date.now()}@example.com`,
+      mail: syntheticMail(`member2-${Date.now()}`),
       lang: 'ja',
       role: 'Author',
     });
     const outsider = await User.create({
       username: 'Outsider2',
-      mail: `outsider2-${Date.now()}@example.com`,
+      mail: syntheticMail(`outsider2-${Date.now()}`),
       lang: 'ja',
       role: 'Author',
     });
@@ -948,19 +996,19 @@ describe('フロア・ルームの作成・取得・更新・削除と権限', (
   test('フロアメンバーはルームを更新・削除でき、無関係のユーザは操作できない', async () => {
     const owner = await User.create({
       username: 'RoomOwner',
-      mail: `room-owner-${Date.now()}@example.com`,
+      mail: syntheticMail(`room-owner-${Date.now()}`),
       lang: 'ja',
       role: 'Editor',
     });
     const member = await User.create({
       username: 'RoomMember',
-      mail: `room-member-${Date.now()}@example.com`,
+      mail: syntheticMail(`room-member-${Date.now()}`),
       lang: 'ja',
       role: 'Author',
     });
     const outsider = await User.create({
       username: 'RoomOutsider',
-      mail: `room-outsider-${Date.now()}@example.com`,
+      mail: syntheticMail(`room-outsider-${Date.now()}`),
       lang: 'ja',
       role: 'Author',
     });
@@ -1019,7 +1067,7 @@ describe('フロア・ルームの作成・取得・更新・削除と権限', (
   test('有効なAI解析設定があってもルームを削除でき、復元後も設定を保持する', async () => {
     const admin = await User.create({
       username: 'RoomAISettingDeleteAdmin',
-      mail: `room-ai-setting-delete-${Date.now()}@example.com`,
+      mail: syntheticMail(`room-ai-setting-delete-${Date.now()}`),
       lang: 'ja',
       role: 'Administrator',
     });
@@ -1071,7 +1119,7 @@ describe('フロア・ルームの作成・取得・更新・削除と権限', (
   test('作成したルームを一覧と詳細で取得できる', async () => {
     const owner = await User.create({
       username: 'RoomLister',
-      mail: `room-lister-${Date.now()}@example.com`,
+      mail: syntheticMail(`room-lister-${Date.now()}`),
       lang: 'ja',
       role: 'Editor',
     });
@@ -1106,7 +1154,7 @@ describe('フロア・ルームの作成・取得・更新・削除と権限', (
 
     const roomMemberUser = await User.create({
       username: 'RoomListMember',
-      mail: `room-list-member-${Date.now()}@example.com`,
+      mail: syntheticMail(`room-list-member-${Date.now()}`),
       lang: 'ja',
       role: 'Author',
     });
@@ -1134,7 +1182,7 @@ describe('フロア・ルームの作成・取得・更新・削除と権限', (
   ])('ルーム詳細にフロア名・言語・翻訳を含める（%s）', async (_label, lang, hasTranslations) => {
     const owner = await User.create({
       username: '翻訳確認ユーザ',
-      mail: 'room-detail-translation@example.invalid',
+      mail: syntheticMail('room-detail-translation'),
       role: 'Editor',
     });
     const translations = hasTranslations
@@ -1177,7 +1225,7 @@ describe('フロア・ルームの作成・取得・更新・削除と権限', (
   test('ユーザ削除後はそのトークンでフロア・ルーム一覧を取得できない', async () => {
     const user = await User.create({
       username: 'DeletedListUser',
-      mail: `deleted-list-user-${Date.now()}@example.com`,
+      mail: syntheticMail(`deleted-list-user-${Date.now()}`),
       lang: 'ja',
       role: 'Administrator',
     });
@@ -1209,7 +1257,7 @@ describe('フロア・ルームの作成・取得・更新・削除と権限', (
   test('親フロアが削除済みなら有効なルームの詳細も取得できない', async () => {
     const owner = await User.create({
       username: 'DeletedFloorRoomOwner',
-      mail: `deleted-floor-room-${Date.now()}@example.com`,
+      mail: syntheticMail(`deleted-floor-room-${Date.now()}`),
       lang: 'ja',
       role: 'Editor',
     });
@@ -1250,7 +1298,7 @@ describe('フロア・ルームの作成・取得・更新・削除と権限', (
   test('ルームの表示・非表示と表示順を更新できる', async () => {
     const owner = await User.create({
       username: 'OrderOwner',
-      mail: `order-owner-${Date.now()}@example.com`,
+      mail: syntheticMail(`order-owner-${Date.now()}`),
       lang: 'ja',
       role: 'Editor',
     });
@@ -1317,13 +1365,13 @@ describe('フロア・ルームの作成・取得・更新・削除と権限', (
   test('無関係のユーザはルームの表示・非表示と表示順を変更できない', async () => {
     const owner = await User.create({
       username: 'RoomOwnerReject',
-      mail: `room-owner-reject-${Date.now()}@example.com`,
+      mail: syntheticMail(`room-owner-reject-${Date.now()}`),
       lang: 'ja',
       role: 'Editor',
     });
     const outsider = await User.create({
       username: 'RoomOutsiderReject',
-      mail: `room-outsider-reject-${Date.now()}@example.com`,
+      mail: syntheticMail(`room-outsider-reject-${Date.now()}`),
       lang: 'ja',
       role: 'Author',
     });
@@ -1368,7 +1416,7 @@ describe('フロア・ルームの作成・取得・更新・削除と権限', (
   test('管理者は管理用のルーム一覧取得と更新ができる', async () => {
     const admin = await User.create({
       username: 'RoomAdmin',
-      mail: `room-admin-${Date.now()}@example.com`,
+      mail: syntheticMail(`room-admin-${Date.now()}`),
       lang: 'ja',
       role: 'Administrator',
     });
@@ -1470,7 +1518,7 @@ describe('フロア・ルームの作成・取得・更新・削除と権限', (
   test('管理用ルーム一覧で検索語と有効・削除済み・全件の条件を組み合わせる', async () => {
     const admin = await User.create({
       username: 'RoomFilterAdmin',
-      mail: `room-filter-admin-${Date.now()}@example.com`,
+      mail: syntheticMail(`room-filter-admin-${Date.now()}`),
       lang: 'ja',
       role: 'Administrator',
     });
@@ -1538,7 +1586,7 @@ describe('フロア・ルームの作成・取得・更新・削除と権限', (
   test('ルームの削除状態を変えても項目とAI解析設定を保持し、親フロア削除中の復元は拒否する', async () => {
     const admin = await User.create({
       username: 'RoomLifecycleAdmin',
-      mail: `room-lifecycle-admin-${Date.now()}@example.com`,
+      mail: syntheticMail(`room-lifecycle-admin-${Date.now()}`),
       lang: 'ja',
       role: 'Administrator',
     });
@@ -1631,7 +1679,7 @@ describe('フロア・ルームの作成・取得・更新・削除と権限', (
   test('管理者以外は管理用ルーム一覧を取得できない', async () => {
     const user = await User.create({
       username: 'RoomUserReject',
-      mail: `room-user-reject-${Date.now()}@example.com`,
+      mail: syntheticMail(`room-user-reject-${Date.now()}`),
       lang: 'ja',
       role: 'User',
     });
@@ -1647,7 +1695,7 @@ describe('フロア・ルームの作成・取得・更新・削除と権限', (
   test('ゲストのフロア一覧には表示中のフロアだけを返す', async () => {
     const owner = await User.create({
       username: 'GuestFloorOwner',
-      mail: `guest-floor-${Date.now()}@example.com`,
+      mail: syntheticMail(`guest-floor-${Date.now()}`),
       lang: 'ja',
       role: 'Editor',
     });
@@ -1676,7 +1724,7 @@ describe('フロア・ルームの作成・取得・更新・削除と権限', (
   test('ゲストのルーム一覧には表示中のルームだけを返す', async () => {
     const owner = await User.create({
       username: 'GuestRoomOwner',
-      mail: `guest-room-${Date.now()}@example.com`,
+      mail: syntheticMail(`guest-room-${Date.now()}`),
       lang: 'ja',
       role: 'Editor',
     });
@@ -1722,7 +1770,7 @@ describe('フロア・ルームの作成・取得・更新・削除と権限', (
     const updateImage = (imageName) => request(app).post(route).set('Authorization', `Bearer ${buildToken(user)}`)
       .send(baseRoomPayload(String(floor._id), { _id: String(room._id), image_name: imageName, delete_flg: false }));
     beforeEach(async () => {
-      user = await User.create({ username: 'Image editor', mail: 'image-editor@example.invalid', role: 'Administrator' });
+      user = await User.create({ username: 'Image editor', mail: syntheticMail('image-editor'), role: 'Administrator' });
       floor = await Floor.create({ user: user._id, title: 'Image floor', lang: 'ja', target_langs: [] });
       room = await Room.create({ user: user._id, floor: floor._id, title: 'Image room', lang: 'ja' });
       directory = path.join(tempMediaRoot, String(floor._id), String(room._id));

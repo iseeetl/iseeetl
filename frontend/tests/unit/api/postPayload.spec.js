@@ -1,3 +1,4 @@
+import { mediaTextSnapshot } from '@/features/timeline/alternativeText';
 import { describe, it, expect } from 'vitest';
 import { buildPostCreate, buildPostPatch } from '@/api/postPayload';
 
@@ -15,11 +16,11 @@ describe('投稿の送信データ', () => {
   it('PATCHは解除、空配列、メディア種類切替を明示する', () => {
     const initial = { content: 'text', room_tags: ['tag'], image_name: 'old.png', image_thumbnail_name: 'thumb.png' };
     expect(buildPostPatch({ ...initial, content: null, room_tags: [], image_name: null, audio_name: 'new.mp3' }, initial))
-      .toEqual({ content: null, room_tags: [], media: { image: null, audio: { file_name: 'new.mp3', title: null, description: null } } });
+      .toEqual({ expected_media_text: mediaTextSnapshot(initial), content: null, room_tags: [], media: { image: null, audio: { file_name: 'new.mp3', title: null, description: null } } });
   });
   it('キャプションだけを変更し、変更がなければ空のPATCHにする', () => {
     const initial = { image_name: 'old.png', image_thumbnail_name: 'thumb.png', image_caption: 'old' };
-    expect(buildPostPatch({ ...initial, image_caption: null }, initial)).toEqual({ media: { image: { caption: null } } });
+    expect(buildPostPatch({ ...initial, image_caption: null }, initial)).toEqual({ expected_media_text: mediaTextSnapshot(initial), media: { image: { caption: null } } });
     expect(buildPostPatch(initial, initial)).toEqual({});
   });
 });

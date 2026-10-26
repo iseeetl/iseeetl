@@ -80,7 +80,7 @@
           </template>
         </div>
         <div class="image" v-if="reply.image_name">
-          <button @click.stop="showGalleryDialog(reply, $event)" :aria-label="$t('画像を拡大表示')">
+          <button @click.stop="showGalleryDialog(reply, $event)" :aria-label="$t('画像を拡大表示')" :aria-describedby="`${idPrefix}-image-alt-${reply._id}`">
             <img
               :alt="reply.image_caption ? reply.image_caption : $t('投稿された画像')"
               :src="constructImagePath(post.floor, post.room, reply)"
@@ -88,17 +88,17 @@
           </button>
         </div>
         <div class="audio" v-if="reply.audio_name">
-          <TimelineAudioPlayer
+          <TimelineAudioPlayer :description-id="`${idPrefix}-audio-alt-${reply._id}`"
             :src="'/media/' + post.floor + '/' + post.room + '/' + reply.audio_name"
             :file-name="reply.audio_name"
             :audio-title="reply.audio_title || ''"
-            :description="reply.audio_description || ''"
+            :description="''"
             preload="none"
             :download-test-id="'timeline-reply-audio-download-button-' + reply._id"
           />
         </div>
         <div class="video" v-if="reply.video_name !== null" :class="videoThumbClass(reply)">
-          <button :aria-label="$t('動画を再生する')" @click.stop="showGalleryDialog(reply, $event)">
+          <button :aria-label="$t('動画を再生する')" :aria-describedby="`${idPrefix}-video-alt-${reply._id}`" @click.stop="showGalleryDialog(reply, $event)">
             <img
               aria-hidden="true"
               :src="'/media/' + post.floor + '/' + post.room + '/' + reply.video_thumbnail_name"
@@ -109,6 +109,11 @@
             <UiIcon class="play-icon" name="play_arrow" :size="48" />
           </button>
         </div>
+        <template v-for="kind in ['image', 'video', 'audio']" :key="kind">
+          <TimelineAlternativeText v-if="reply[`${kind}_name`]" :item="reply" :kind="kind"
+            :description-id="`${idPrefix}-${kind}-alt-${reply._id}`" :post-id="post._id" :reply-id="reply._id" :read-only="readOnly" />
+        </template>
+
 
         <div v-if="reply.reactions">
           <ReactionItem v-if="!readOnly"
@@ -141,7 +146,7 @@
 
           <div class="reaction-container">
             <div class="reaction-picker-wrapper" v-if="reactionPickerVisible">
-              <ReactionPicker
+              <ReactionPicker :target-label="$t('roomEmoji.replyTarget')"
                 ref="reactionPicker"
                 :pickerId="reactionPickerId"
                 :reactionPickerVisible="reactionPickerVisible"
@@ -293,6 +298,7 @@ import userDisplayMethods from '@/features/profile/userDisplayMethods';
 import SupplementItem from '@/components/timeline/items/SupplementItem.vue';
 import ReactionItem from '@/components/timeline/items/ReactionItem.vue';
 import ReactionPicker from '@/components/timeline/inputs/ReactionPicker.vue';
+import TimelineAlternativeText from '@/components/timeline/TimelineAlternativeText.vue';
 import TimelineAudioPlayer from '@/components/timeline/TimelineAudioPlayer.vue';
 import TimelineText from '@/components/timeline/TimelineText.vue';
 import UiAvatar from '@/components/ui/UiAvatar.vue';
@@ -318,6 +324,7 @@ export default {
     SupplementItem,
     ReactionItem,
     ReactionPicker,
+    TimelineAlternativeText,
     TimelineAudioPlayer,
     TimelineText,
     UiAvatar,

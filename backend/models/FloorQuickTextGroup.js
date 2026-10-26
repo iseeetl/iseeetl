@@ -20,6 +20,7 @@ const FloorQuickTextGroupSchema = new Schema(
       min: 1,
       max: 100,
     },
+    is_emoji: { type: Boolean, default: false },
     title: {
       type: String,
       required: true,

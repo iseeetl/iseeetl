@@ -10,6 +10,7 @@ const hasOwn = (value, key) => Object.prototype.hasOwnProperty.call(value, key);
 const MEDIA_GROUPS = {
   image: ['image_name', 'image_thumbnail_name', 'image_caption'],
   video: [
+    'video_description',
     'video_name',
     'video_thumbnail_name',
     'video_subtitle_originalname',
@@ -23,10 +24,11 @@ const MEDIA_MAIN_FIELDS = {
   audio: 'audio_name',
 };
 const MEDIA_STRING_LIMITS = {
-  image_caption: 200,
+  image_caption: MAX_SUPPLEMENT_UTF16_UNITS,
+  video_description: MAX_SUPPLEMENT_UTF16_UNITS,
   video_subtitle_originalname: 100,
   audio_title: 200,
-  audio_description: 200,
+  audio_description: MAX_SUPPLEMENT_UTF16_UNITS,
 };
 
 function assertBody(body) {

@@ -1,5 +1,5 @@
 <template>
-  <article class="supplement">
+  <article class="supplement" :data-timeline-item-id="supplement._id">
     <div class="user-icon">
       <div class="user-icon-inner">
         <button
@@ -68,7 +68,7 @@
         {{ $t(contentExpanded ? 'aiAnswer.collapse' : 'aiAnswer.expand') }}
       </button>
       <div class="image" v-if="supplement.image_name">
-        <button @click="onPressShowSupplementMedia(supplement, $event)" :aria-label="$t('画像を拡大表示')">
+        <button @click="onPressShowSupplementMedia(supplement, $event)" :aria-label="$t('画像を拡大表示')" :aria-describedby="`${idPrefix}-image-alt-${supplement._id}`">
           <img
             :alt="supplement.image_caption ? supplement.image_caption : ''"
             :src="constructImagePath($store.getters.floorId, $store.getters.roomId, supplement)"
@@ -76,17 +76,17 @@
         </button>
       </div>
       <div class="supplement-audio" v-if="supplement.audio_name">
-        <TimelineAudioPlayer
+        <TimelineAudioPlayer :description-id="`${idPrefix}-audio-alt-${supplement._id}`"
           :src="'/media/' + $store.getters.floorId + '/' + $store.getters.roomId + '/' + supplement.audio_name"
           :file-name="supplement.audio_name"
           :audio-title="supplement.audio_title || ''"
-          :description="supplement.audio_description || ''"
+          :description="''"
           preload="none"
           :download-test-id="'timeline-supplement-audio-download-button-' + supplement._id"
         />
       </div>
       <div class="video" v-if="supplement.video_name" :class="videoThumbClass(supplement)">
-        <button :aria-label="$t('動画を再生する')" @click.stop="onPressShowSupplementMedia(supplement, $event)">
+        <button :aria-label="$t('動画を再生する')" :aria-describedby="`${idPrefix}-video-alt-${supplement._id}`" @click.stop="onPressShowSupplementMedia(supplement, $event)">
           <img
             aria-hidden="true"
             :src="
@@ -99,6 +99,11 @@
           <UiIcon class="play-icon" name="play_arrow" :size="48" />
         </button>
       </div>
+        <template v-for="kind in ['image', 'video', 'audio']" :key="kind">
+          <TimelineAlternativeText v-if="supplement[`${kind}_name`]" :item="supplement" :kind="kind"
+            :description-id="`${idPrefix}-${kind}-alt-${supplement._id}`" :post-id="postId" :reply-id="replyId" :supplement-id="supplement._id" :read-only="readOnly" />
+        </template>
+
 
       <div v-if="supplement.reactions">
         <ReactionItem v-if="!readOnly"
@@ -113,7 +118,7 @@
       <div class="action" v-if="!readOnly && $store.getters.displayActionButton">
         <div class="reaction-container">
           <div class="reaction-picker-wrapper" v-if="reactionPickerVisible">
-            <ReactionPicker
+            <ReactionPicker :target-label="$t('roomEmoji.suppTarget')"
               ref="reactionPicker"
               :pickerId="reactionPickerId"
               :reactionPickerVisible="reactionPickerVisible"
@@ -145,6 +150,8 @@
           </UiTooltip>
         </div>
 
+        <TimelineSupplementTextEdit v-if="!isUserAllowedToEdit(supplement)" :item="supplement"
+          kind="supplement" :post-id="postId" :reply-id="replyId" :supplement-id="supplement._id" />
         <UiTooltip v-if="isUserAllowedToEdit(supplement)" :text="$t('編集')">
           <UiButton
             appearance="text"
@@ -188,6 +195,8 @@ import userDisplayMethods from '@/features/profile/userDisplayMethods';
 
 import ReactionItem from '@/components/timeline/items/ReactionItem.vue';
 import ReactionPicker from '@/components/timeline/inputs/ReactionPicker.vue';
+import TimelineSupplementTextEdit from '@/components/timeline/TimelineSupplementTextEdit.vue';
+import TimelineAlternativeText from '@/components/timeline/TimelineAlternativeText.vue';
 import TimelineAudioPlayer from '@/components/timeline/TimelineAudioPlayer.vue';
 import TimelineText from '@/components/timeline/TimelineText.vue';
 import UiAvatar from '@/components/ui/UiAvatar.vue';
@@ -208,6 +217,8 @@ export default {
   components: {
     ReactionItem,
     ReactionPicker,
+    TimelineAlternativeText,
+    TimelineSupplementTextEdit,
     TimelineAudioPlayer,
     TimelineText,
     UiAvatar,

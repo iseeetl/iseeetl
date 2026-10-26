@@ -32,7 +32,7 @@ exports.createReply = async (body, io) => {
     memberOnly: { code: 'INVALID_PERMISSION' },
   });
 
-  if (foundRoom.guest_reaction_only && !containsOnlyAllowedEmojis(content)) {
+  if (foundRoom.guest_reaction_only && !await containsOnlyAllowedEmojis(content, roomId)) {
     throw new AppError({ code: 'INVALID_PARAMS' });
   }
   await validateRoomTagsForRoom(roomTags, { floorId: foundFloor._id, roomId: foundRoom._id });

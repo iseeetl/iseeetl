@@ -111,6 +111,7 @@
         >
           <p dir="auto">{{ emptyMessage }}</p>
         </div>
+        <UpdateNotices :matches="matchesPostConditions" :filter="filter" :room-id="$store.getters.roomId" />
         <!-- 指定された投稿を先頭に固定して表示する。 -->
         <div v-if="isConditionless && focusPost" :key="focusPost._id + '_wrapper'" class="focus-post-wrapper">
           <!-- 返信は新しい順に表示する。 -->
@@ -409,6 +410,7 @@
 </template>
 
 <script>
+import UpdateNotices from '@/components/timeline/UpdateNotices.vue';
 import ReplyNotificationItem from '@/components/timeline/items/ReplyNotificationItem.vue';
 import ReactionNotificationItem from '@/components/timeline/items/ReactionNotificationItem.vue';
 import AnimationPostItem from '@/components/timeline/items/AnimationPostItem.vue';
@@ -455,6 +457,7 @@ export default {
   components: {
     ReplyNotificationItem,
     ReactionNotificationItem,
+    UpdateNotices,
     AnimationPostItem,
     PostItem,
     AnimationReplyItem,

@@ -18,9 +18,12 @@ const ReactionSchema = new Schema({
   },
   type: {
     type: String,
-    enum: ['いいね', '超いいね', '拍手', '笑顔', 'びっくり'],
+    validate: value => ['いいね','超いいね','拍手','笑顔','びっくり'].includes(value) || /^room:[a-f0-9]{24}$/i.test(value),
     required: true,
   },
+  emoji: { type: String, maxlength: 32, default: null },
+  label: { type: String, maxlength: 200, default: null },
+  media_kind: { type: String, enum: ['image','video','audio',null], default: null },
   created_at: {
     type: Date,
     default: Date.now,

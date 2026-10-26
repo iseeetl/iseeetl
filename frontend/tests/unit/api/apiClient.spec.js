@@ -520,6 +520,27 @@ describe('APIクライアントのリクエスト・応答処理', () => {
     }
   });
 
+  it.each(['X-Guest-Token', 'x-guest-token'])('期限切れの%sを再送せず更新後のゲストトークンを使う', async (headerName) => {
+    const requestHandler = apiClient.interceptors.request.handlers[0].fulfilled;
+    const responseHandler = apiClient.interceptors.response.handlers[0].rejected;
+    const originalAdapter = apiClient.defaults.adapter;
+    store.state.user.token = null;
+    store.state.user.isLogin = false;
+    store.state.user.guestToken = 'expired-guest';
+    store.dispatch = async () => { store.state.user.guestToken = 'renewed-guest'; };
+    let retriedConfig;
+    apiClient.defaults.adapter = async (config) => {
+      retriedConfig = config;
+      return { data: {}, status: 200, statusText: 'OK', headers: {}, config };
+    };
+    try {
+      const config = requestHandler({ url: '/api/reactions', headers: { [headerName]: 'expired-guest' } });
+      await responseHandler({ response: { status: 401, data: { error: { code: 'TOKEN_EXPIRED' } } }, config });
+      expect(retriedConfig.headers.get('X-Guest-Token')).to.equal('renewed-guest');
+      expect(retriedConfig._guestRetry).to.equal(true);
+    } finally { apiClient.defaults.adapter = originalAdapter; }
+  });
+
   it('ゲストへの401応答が同時に届いてもトークン更新を1回だけ実行する', async () => {
     const requestHandler = apiClient.interceptors.request.handlers[0].fulfilled;
     const handler = apiClient.interceptors.response.handlers[0].rejected;

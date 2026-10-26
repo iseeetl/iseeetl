@@ -85,7 +85,7 @@
                 preload="none"
                 controls
               ></audio>
-              <figcaption dir="auto">{{ post.audio_description }}</figcaption>
+              <TimelineAlternativeText :item="post" kind="audio" read-only />
             </figure>
           </template>
           <template v-else>
@@ -113,6 +113,7 @@
 </template>
 
 <script>
+import TimelineAlternativeText from '@/components/timeline/TimelineAlternativeText.vue';
 import UiAvatar from '@/components/ui/UiAvatar.vue';
 import UiButton from '@/components/ui/UiButton.vue';
 import UiIcon from '@/components/ui/UiIcon.vue';
@@ -127,6 +128,7 @@ export default {
   emits: ['onPressNotification'],
   name: 'ReactionNotificationItem',
   components: {
+    TimelineAlternativeText,
     TimelineText,
     UiAvatar,
     UiButton,

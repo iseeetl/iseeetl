@@ -60,6 +60,7 @@ describe('付加情報の部分更新データ生成', () => {
     const current = {
       image_name: 'old.jpg',
       image_thumbnail_name: 'old_thumbnail.jpg',
+      video_description: null,
       video_name: null,
       video_thumbnail_name: null,
       video_subtitle_originalname: null,
@@ -95,6 +96,7 @@ describe('付加情報の部分更新データ生成', () => {
       image_name: 'old.jpg',
       image_thumbnail_name: 'old_thumbnail.jpg',
       image_caption: null,
+      video_description: null,
       video_name: null,
       video_thumbnail_name: null,
       video_subtitle_originalname: null,
@@ -125,6 +127,7 @@ describe('メディア更新の競合条件生成', () => {
       image_name: 'old.jpg',
       image_thumbnail_name: 'old_thumbnail.jpg',
       image_caption: 'old caption',
+      video_description: null,
       video_name: null,
       video_thumbnail_name: null,
       video_subtitle_originalname: null,

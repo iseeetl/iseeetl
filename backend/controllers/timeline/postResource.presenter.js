@@ -21,7 +21,7 @@ function presentPostMutation(post) {
       } : null,
       video: post.video_name ? {
         file_name: post.video_name,
-        thumbnail_name: post.video_thumbnail_name ?? null,
+        description: post.video_description ?? null, thumbnail_name: post.video_thumbnail_name ?? null,
         subtitle: post.video_subtitle_name ? {
           file_name: post.video_subtitle_name,
           original_name: post.video_subtitle_originalname ?? null,

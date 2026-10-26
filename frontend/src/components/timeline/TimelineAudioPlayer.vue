@@ -1,7 +1,7 @@
 <template>
   <figure class="timeline-audio-player">
     <div class="timeline-audio-player__row">
-      <audio :src="src" :aria-label="audioTitle || null" :preload="preload" controls></audio>
+      <audio :aria-describedby="descriptionId" :src="src" :aria-label="audioTitle || null" :preload="preload" controls></audio>
 
       <UiTooltip :text="$t('音声をダウンロード')">
         <UiButton
@@ -18,13 +18,12 @@
       </UiTooltip>
     </div>
 
-    <figcaption v-if="description" class="timeline-audio-player__description" dir="auto">
-      {{ description }}
-    </figcaption>
+    <TimelineMediaDescription :description="description" class="timeline-audio-player__description" />
   </figure>
 </template>
 
 <script>
+import TimelineMediaDescription from '@/components/timeline/TimelineMediaDescription.vue';
 import UiButton from '@/components/ui/UiButton.vue';
 import UiIcon from '@/components/ui/UiIcon.vue';
 import UiTooltip from '@/components/ui/UiTooltip.vue';
@@ -34,11 +33,13 @@ const PRELOAD_VALUES = ['none', 'metadata', 'auto'];
 export default {
   name: 'TimelineAudioPlayer',
   components: {
+    TimelineMediaDescription,
     UiButton,
     UiIcon,
     UiTooltip,
   },
   props: {
+    descriptionId: { type: String, default: undefined },
     src: {
       type: String,
       required: true,

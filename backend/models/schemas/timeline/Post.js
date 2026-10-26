@@ -62,6 +62,7 @@ const PostSchema = new Schema({
     type: String,
     default: null,
   },
+  video_description: { type: String, default: null, maxlength: 2000 },
   video_name: {
     type: String,
     default: null,
@@ -98,6 +99,7 @@ const PostSchema = new Schema({
     type: [ReplySchema],
     default: [],
   },
+  alternative_reactions: { type: [ReactionSchema], default: [] },
   reactions: {
     type: [ReactionSchema],
     default: [],

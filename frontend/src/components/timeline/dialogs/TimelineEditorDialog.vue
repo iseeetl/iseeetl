@@ -5,7 +5,7 @@
     :open="visible"
     :title-id="titleId"
     :initial-focus="initialFocus"
-    :close-on-escape="!interactionBlocked"
+    :close-on-escape="!interactionBlocked && !escapeBlocked"
     :close-on-backdrop="!interactionBlocked"
     :aria-busy="sending ? 'true' : 'false'"
     @request-close="onCancel"
@@ -49,6 +49,9 @@
           <UiIcon name="close" />
           {{ cancelLabel }}
         </UiButton>
+        <div v-if="$slots['input-actions']" class="timeline-editor-dialog__input-actions mobile-item">
+          <slot name="input-actions" />
+        </div>
         <div class="timeline-editor-dialog__primary-actions" role="group" :aria-label="$t('editorActions.bottom')">
           <slot name="actions" :position="mobileLayout ? 'bottom' : 'desktop'" />
         </div>
@@ -82,6 +85,7 @@ export default {
     UiProgress,
   },
   props: {
+    escapeBlocked: { type: Boolean, default: false },
     visible: {
       type: Boolean,
       required: true,
@@ -238,21 +242,36 @@ export default {
   :global(.timeline-editor-dialog .ui-dialog__actions) {
     display: flex;
     flex: 0 0 auto;
-    padding: 8px 16px max(8px, env(safe-area-inset-bottom));
+    padding: 4px 8px max(4px, env(safe-area-inset-bottom));
     background: #fff;
     border-top: 1px solid #ccc;
   }
+  .timeline-editor-dialog__actions { flex-wrap: nowrap; gap: 4px; }
+  .timeline-editor-dialog__input-actions { display: flex !important; flex: 0 0 auto; }
   .timeline-editor-dialog__primary-actions {
-    width: 100%;
-    display: flex;
-    flex-wrap: nowrap;
-    gap: 8px;
+    flex: 1 1 auto;
+    display: grid;
+    grid-auto-flow: column;
+    grid-auto-columns: minmax(44px, 1fr);
+    align-items: stretch;
+    gap: 4px;
   }
-  .timeline-editor-dialog__primary-actions > :deep(*) { flex: 1 1 0; }
-  .timeline-editor-dialog__primary-actions :deep(.ui-tooltip__anchor) { width: 100%; }
+  .timeline-editor-dialog__primary-actions > :deep(*) { flex: 1 1 0; min-width: 44px; }
+  .timeline-editor-dialog__primary-actions :deep(.ui-tooltip__anchor) { width: 100%; height: 100%; }
   .timeline-editor-dialog__primary-actions :deep(.ui-button) {
     width: 100%;
-    min-height: 48px;
+    height: 100%;
+    min-width: 44px;
+    min-height: 44px;
+    padding: 4px;
+    line-height: 1.15;
+    flex-direction: column;
+    gap: 0;
+    font-size: 12px;
   }
+  .timeline-editor-dialog__primary-actions :deep(.ui-icon) { display: inline-flex; flex-shrink: 0; font-size: 20px; width: 20px; height: 20px; line-height: 20px; }
+}
+@media screen and (max-width: 359px) {
+  .timeline-editor-dialog__primary-actions :deep(.composer-submit-label) { display: none; }
 }
 </style>

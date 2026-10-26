@@ -237,7 +237,7 @@ describe('画面ごとの表示スタイル', () => {
       expect(readSource(filePath)).to.include('class="transparent-dialog"');
     });
     expect(mobileStyle).to.match(/\.timeline-editor-dialog \.ui-dialog__actions\s*\{[^}]*display:\s*flex;[^}]*flex:\s*0 0 auto;[^}]*background:\s*#fff;/);
-    expect(editorStyle).to.match(/min-height:\s*48px;/);
+    expect(editorStyle).to.match(/min-height:\s*44px;/);
   });
 
   it('ギャラリーは暗い領域内に画像・動画全体を収め、操作を左右に分ける', () => {

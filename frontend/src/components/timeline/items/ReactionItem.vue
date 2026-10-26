@@ -9,22 +9,26 @@
     >
       <button
         @click="toggleReaction(reaction.type)"
-        :disabled="sending"
+        :disabled="sending || readOnly"
+        :aria-pressed="String(hasReacted(reaction.type))"
         :aria-label="
           $t('{count}件の{reactionType}があります', {
             count: formatCount(getReactionCount(reaction.type)),
-            reactionType: $t(reaction.type),
+            reactionType: reaction.label || $t(reaction.type),
           }, getReactionCount(reaction.type))
         "
       >
-        <img class="emoji-icon" :src="reaction.icon" :alt="$t(reaction.type)" aria-hidden="true" />
+        <img v-if="reaction.icon" class="emoji-icon" :src="reaction.icon" alt="" aria-hidden="true" /><span v-else aria-hidden="true">{{ reaction.emoji }} </span>
         <span class="reaction-count" aria-hidden="true">{{ formatCount(getReactionCount(reaction.type)) }}</span>
       </button>
     </div>
+    <span v-if="reactionError" role="alert">{{ $t('roomEmoji.failed') }}</span>
   </div>
 </template>
 
 <script>
+import { changeScopedReaction } from '@/api/scopedReactions';
+import { reactionChoicesWithHistory } from '@/features/timeline/roomEmoji';
 import chatApi from '@/api/chat';
 import { REACTION_TYPES } from '@/constants/reactionTypes';
 import { formatLocaleNumber } from '@/utils/numberFormat';
@@ -34,6 +38,9 @@ export default {
     timelineOperationReporter: { from: 'timelineOperationReporter', default: null },
   },
   props: {
+    readOnly: Boolean,
+    mediaKind: String,
+    targetLabel: String,
     reactions: {
       type: Array,
       required: true,
@@ -58,6 +65,7 @@ export default {
   data() {
     return {
       sending: false,
+      reactionError: false,
     };
   },
   computed: {
@@ -68,7 +76,7 @@ export default {
       return this.reactions.length > 0;
     },
     reactionTypes() {
-      return REACTION_TYPES;
+      return reactionChoicesWithHistory(this.$store.getters.roomEmojiChoices || REACTION_TYPES, this.reactions);
     },
   },
   methods: {
@@ -127,6 +135,7 @@ export default {
       }
     },
     async toggleReaction(reactionType) {
+      if (this.readOnly) return;
       if (!this.$store.getters.userIsLogin && !this.isGuestRulesAgreed) {
         if (this.requireGuestRules) {
           const ok = await this.requireGuestRules();
@@ -134,8 +143,8 @@ export default {
         }
       }
 
-      if (this.sending) return;
-      this.sending = true;
+      if (this.sending || (this.reactionTypes.find(x => x.type === reactionType)?.retired && !this.hasReacted(reactionType))) return;
+      this.sending = true; this.reactionError = false;
 
       try {
         const isUser = this.$store.getters.userId !== null;
@@ -145,10 +154,11 @@ export default {
               (r) => this.currentUserId === (r.user ? r.user._id || r.user : r.guest_id) && r.type === reactionType
             )._id
           : null;
-        const fixedReactionType = this.resolveFixedReactionType(reactionType);
+        const fixedReactionType = this.mediaKind ? null : this.resolveFixedReactionType(reactionType);
         const capturedOperation = fixedReactionType ? this.captureTimelineOperation() : null;
 
-        await chatApi.toggleReaction({
+        await (this.mediaKind || reactionType.startsWith('room:') ? changeScopedReaction : chatApi.toggleReaction)({
+          mediaKind:this.mediaKind,
           postId: this.postId,
           reactionType,
           replyId: this.replyId,
@@ -167,7 +177,7 @@ export default {
           });
         }
       } catch (error) {
-        void error;
+        void error; this.reactionError = true;
       } finally {
         this.sending = false;
       }

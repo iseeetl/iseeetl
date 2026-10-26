@@ -102,6 +102,7 @@ describe('floorQuickTextのサービス', () => {
         floor: 'f1',
         user: 'u1',
         order: 5,
+        is_emoji: false,
         title: 'hello',
         lang: 'ja',
         translations: [{ lang: 'en', content: 'HELLO' }],

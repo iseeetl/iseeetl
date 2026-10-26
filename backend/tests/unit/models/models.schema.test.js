@@ -1,3 +1,4 @@
+const syntheticMail = require('../../_helpers/syntheticMail');
 jest.mock('bcrypt', () => ({
   compare: jest.fn(),
   genSalt: jest.fn(),
@@ -89,7 +90,9 @@ describe('Chatのスキーマ', () => {
 
   test('子スキーマの制約を定義する', () => {
     const reactions = Chat.schema.path('reactions');
-    expect(reactions.schema.path('type').options.enum).toEqual(['いいね', '超いいね', '拍手', '笑顔', 'びっくり']);
+    const validateType = reactions.schema.path('type').options.validate;
+    for (const type of ['いいね', '超いいね', '拍手', '笑顔', 'びっくり', 'room:0123456789abcdef01234567']) expect(validateType(type)).toBe(true);
+    for (const type of ['', 'unknown', 'room:invalid']) expect(validateType(type)).toBe(false);
     expect(reactions.schema.path('guest_id').options.maxLength).toBe(36);
     expect(reactions.schema.path('guest_name').options.maxlength).toBe(20);
 
@@ -569,7 +572,7 @@ describe('UserTempのスキーマ', () => {
   test('コールバック形式のパスワード比較でbcrypt.compareを使う', () => {
     const cb = jest.fn();
     bcrypt.compare.mockImplementation((password, hash, done) => done(null, true));
-    const user = new UserTemp({ username: 'temp', mail: 't@example.com', password: 'hashed', token: 'tok' });
+    const user = new UserTemp({ username: 'temp', mail: syntheticMail('t'), password: 'hashed', token: 'tok' });
 
     user.comparePassword('pw', cb);
 
@@ -581,7 +584,7 @@ describe('UserTempのスキーマ', () => {
     const err = new Error('compare-fail');
     const cb = jest.fn();
     bcrypt.compare.mockImplementation((password, hash, done) => done(err));
-    const user = new UserTemp({ username: 'temp', mail: 't@example.com', password: 'hashed', token: 'tok' });
+    const user = new UserTemp({ username: 'temp', mail: syntheticMail('t'), password: 'hashed', token: 'tok' });
 
     user.comparePassword('pw', cb);
 

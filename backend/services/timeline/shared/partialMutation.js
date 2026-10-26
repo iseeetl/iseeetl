@@ -6,6 +6,7 @@ const TIMELINE_MUTABLE_FIELDS = [
   'image_name',
   'image_thumbnail_name',
   'image_caption',
+  'video_description',
   'video_name',
   'video_thumbnail_name',
   'video_subtitle_originalname',
@@ -23,6 +24,7 @@ const SUPPLEMENT_MUTABLE_FIELDS = [
   'image_name',
   'image_thumbnail_name',
   'image_caption',
+  'video_description',
   'video_name',
   'video_thumbnail_name',
   'video_subtitle_originalname',
@@ -35,6 +37,7 @@ const SUPPLEMENT_MUTABLE_FIELDS = [
 const SUPPLEMENT_MEDIA_VALIDATION_FIELDS = [
   'image_name',
   'image_thumbnail_name',
+  'video_description',
   'video_name',
   'video_thumbnail_name',
   'video_subtitle_originalname',
@@ -56,6 +59,7 @@ const hasOwn = (value, key) => Object.prototype.hasOwnProperty.call(value, key);
 // 認可後に取得した現在値へ指定された項目だけを重ね、検証・保存用の状態を作る。
 // HTTP入力を変換する側ではDBを参照せず、項目が指定されたかどうかを保持して渡す。
 function mergeTimelinePatch(current, patch, fields = TIMELINE_MUTABLE_FIELDS) {
+  require('./alternativeText').assertSnapshot(current, patch?.expected_media_text);
   return fields.reduce((result, field) => {
     const next = hasOwn(patch || {}, field) && patch[field] !== undefined
       ? patch[field]

@@ -160,7 +160,7 @@ describe('HTTPアプリの構成と結合動作', () => {
         MEDIA_PATH: mediaRoot, PROFILE_PATH: profileRoot, DIST_PATH: distWithIndex,
         VUE_APP_APPURL: ALLOWED_ORIGIN, CORS_ALLOWED_ORIGINS: origins,
       };
-      for (const key of ['OPENAI', 'GOOGLE_TRANSLATE', 'GOOGLE_LOGIN', 'LINE_LOGIN', 'ONESIGNAL', 'GOOGLE_ANALYTICS', 'MAIL_DELIVERY']) {
+      for (const key of ['GEMINI', 'OPENAI', 'GOOGLE_TRANSLATE', 'GOOGLE_LOGIN', 'LINE_LOGIN', 'ONESIGNAL', 'GOOGLE_ANALYTICS', 'MAIL_DELIVERY']) {
         env[`EXTERNAL_${key}_ENABLED`] = 'false';
       }
       const app = createApp({ io: ioStub, config: loadRuntimeConfig({ env }), logger: buildLogger() });

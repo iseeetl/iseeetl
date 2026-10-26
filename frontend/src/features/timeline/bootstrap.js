@@ -95,6 +95,7 @@ export const checkRoomAndRoles = async (ctx, { lifecycleGeneration = null } = {}
   ctx.$store.dispatch('doUpdateFloorTitle', { title: ctx.getTranslatedTitle(room.floor) });
   ctx.$store.dispatch('doUpdateFloorTargetLangs', { targetLangs: room.floor.target_langs });
 
+  ctx.$store.dispatch('doUpdateCollaborativeTextEditing', room.collaborative_text_editing === true);
   ctx.$store.dispatch('doUpdateRoomId', { id: room._id });
   ctx.$store.dispatch('doUpdateRoomTitle', { title: ctx.getTranslatedTitle(room) });
 
@@ -135,6 +136,7 @@ export const bootstrapRoomResources = async (ctx, room, { lifecycleGeneration = 
   const groups = Array.isArray(groupsRes) ? groupsRes : groupsRes?.docs || [];
   ctx.room.quickTextGroups = groups;
 
+  ctx.$store.commit('setRoomEmojiCatalog', null);
   ctx.room.quickTextItemsByGroup = Object.create(null);
   await Promise.all(
     groups.map(async (g) => {
@@ -148,6 +150,8 @@ export const bootstrapRoomResources = async (ctx, room, { lifecycleGeneration = 
       ctx.room.quickTextItemsByGroup[g._id] = items;
     })
   );
+
+  ctx.$store.commit('setRoomEmojiCatalog', { configured: groups.some(g => g.is_emoji), items: groups.filter(g => g.is_emoji).flatMap(g => ctx.room.quickTextItemsByGroup[g._id] || []) });
 
   if (ctx.$store.getters.userIsLogin) {
     const soundTagRes = await tagApi.soundTag.fetch({ floor_id: room.floor._id, room_id: room._id });

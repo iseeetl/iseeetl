@@ -153,6 +153,7 @@ describe('roomQuickTextのサービス', () => {
         room: 'r1',
         user: 'u1',
         order: 2,
+        is_emoji: false,
         title: 'hello',
         lang: 'ja',
         translations: [{ lang: 'en', content: 'HELLO' }],

@@ -19,7 +19,7 @@ const nullableString = (value, max) => {
 };
 const MEDIA = {
   image: { file_name: 'image_name', thumbnail_name: 'image_thumbnail_name', caption: 'image_caption' },
-  video: { file_name: 'video_name', thumbnail_name: 'video_thumbnail_name' },
+  video: { file_name: 'video_name', thumbnail_name: 'video_thumbnail_name', description: 'video_description' },
   audio: { file_name: 'audio_name', title: 'audio_title', description: 'audio_description' },
 };
 const SUBTITLE = { file_name: 'video_subtitle_name', original_name: 'video_subtitle_originalname' };
@@ -39,7 +39,7 @@ function mapMedia(media) {
     }
     object(group, [...Object.keys(mapping), ...(kind === 'video' ? ['subtitle'] : [])]);
     for (const [key, field] of Object.entries(mapping)) {
-      if (own(group, key)) result[field] = nullableString(group[key], key.endsWith('name') ? 255 : 200);
+      if (own(group, key)) result[field] = nullableString(group[key], key.endsWith('name') ? 255 : (key === 'title' ? 200 : MAX_SUPPLEMENT_UTF16_UNITS));
     }
     if (kind === 'video' && own(group, 'subtitle')) {
       if (group.subtitle === null) {
@@ -61,7 +61,7 @@ function mapTimelineRequest(params, body, operation, kind = 'post') {
   if (kind === 'replySupplement') scope.reply_id = id(params.reply_id);
   if (operation !== 'create') scope._id = id(params[kind === 'post' ? 'post_id' : kind === 'reply' ? 'reply_id' : 'supplement_id']);
   const supplement = kind === 'postSupplement' || kind === 'replySupplement';
-  const fields = ['content', 'lang', 'media', ...(supplement ? ['title', 'title_lang'] : ['room_tags', 'animation']), ...(kind === 'reply' ? ['notify_all'] : [])];
+  const fields = ['content', 'lang', 'media', ...(operation === 'update' ? ['expected_media_text'] : []), ...(supplement ? ['title', 'title_lang'] : ['room_tags', 'animation']), ...(kind === 'reply' ? ['notify_all'] : [])];
   object(body, operation === 'delete' ? [] : fields);
   if (operation === 'delete') return scope;
   const data = {};
@@ -89,6 +89,9 @@ function mapTimelineRequest(params, body, operation, kind = 'post') {
   if (own(body, 'notify_all')) {
     if (typeof body.notify_all !== 'boolean') invalid();
     data.notify_all = body.notify_all;
+  }
+  if (own(body, 'expected_media_text')) {
+    data.expected_media_text = require('../services/timeline/shared/alternativeText').validateSnapshot(body.expected_media_text);
   }
   if (own(body, 'media')) Object.assign(data, mapMedia(body.media));
   if (operation === 'create') {

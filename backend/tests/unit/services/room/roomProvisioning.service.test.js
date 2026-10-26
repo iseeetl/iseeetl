@@ -63,10 +63,10 @@ describe('ルームに付随するデータの作成', () => {
   test('フロア資源をルームへ複製してディレクトリを作る', async () => {
     FloorTag.find.mockResolvedValue([{ _id: 'tag-1', order: 1, name: 'Tag', lang: 'ja' }]);
     FloorQuickTextGroup.find.mockReturnValue({ lean: jest.fn().mockResolvedValue([
-      { _id: 'floor-group-1', order: 1, title: 'Group', lang: 'ja', translations: [] },
+      { _id: 'floor-group-1', order: 1, title: 'Group', is_emoji:true, lang: 'ja', translations: [] },
     ]) });
     FloorQuickTextItem.find.mockReturnValue({ lean: jest.fn().mockResolvedValue([
-      { group: 'floor-group-1', order: 1, label: 'Item', lang: 'ja', translations: [] },
+      { group: 'floor-group-1', order: 1, label: 'Item', emoji:'💡', lang: 'ja', translations: [] },
     ]) });
     RoomQuickTextGroup.create.mockResolvedValue([{ _id: 'room-group-1' }]);
     translationService.translateTag.mockResolvedValue([]);
@@ -95,8 +95,9 @@ describe('ルームに付随するデータの作成', () => {
       userId: 'user-1',
     });
     expect(mockCommitSettingInheritance).toHaveBeenCalledTimes(1);
+    expect(RoomQuickTextGroup.create).toHaveBeenCalledWith([expect.objectContaining({is_emoji:true})]);
     expect(RoomQuickTextItem.create).toHaveBeenCalledWith([
-      expect.objectContaining({ room: 'room-1', group: 'room-group-1', label: 'Item' }),
+      expect.objectContaining({ room: 'room-1', group: 'room-group-1', label: 'Item', emoji:'💡' }),
     ]);
     expect(fsPromises.mkdir).toHaveBeenCalledWith(
       '/test-fixtures/room-provisioning/floor-1/room-1',

@@ -1,6 +1,9 @@
 <template>
   <div role="group" class="media-input-group">
-    <UiTooltip :text="$t('画像データを添付する')">
+    <input ref="inputLibrary" type="file" accept="image/jpeg,image/png,video/mp4,video/quicktime,video/webm,.jpg,.jpeg,.png,.mp4,.mov,.webm" tabindex="-1" aria-hidden="true" style="display:none" :disabled="sending || recording" @change="handleSourceSelection($event, true)" />
+    <input ref="inputFile" type="file" accept="*/*" tabindex="-1" aria-hidden="true" style="display:none" :disabled="sending || recording" @change="handleSourceSelection($event, false)" />
+    <p v-if="sourceError" role="alert">{{ $t('composerSource.unsupported') }}</p>
+    <UiTooltip v-if="!hideChoices" :text="$t('画像データを添付する')">
       <UiButton
         class="media-button"
         appearance="text"
@@ -27,7 +30,7 @@
       style="display: none"
     />
 
-    <UiTooltip :text="$t('動画データを添付する')">
+    <UiTooltip v-if="!hideChoices" :text="$t('動画データを添付する')">
       <UiButton
         class="media-button"
         appearance="text"
@@ -53,7 +56,7 @@
       style="display: none"
     />
 
-    <UiTooltip :text="$t('音データを添付する')">
+    <UiTooltip v-if="!hideChoices" :text="$t('音データを添付する')">
       <UiButton
         class="media-button"
         appearance="text"
@@ -99,16 +102,16 @@
     <div class="edit-input-field" v-if="imageData">
       <UiField
         :control-id="mediaId('image_caption')"
-        counter
-        :label="`${$t('代替テキスト')} ${$t('200文字まで')}`"
+        counter stacked
+        :label="`${$t('代替テキスト')} ${$t('composerSource.textLimit', { count: descriptionLimit })}`"
         :invalid="imageCaptionError"
-        :error="imageCaptionError ? $t('200文字まで') : ''"
+        :error="imageCaptionError ? $t('composerSource.textLimit', { count: descriptionLimit }) : ''"
       >
         <template #default="{ controlAttrs }">
           <textarea
             v-bind="controlAttrs"
             data-testid="media-image-caption"
-            maxlength="200"
+            :maxlength="descriptionLimit"
             v-model.trim="localImageCaption"
             :disabled="sending || recording"
             @input="onImageCaptionChange"
@@ -169,6 +172,18 @@
       </div>
 
       <div class="edit-input-field" v-if="videoData">
+        <UiField :control-id="mediaId('video_description')" counter stacked :invalid="videoDescriptionError"
+          :error="videoDescriptionError ? $t('composerSource.textLimit', { count: 2000 }) : ''"
+          :label="`${$t('altText.heading')} ${$t('composerSource.textLimit', { count: descriptionLimit })}`">
+          <template #default="{ controlAttrs }">
+            <textarea v-bind="controlAttrs" data-testid="media-video-description" :maxlength="descriptionLimit"
+              :value="videoDescription" :disabled="sending || recording"
+              @input="$emit('video-description-change', $event.target.value)"></textarea>
+          </template>
+        </UiField>
+      </div>
+
+      <div class="edit-input-field" v-if="videoData">
         <UiButton
           appearance="filled"
           tone="primary"
@@ -226,7 +241,7 @@
                   @loadedmetadata.stop="onLoadedAudioData"
                   controls
                 ></audio>
-                <figcaption>{{ localAudioDescription }}</figcaption>
+
               </figure>
             </template>
             <template v-else>
@@ -253,38 +268,17 @@
 
         <div class="edit-input-field">
           <UiField
-            :control-id="mediaId('audio_title')"
-            counter
-            :label="`${$t('音声のタイトル')} ${$t('200文字まで')}`"
-            :invalid="audioTitleError"
-            :error="audioTitleError ? $t('200文字まで') : ''"
-          >
-            <template #default="{ controlAttrs }">
-              <textarea
-                v-bind="controlAttrs"
-                data-testid="media-audio-title"
-                maxlength="200"
-                v-model.trim="localAudioTitle"
-                :disabled="sending || recording"
-                @input="onAudioTitleChange"
-              ></textarea>
-            </template>
-          </UiField>
-        </div>
-
-        <div class="edit-input-field">
-          <UiField
             :control-id="mediaId('audio_description')"
-            counter
-            :label="`${$t('音声の説明')} ${$t('200文字まで')}`"
+            counter stacked
+            :label="`${$t('altText.heading')} ${$t('composerSource.textLimit', { count: descriptionLimit })}`"
             :invalid="audioDescriptionError"
-            :error="audioDescriptionError ? $t('200文字まで') : ''"
+            :error="audioDescriptionError ? $t('composerSource.textLimit', { count: descriptionLimit }) : ''"
           >
             <template #default="{ controlAttrs }">
               <textarea
                 v-bind="controlAttrs"
                 data-testid="media-audio-description"
-                maxlength="200"
+                :maxlength="descriptionLimit"
                 v-model.trim="localAudioDescription"
                 :disabled="sending || recording"
                 @input="onAudioDescriptionChange"
@@ -298,6 +292,8 @@
 </template>
 
 <script>
+import { SUPPLEMENT_CONTENT_LIMIT } from '@/features/timeline/supplementLength';
+import { isAllowedImageFile, isAllowedVideoFile, isAllowedAudioFile } from '@/constants/mediaConstants';
 import UiButton from '@/components/ui/UiButton.vue';
 import UiField from '@/components/ui/UiField.vue';
 import UiIcon from '@/components/ui/UiIcon.vue';
@@ -314,6 +310,7 @@ export default {
     'image-caption-change',
     'image-change',
     'remove-media',
+    'video-description-change',
     'video-change',
     'video-duration-change',
     'video-subtitle-change',
@@ -326,6 +323,7 @@ export default {
     UiTooltip,
   },
   props: {
+    hideChoices: { type: Boolean, default: false },
     idPrefix: { type: String, required: true },
 
     locked: { type: Boolean, default: false },
@@ -334,6 +332,8 @@ export default {
     imageCaption: { type: String, default: null },
     imageCaptionError: { type: Boolean, default: false },
 
+    videoDescription: { type: String, default: null },
+    videoDescriptionError: { type: Boolean, default: false },
     videoData: { type: String, default: null },
     videoSubtitleData: { type: String, default: null },
     videoSubtitleOriginalName: { type: String, default: null },
@@ -366,6 +366,8 @@ export default {
   },
   data() {
     return {
+      sourceError: false,
+      descriptionLimit: SUPPLEMENT_CONTENT_LIMIT,
       localImageCaption: this.imageCaption,
       localAudioTitle: this.audioTitle,
       localAudioDescription: this.audioDescription,
@@ -417,6 +419,22 @@ export default {
       return false;
     },
 
+    chooseSourceFile(library = false) {
+      if (this.sending || this.recording || this.guard()) return;
+      this.sourceError = false;
+      const input = library ? this.$refs.inputLibrary : this.$refs.inputFile;
+      input.value = ''; input.click();
+    },
+    handleSourceSelection(event, library) {
+      if (this.guard()) { event.target.value = ''; return; }
+      const file = event.target.files?.[0];
+      if (!file) return;
+      this.sourceError = false;
+      if (isAllowedImageFile(file)) this.$emit('image-change', file);
+      else if (isAllowedVideoFile(file)) this.$emit('video-change', file);
+      else if (!library && isAllowedAudioFile(file)) this.$emit('audio-change', file);
+      else this.sourceError = true;
+    },
     chooseImageFile() {
       if (this.guard()) return;
       this.$refs.inputImageFile.value = '';
@@ -516,6 +534,11 @@ export default {
 </script>
 
 <style scoped>
+.edit-input-field :deep(.ui-field__label) { position:static;display:block;margin-bottom:4px; }
+.edit-input-field :deep(.ui-field__counter) { position:static;display:block;height:auto;text-align:end; }
+.edit-input-field textarea { min-height:76px; }
+.audio-preview-wrapper figcaption { overflow-wrap:anywhere;max-width:100%; }
+
 .media-button {
   margin: 0;
   margin-inline-end: 8px;

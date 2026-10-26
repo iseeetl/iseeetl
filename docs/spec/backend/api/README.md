@@ -34,3 +34,11 @@
 - [スパム](spam.md)
 - [キック済みユーザ](kicked-user.md)
 - [v1 API](v1.md)
+
+添付画像の代替テキスト・音の説明の上限は2,000文字、音のタイトルは200文字です。[投稿リソース](timeline-post-resources.md)と[v1 API](v1.md)に保存形式と制限を記載しています。
+
+- 代替テキストの共同編集APIと `expected_media_text`：[仕様](../../frontend/shared-alternative-text.md#apiと互換性)。ローカル試作。
+
+共同編集のルーム設定 `collaborative_text_editing`（既定オフ）と文章専用の権限制御を追加。仕様の正本は ルートから `docs/spec/frontend/shared-alternative-text.md` を参照。フロア単位の編集者・履歴復元は今回未実装。
+
+- ローカル追加: [対象別リアクションAPI](timeline-post-resources.md#対象別リアクションローカル試作) と [絵文字の仕様](../../frontend/update-notices-emoji.md)。
