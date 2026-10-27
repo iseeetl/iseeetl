@@ -1,5 +1,5 @@
 <template>
- <section v-if="notices.length" class="update-notices" :aria-label="$t('updateNotice.title')">
+ <section v-if="notices.length && !activityController?.center()?.enabled" class="update-notices" :aria-label="$t('updateNotice.title')">
   <div v-if="pendingCount" class="pending" role="status"><span>{{ $t('updateNotice.pending',{count:pendingCount}) }}</span><button @click="show">{{ $t('updateNotice.show') }}</button></div>
   <article v-for="group in groups" :key="group.postId" class="update-card">
    <strong>{{ $t('updateNotice.updated') }}</strong><time>{{ new Date(group.at).toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'}) }}</time>
@@ -12,6 +12,7 @@
 <script>
 import { noticeVisible } from '@/features/timeline/updateNotices';
 export default {
+ inject: { activityController: { default: null } },
  props:{filter:{type:Object,required:true},roomId:String,matches:Function},
  data(){return{shown:[]};},
  computed:{

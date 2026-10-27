@@ -323,3 +323,7 @@ E2Eには`backend/.env.e2e.example`を使い、`backend/.env.e2e`へコピーし
 - `backend/tests/unit/bootstrap/runtimeConfig.test.js`
 - `backend/tests/unit/bootstrap/startServer.test.js`
 - `backend/tests/unit/scripts/e2e-environment.test.js`
+
+## アクティビティ通知
+
+`ACTIVITY_NOTIFICATIONS_ENABLED` は初期値false。trueで通知履歴・購読・新しい通知設定とワーカーを有効にします。既存のOneSignal設定と端末側の許可は別途必要です。停止しても通知履歴は削除しません。保存項目・互換移行・検証方法は[通知仕様](activity-notifications.md)を参照してください。

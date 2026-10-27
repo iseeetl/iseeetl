@@ -15,6 +15,7 @@ async function notifyReplyPostAuthor({
   excludeUserId,
   logLabel = 'reply-notify (post author)',
 }) {
+  if (process.env.ACTIVITY_NOTIFICATIONS_ENABLED === 'true') return [];
   try {
     const postAuthorId = foundChat?.user ? foundChat.user.toString() : null;
     if (!postAuthorId) return;
@@ -52,6 +53,7 @@ async function notifyReplyRepliers({
   buildContents,
   logLabel = 'reply-notify (repliers)',
 }) {
+  if (process.env.ACTIVITY_NOTIFICATIONS_ENABLED === 'true') return [];
   try {
     // 投稿者への重複通知と自分への通知を避けるため、投稿者と今回の返信者を通知先から除く。
     const replierIds = new Set();

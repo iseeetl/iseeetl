@@ -117,7 +117,7 @@
           <!-- 返信は新しい順に表示する。 -->
           <template v-for="(reply, rIdx) in focusPost.replies.slice().reverse()" :key="reply._id">
             <AnimationReplyItem
-              v-if="!hideReply && reply.animation !== null"
+              v-if="(!hideReply || isActivityReply(reply)) && reply.animation !== null && !isActivityReply(reply)"
               :postId="focusPost._id"
               :post="focusPost"
               :reply="reply"
@@ -130,7 +130,7 @@
               @animationClicked="onAnimationClicked"
             />
             <ReplyItem
-              v-else-if="!hideReply"
+              v-else-if="(!hideReply || isActivityReply(reply))"
               :idPrefix="itemIdPrefix"
               :post="focusPost"
               :reply="reply"
@@ -197,7 +197,7 @@
                 />
               </template>
 
-              <template v-else-if="post.animation !== null">
+              <template v-else-if="post.animation !== null && !isActivityPost(post)">
                 <AnimationPostItem
                   :key="post._id"
                   :post="post"
@@ -215,7 +215,7 @@
               <template v-else>
                 <template v-for="(reply, rIdx) in post.replies.slice().reverse()" :key="reply._id">
                   <AnimationReplyItem
-                    v-if="!hideReply && reply.animation !== null"
+                    v-if="(!hideReply || isActivityReply(reply)) && reply.animation !== null && !isActivityReply(reply)"
                     :postId="post._id"
                     :post="post"
                     :reply="reply"
@@ -230,7 +230,7 @@
                     @animationClicked="onAnimationClicked"
                   />
                   <ReplyItem
-                    v-else-if="!hideReply"
+                    v-else-if="(!hideReply || isActivityReply(reply))"
                     :idPrefix="itemIdPrefix"
                     :post="post"
                     :reply="reply"
@@ -299,7 +299,7 @@
               />
             </template>
 
-            <template v-else-if="post.animation && (rangeIsAll || doesDataMatchConditions(post, filter.conditions))">
+            <template v-else-if="post.animation && !isActivityPost(post) && (rangeIsAll || doesDataMatchConditions(post, filter.conditions))">
               <AnimationPostItem
                 :key="post._id"
                 :post="post"
@@ -318,8 +318,8 @@
               <template v-for="(reply, rIdx) in post.replies.slice().reverse()" :key="reply._id">
                 <AnimationReplyItem
                   v-if="
-                    !hideReply &&
-                    reply.animation &&
+                    (!hideReply || isActivityReply(reply)) &&
+                    reply.animation && !isActivityReply(reply) &&
                     shouldShowReply(
                       rangeIsAll || doesDataMatchConditions(post, filter.conditions),
                       reply,
@@ -341,7 +341,7 @@
                 />
                 <ReplyItem
                   v-else-if="
-                    !hideReply &&
+                    (!hideReply || isActivityReply(reply)) &&
                     shouldShowReply(
                       rangeIsAll || doesDataMatchConditions(post, filter.conditions),
                       reply,
@@ -368,7 +368,7 @@
               </template>
 
               <PostItem
-                v-if="rangeIsAll || doesDataMatchConditions(post, filter.conditions)"
+                v-if="isActivityPost(post) || rangeIsAll || doesDataMatchConditions(post, filter.conditions)"
                 :key="post._id"
                 :idPrefix="itemIdPrefix"
                 :post="post"
@@ -454,6 +454,8 @@ export default {
     'toggleColumnSpeech',
   ],
   name: 'TimelineColumn',
+  inject: { activityNavigationTarget: { default: null } },
+  provide() { return { activityTemporaryTarget: () => this.activityTarget }; },
   components: {
     ReplyNotificationItem,
     ReactionNotificationItem,
@@ -550,6 +552,7 @@ export default {
     },
   },
   computed: {
+    activityTarget() { const target = this.activityNavigationTarget?.(); return target?.columnIndex === this.index ? target : null; },
     isConditionless() {
       return this.filter && this.filter.conditions === null;
     },
@@ -590,13 +593,16 @@ export default {
       return this.normalPosts.filter((post) => {
         // 通知カードは条件なしカラムにだけ表示する。
         if (post.replyNotification || post.reactionNotification) return this.isConditionless;
-        return this.matchesPostConditions(post);
+        return this.isActivityPost(post) || this.matchesPostConditions(post);
       });
     },
   },
   methods: {
+    isActivityPost(post) { return !!this.activityTarget?.postId && this.activityTarget.postId === post?._id; },
+    isActivityReply(reply) { return !!this.activityTarget?.replyId && this.activityTarget.replyId === reply?._id; },
     // 投稿全体を表示する設定では、親投稿が条件に合えば返信も表示する。
     shouldShowReply(postMatched, reply, cond) {
+      if (this.isActivityReply(reply)) return true;
       if (this.rangeIsAll && postMatched) return true;
       return this.doesDataMatchConditions(reply, cond);
     },
@@ -621,6 +627,7 @@ export default {
     },
 
     checkTagFilter(post) {
+      if (this.isActivityPost(post)) return true;
       if (this.globalConditions) {
         return this.matchesPostConditions(post);
       }

@@ -64,22 +64,24 @@ import chatApi from '@/api/chat';
 import { mediaText, mediaTextSnapshot } from '@/features/timeline/alternativeText';
 import { supplementPreview } from '@/features/timeline/supplementLength';
 export default {
+  inject: { activityTemporaryTarget: { default: null } },
   components: { ReactionPicker, ReactionItem, UiIcon, UiTooltip, UiButton, UiField, BaseEditDialog },
   props: { item: { type: Object, required: true }, kind: { type: String, required: true },
     descriptionId: String, postId: String, replyId: String, supplementId: String,
     readOnly: { type: Boolean, default: false }, roomId: String },
   setup() { return { bodyId: `alternative-text-${useId()}` }; },
-  data() { return { picker: false, opened: false, expanded: false, editing: false, saving: false,
+  data() { return { picker: false, opened: false, expanded: this.activityTemporaryTarget?.()?.media === this.kind && (this.activityTemporaryTarget?.()?.supplementId || this.activityTemporaryTarget?.()?.replyId || this.activityTemporaryTarget?.()?.postId) === this.item._id, editing: false, saving: false,
     draft: '', expected: null, error: '', status: '', conflicted: false, savedItem: null }; },
   computed: {
+    selectedActivityTarget() { const target = this.activityTemporaryTarget?.(); return target?.media === this.kind && (target.supplementId || target.replyId || target.postId) === this.item._id ? target : null; },
     altReactions() { return (this.item.alternative_reactions || []).filter(r => r.media_kind === this.kind); },
     current() { return this.savedItem || this.item; },
     text() { return mediaText(this.current, this.kind); },
-    inline() { return this.$store.getters.displayAlternativeText !== false; },
+    inline() { const target = this.activityTemporaryTarget?.(); return (target?.media === this.kind && (target.supplementId || target.replyId || target.postId) === this.item._id) || this.$store.getters.displayAlternativeText !== false; },
     editable() { return !this.readOnly && !!this.postId && canEditSharedText(this.current, this.$store.getters); },
     effectiveRoom() { return this.roomId || this.$store.getters.roomId; },
   },
-  watch: { item() { this.savedItem = null; }, text() { this.expanded = false; }, inline() { this.opened = false; } },
+  watch: { selectedActivityTarget: { immediate: true, handler(value) { if (value) { this.expanded = true; this.opened = true; } } }, item() { this.savedItem = null; }, text() { this.expanded = !!this.selectedActivityTarget; }, inline() { this.opened = false; } },
   methods: {
     toggleReactionPicker() {
       const shouldOpen = !this.picker;

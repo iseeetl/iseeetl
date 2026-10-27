@@ -15,6 +15,7 @@ const createEnsureJsonWebToken = ({ setMediaAccessCookie = true } = {}) =>
     try {
       const { payload } = await authenticateUserToken(token);
       req.jwtPayload = payload;
+      require('../services/activity/context').setActor(`user:${payload.user_id}`);
       if (setMediaAccessCookie) setUserMediaAccessCookie(res, token);
       return next();
     } catch (err) {

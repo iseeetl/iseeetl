@@ -74,6 +74,7 @@ const startServer = async ({
     }
   });
   logStartup({ capabilities: config.capabilities, port, consoleRef });
+  require('../services/activity/runtime').startActivityWorker({ server: runtime.server, logger: consoleRef });
   registerShutdown({
     connection: database.connection,
     server: runtime.server,

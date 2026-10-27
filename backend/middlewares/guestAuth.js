@@ -11,6 +11,7 @@ module.exports = (req, res, next) => {
     if (!req.body) req.body = {};
     req.body.guest_id = guestId;
     req.guest = { id: guestId };
+    require('../services/activity/context').setActor(`guest:${guestId}`);
     setGuestMediaAccessCookie(res, token);
     return next();
   } catch (err) {

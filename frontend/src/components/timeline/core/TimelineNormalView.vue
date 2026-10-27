@@ -1,6 +1,7 @@
 <template>
   <div class="view">
     <TimelineHeader v-bind="headerProps" ref="timelineHeaderRef" v-on="headerEvents" />
+      <ActivityBanner />
 
     <div class="socket-status" v-if="showSocketStatus" data-testid="timeline-socket-status">
       <span class="socket-status__text">{{ socketStatusMessage }}</span>
@@ -44,6 +45,7 @@
 </template>
 
 <script>
+import ActivityBanner from '@/components/timeline/activity/ActivityBanner.vue';
 import TimelineColumns from '@/components/timeline/core/TimelineColumns.vue';
 import TimelineHeader from '@/components/timeline/core/TimelineHeader.vue';
 import TimelineTabs from '@/components/timeline/core/TimelineTabs.vue';
@@ -52,6 +54,7 @@ import TimelineMobilePostButtons from '@/components/timeline/core/TimelineMobile
 export default {
   name: 'TimelineNormalView',
   components: {
+    ActivityBanner,
     TimelineColumns,
     TimelineHeader,
     TimelineTabs,

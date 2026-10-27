@@ -46,7 +46,7 @@ describe('機能の有効状態の管理', () => {
   it('初期状態は全機能falseかつidleである', () => {
     expect(createCapabilitiesState()).to.deep.equal({
       status: 'idle',
-      googleLoginClientId: null,
+      googleLoginClientId: null, oneSignalAppId: null,
       values: createCapabilityValues(),
     });
     expect([...CAPABILITY_KEYS]).to.deep.equal([...EXPECTED_CAPABILITY_KEYS]);
@@ -85,7 +85,7 @@ describe('機能の有効状態の管理', () => {
     const result = await capabilitiesDomain.actions.doLoadCapabilities(createActionContext(state));
 
     expect(result).to.deep.equal(normalizedValues);
-    expect(state.capabilities).to.deep.equal({ status: 'ready', googleLoginClientId: null, values: normalizedValues });
+    expect(state.capabilities).to.deep.equal({ status: 'ready', googleLoginClientId: null, oneSignalAppId: null, values: normalizedValues });
   });
 
   it('8項目を取得した場合は準備完了として応答値を保存する', async () => {
@@ -96,7 +96,7 @@ describe('機能の有効状態の管理', () => {
     const result = await capabilitiesDomain.actions.doLoadCapabilities(createActionContext(state));
 
     expect(result).to.deep.equal(values);
-    expect(state.capabilities).to.deep.equal({ status: 'ready', googleLoginClientId: null, values });
+    expect(state.capabilities).to.deep.equal({ status: 'ready', googleLoginClientId: null, oneSignalAppId: null, values });
   });
 
   it('通信失敗時はエラーと全falseを保存して例外を送出しない', async () => {
@@ -106,7 +106,7 @@ describe('機能の有効状態の管理', () => {
     const result = await capabilitiesDomain.actions.doLoadCapabilities(createActionContext(state));
 
     expect(result).to.deep.equal(createCapabilityValues());
-    expect(state.capabilities).to.deep.equal({ status: 'error', googleLoginClientId: null, values: createCapabilityValues() });
+    expect(state.capabilities).to.deep.equal({ status: 'error', googleLoginClientId: null, oneSignalAppId: null, values: createCapabilityValues() });
   });
 
   it('スキーマ不正時もエラーと全falseへ戻す', async () => {
@@ -115,7 +115,7 @@ describe('機能の有効状態の管理', () => {
 
     await capabilitiesDomain.actions.doLoadCapabilities(createActionContext(state));
 
-    expect(state.capabilities).to.deep.equal({ status: 'error', googleLoginClientId: null, values: createCapabilityValues() });
+    expect(state.capabilities).to.deep.equal({ status: 'error', googleLoginClientId: null, oneSignalAppId: null, values: createCapabilityValues() });
   });
 
   it('GoogleとOneSignalはバックエンド capabilityとフロントエンド公開IDのANDで判定する', () => {
@@ -237,3 +237,11 @@ describe('Google login runtime public configuration', () => {
     expect(capabilitiesDomain.getters.googleLoginClientId(state)).to.equal(id);
   });
 });
+
+  it('uses the runtime public OneSignal ID and clears it on reload', () => {
+    const state={capabilities:createCapabilitiesState()};capabilitiesDomain.mutations.setCapabilitiesReady(state,{...createCapabilityValues(),oneSignalPush:true});
+    capabilitiesDomain.mutations.setOneSignalAppId(state,'public-test-app');
+    expect(capabilitiesDomain.getters.oneSignalPushAvailable(state)).to.equal(true);
+    expect(capabilitiesDomain.getters.oneSignalAppId(state)).to.equal('public-test-app');
+    capabilitiesDomain.mutations.startCapabilitiesLoad(state);expect(state.capabilities.oneSignalAppId).to.equal(null);
+  });

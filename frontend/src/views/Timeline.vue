@@ -29,6 +29,12 @@
     />
 
     <div v-else class="view-wrapper">
+      <div v-if="activityNavigation.target" class="activity-location">
+        <span>{{ $t('activity.inTimeline') }}</span>
+        <button v-if="activityNavigation.target.replyId || activityNavigation.target.supplementId || activityNavigation.target.media" type="button" @click="focusActivityParent">{{ $t('activity.parent') }}</button>
+        <button type="button" @click="returnToActivity">{{ $t('activity.back') }}</button>
+      </div>
+      <p id="activity-location-status" class="screen-reader-only" role="status" aria-atomic="true">{{ activityNavigation.label }}</p>
       <TimelineNormalView
         ref="normalViewRef"
         :isSocketConnect="infra.isSocketConnect"
@@ -58,6 +64,8 @@
       />
     </div>
 
+    <ActivityCenter :navigate-to-target="navigateToActivity" ref="activityCenter" :room-id="$store.getters.roomId" :room-title="room.title" :tags="room.tags" :filters="timeline.filters" :global-query="ui.queryFilters.globalConditions" :current-tab-index="ui.currentTabIndex" :matches-post="(post) => matchesAny(post, timeline.filters[ui.currentTabIndex]?.conditions)"
+      @reply="post => showEditReplyDialog(post, null)" @gallery="showGalleryDialog" />
     <TimelineDialogs
       ref="dialogsRef"
       :dialogs="dialogs"
@@ -68,6 +76,8 @@
 </template>
 
 <script>
+import { shallowReactive } from 'vue';
+import { activityNavigationMethods } from '@/features/timeline/activityNavigation';
 import { getEmptyTimelineMessage, refreshTimelineEmptyState, markTimelineHasPosts } from '@/features/timeline/emptyState';
 import chatApi from '@/api/chat';
 import { parseColumnOptions, columnOptionsSignature, columnIdentity, initialColumnIndex } from '@/features/timeline/postDefaults';
@@ -124,6 +134,7 @@ import {
 import TimelineArView from '@/components/timeline/core/TimelineArView.vue';
 import TimelineNormalView from '@/components/timeline/core/TimelineNormalView.vue';
 import TimelineDialogs from '@/components/timeline/core/TimelineDialogs.vue';
+import ActivityCenter from '@/components/timeline/activity/ActivityCenter.vue';
 
 export default {
   name: 'Timeline',
@@ -138,11 +149,13 @@ export default {
     },
   },
   setup() {
-    return { timelineLifecycle: createTimelineLifecycleGuard() };
+    return { timelineLifecycle: createTimelineLifecycleGuard(), activityState: shallowReactive({ center: null }), activityNavigation: shallowReactive({ target: null, label: '' }) };
   },
   provide() {
     // 子孫のリアクション部品でも、ゲスト利用ルールへの同意を待ってから操作を続けられるようにする。
     return {
+      activityController: { center: () => this.activityState.center },
+      activityNavigationTarget: () => this.activityNavigation.target,
       requireGuestRules: () => this.ensureGuestRules(),
       timelineOperationReporter: Object.freeze({
         capture: () => this.captureTimelineOperation(),
@@ -151,6 +164,7 @@ export default {
     };
   },
   components: {
+    ActivityCenter,
     TimelineArView,
     TimelineNormalView,
     TimelineDialogs,
@@ -170,6 +184,7 @@ export default {
     this.initTimeLine();
   },
   mounted() {
+    this.activityState.center = this.$refs.activityCenter;
     mountTimelineView(this);
   },
   beforeUnmount() {
@@ -258,6 +273,7 @@ export default {
     },
   },
   watch: {
+    '$store.getters.roomId'() { this.clearActivityLocation(); },
     '$store.getters.userEyeFriendlyMode'() {
       this.applyEyeFriendlyPreference(this.$route.query);
       this.applyStoredTimelineSettings();
@@ -317,6 +333,7 @@ export default {
     },
   },
   methods: {
+    ...activityNavigationMethods,
     ...timelineDialogMethods,
     ...timelineFilterMethods,
     ...timelinePresentationMethods,
@@ -1289,6 +1306,8 @@ export default {
 }
 
 .view-wrapper {
+  display: flex;
+  flex-direction: column;
   height: 100%;
   min-height: 0;
   overflow: hidden;
@@ -1520,4 +1539,12 @@ audio {
 .ar-mode-wrapper .filter-timeline-title {
   display: none !important;
 }
+</style>
+
+<style scoped>
+.view-wrapper > :deep(.view){flex:1;min-height:0}
+.activity-location{flex-shrink:0;display:flex;align-items:center;flex-wrap:wrap;gap:8px;padding:6px 12px;background:#253148;color:#fff;font-size:14px}
+.activity-location button{font:inherit;color:inherit;background:transparent;border:1px solid #acbad2;border-radius:4px;min-height:32px;padding:4px 8px;cursor:pointer}
+.activity-location button:focus-visible{outline:3px solid #ffdb67;outline-offset:2px}
+:deep(.activity-timeline-highlight){outline:3px solid #e6bd24;outline-offset:-3px;scroll-margin-block:12px}
 </style>

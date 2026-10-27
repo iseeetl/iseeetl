@@ -29,7 +29,7 @@ const initializeApplicationState = async (store, initializeOneSignalSdkImpl, ana
   await store.dispatch('doLoadCapabilities').catch(swallowBootstrapError('doLoadCapabilities'));
   startAnalyticsInitialization(analytics);
   if (store.getters?.oneSignalPushAvailable === true) {
-    const initialized = await initializeOneSignalSdkImpl()
+    const initialized = await initializeOneSignalSdkImpl(store.getters?.oneSignalAppId)
       .then((result) => result === true)
       .catch((error) => {
         swallowBootstrapError('initializeOneSignalSdk')(error);

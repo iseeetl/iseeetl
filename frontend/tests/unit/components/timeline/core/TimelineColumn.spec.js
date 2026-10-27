@@ -378,3 +378,9 @@ it('passes the clicked column through reply creation and editing', () => {
     [{ _id: 'p' }, null, null, 2], [{ _id: 'p' }, { _id: 'r' }, null, 2],
   ]);
 });
+
+it('keeps replies attached to the root without forwarding a direct target', () => {
+  const wrapper = createWrapper({ props: { index: 2 } });
+  wrapper.vm.onShowEditReplyDialog({ _id: 'p' }, null, null, 'r');
+  expect(wrapper.emitted().showEditReplyDialog).toEqual([[{_id:'p'},null,null,2]]);
+});

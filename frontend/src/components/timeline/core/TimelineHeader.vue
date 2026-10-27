@@ -32,6 +32,7 @@
     </UiTooltip>
 
     <div class="room-header-button-wrapper">
+      <ActivityButton />
       <UiTooltip v-if="isMemberOnly && isRoomMember" :text="$t('ルームメンバー脱退')">
         <UiButton
           appearance="filled"
@@ -88,6 +89,7 @@
 </template>
 
 <script>
+import ActivityButton from '@/components/timeline/activity/ActivityButton.vue';
 import TimelineParticipantCount from '@/components/timeline/core/TimelineParticipantCount.vue';
 import UiButton from '@/components/ui/UiButton.vue';
 import UiIcon from '@/components/ui/UiIcon.vue';
@@ -103,6 +105,7 @@ export default {
   ],
   name: 'TimelineHeader',
   components: {
+    ActivityButton,
     TimelineParticipantCount,
     UiButton,
     UiIcon,
@@ -193,7 +196,7 @@ export default {
 }
 
 @media screen and (max-width: 481px) {
-  .room-header .ui-button {
+  .room-header :deep(.ui-button) {
     padding: 0px !important;
     margin: 8px 4px !important;
     height: 32px !important;

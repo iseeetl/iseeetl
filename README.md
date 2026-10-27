@@ -104,3 +104,7 @@ Googleログインの公開クライアントIDはサーバーの設定から取
 [添付・画像解像度とPDFページ選択](docs/spec/frontend/native-media-picker.md)は、画像を長辺3,000px・送信3MiB以内へ調整し、PDFの選択ページを端末内で画像化します。Androidでは添付の中から写真一覧・撮影・ファイルを選択します。iPhoneとPCはOSの選択画面を使います。
 
 一覧画像は400pxを先に表示し、表示サイズと画素密度に応じて認可付き800pxプレビューへ切り替えます。拡大時のみ保存画像を取得し、説明欄は画像下へ配置します。仕様と検証方法は[メディア選択](docs/spec/frontend/native-media-picker.md)を参照してください。
+
+- [通知とアクティビティ](docs/spec/backend/activity-notifications.md)：3対象それぞれの上部・プッシュ・履歴に範囲を指定します。アクティビティの投稿タップは現在のタブを優先し、表示できない場合のみタイムラインへ移動します。schemaVersion 3の変更・互換移行・検証方法は通知仕様を参照。実機の通知受信確認は、自動テストの結果と区別します。
+
+Webプッシュの公開アプリIDは[機能設定API](docs/spec/backend/api/capabilities.md#onesignalの公開設定)から取得し、ビルドへの公開ID指定がない場合も既存のサーバー設定を利用します。

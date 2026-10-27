@@ -28,3 +28,5 @@
 - SPA とメディアを配信し、通知・翻訳・文字起こしなどの外部連携を仲介する
 
 Googleログインの公開クライアントID取得は[機能設定API](api/capabilities.md#googleログインの公開設定)で説明しています。
+
+- [通知とアクティビティ](activity-notifications.md)

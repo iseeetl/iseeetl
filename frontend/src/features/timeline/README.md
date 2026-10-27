@@ -11,3 +11,7 @@
 `mediaPicker.js`は添付入口、`pdfFirstPage.js`は選択したPDFページの画像化、`imageAttachment.js`は画像を長辺3,000px・送信3MiB以内へ変換する共通処理を提供する。`prepareImageAttachment(file)`を投稿・返信・付加情報で共用し、PDFは`encodeImageAttachment(canvas)`で事前変換する。使い方・上限・取消し・検証は[メディア選択の仕様](../../../../docs/spec/frontend/native-media-picker.md)を参照。
 
 `timelineUtil.constructImagePath`は400pxサムネイルを優先し、`constructImagePreviewPath`は認可付き800px版を返します。共通`TimelineImage`が表示サイズ・画素密度・画面内状態を監視し、必要時のみ800pxへ切り替えます。拡大時は保存画像を取得し、説明欄は画像下へ配置します。[仕様と検証](../../../../docs/spec/frontend/native-media-picker.md)を参照してください。
+
+通知履歴・購読・既読は[Activity UI](../../components/timeline/activity/README.md)、仕様は[通知仕様](../../../../docs/spec/backend/activity-notifications.md)を参照してください。
+
+`activityNavigation.js` の `canShowActivityInColumn` は更新対象を現在のタブで表示できるか判定し、条件に合う場合はそのタブで、合わない場合のみ条件なしタイムラインでスクロールする。未読込なら既存の取得処理で補う。表示順・保存設定・フォーカス・動きを減らす設定を維持する。通知設定と移行は[通知仕様](../../../../docs/spec/backend/activity-notifications.md)を参照。

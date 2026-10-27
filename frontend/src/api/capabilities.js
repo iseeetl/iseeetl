@@ -14,7 +14,10 @@ const fetchGoogleLoginConfig = () =>
     skipGuestRefresh: true,
   });
 
+const fetchOneSignalConfig = () => apiClient.get('/api/capabilities/onesignal', { timeout: CAPABILITIES_REQUEST_TIMEOUT_MS, skipGuestRefresh: true });
+
 export default {
+  fetchOneSignalConfig,
   fetchGoogleLoginConfig,
   fetchCapabilities,
 };

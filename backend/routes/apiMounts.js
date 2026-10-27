@@ -34,6 +34,8 @@ const buildApiMounts = ({ io, capabilities, analyticsConfig, logRequest } = {}) 
   const roomAIAnalysisSettingRoute = require('./room/roomAIAnalysisSetting.route');
 
   return [
+    { path: '/api', middlewares: [require('../services/activity/context').middleware] },
+    { path: '/api', middlewares: [require('./activity.route')()] },
     { path: '/api/capabilities', middlewares: [capabilitiesRouteFactory({ capabilities })] },
     {
       path: '/api/analytics',
