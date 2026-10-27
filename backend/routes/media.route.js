@@ -1,4 +1,5 @@
 const express = require('express');
+const { getImagePreview } = require('../services/media/imagePreview');
 const path = require('path');
 
 const AppError = require('../utils/appError');
@@ -45,6 +46,17 @@ module.exports = ({ mediaRoot }) => {
     }
     setStaticMediaHeaders(res);
     res.setHeader('Cache-Control', 'private, no-store');
+    if (req.query.preview !== undefined) {
+      if (req.query.preview !== '800' || !/\.(jpe?g|png)$/i.test(fileName)) {
+        return next(new AppError({ code: 'INVALID_PARAMS' }));
+      }
+      return getImagePreview(path.join(root, fileName)).then(({ buffer, type }) => {
+        res.type(type).send(buffer);
+      }).catch((error) => {
+        if (error.code === 'ENOENT') return next(new AppError({ code: 'NOT_FOUND' }));
+        return next(error);
+      });
+    }
     return res.sendFile(fileName, { root, dotfiles: 'deny', acceptRanges: true }, (error) => {
       if (!error) return;
       if (error.status === 404 || error.code === 'ENOENT') {

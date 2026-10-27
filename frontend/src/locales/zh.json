@@ -943,11 +943,12 @@
     "bottom": "底部发送操作"
   },
   "composerSource": {
+    "sound": "声音",
     "library": "照片图库（照片和视频）",
     "libraryShort": "图库",
-    "camera": "相机",
-    "file": "添加文件",
-    "fileShort": "文件",
+    "camera": "拍摄",
+    "file": "附加照片、视频或声音文件",
+    "fileShort": "附件",
     "record": "录制声音",
     "recordShort": "录音",
     "stop": "停止",
@@ -955,13 +956,15 @@
     "video": "视频",
     "takePhoto": "拍照",
     "recordVideo": "录制视频",
-    "cameraError": "无法使用相机。请检查设备权限，或使用图库或文件。",
+    "cameraError": "无法使用摄像头。请检查设备权限，或使用图库或文件。",
     "retry": "重试",
     "loading": "正在启动相机",
     "unsupported": "请选择支持的图片、视频或音频文件。",
     "switchCamera": "切换相机",
     "elapsed": "录制中：{seconds} / 30秒",
-    "textLimit": "最多{count}个字符"
+    "textLimit": "最多{count}个字符",
+    "capturePhoto": "拍照",
+    "captureVideo": "录制视频"
   },
   "altText": {
     "heading": "替代文本",
@@ -1017,5 +1020,21 @@
     "postTarget": "对这条帖子的回应",
     "replyTarget": "对这条回复的回应",
     "suppTarget": "对这条补充信息的回应"
+  },
+  "composerPdf": {
+    "converting": "Converting the PDF page to an image…",
+    "preview": "Page {page} of {count} will be attached as an image. The PDF file and other pages will not be shared.",
+    "files": "Choose a file (photo, video, sound or PDF)",
+    "tooLarge": "Choose a PDF up to 20 MB. Your previous attachment is still here.",
+    "password": "This PDF needs a password. Choose an unlocked copy. Your previous attachment is still here.",
+    "timeout": "PDF conversion took too long. Try a smaller PDF. Your previous attachment is still here.",
+    "failed": "Could not convert this PDF. Your previous attachment is still here. Try another PDF or an image.",
+    "pageLabel": "Page to attach",
+    "pageTotal": "/ {count} pages",
+    "invalidPage": "Choose a page number within this PDF.",
+    "imagePreparing": "Preparing the image…",
+    "zoomImage": "Zoom in",
+    "fitImage": "Fit image",
+    "panImage": "Image preview. Scroll to move around the image."
   }
 }

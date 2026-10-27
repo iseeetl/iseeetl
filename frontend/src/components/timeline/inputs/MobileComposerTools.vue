@@ -18,8 +18,6 @@ export default {
   components: { UiButton, UiIcon }, emits: ['choose', 'record'],
   props: { sending:Boolean, recording:Boolean, transcribing:Boolean, locked:Boolean },
   data() { return { sources: [
-    {kind:'library',icon:'photo_library',label:'composerSource.library',short:'composerSource.libraryShort'},
-    {kind:'camera',icon:'photo_camera',label:'composerSource.camera',short:'composerSource.camera'},
     {kind:'file',icon:'attach_file',label:'composerSource.file',short:'composerSource.fileShort'},
     {kind:'voice',icon:'mic',label:'composerSource.record',short:'composerSource.recordShort'},
   ] }; },

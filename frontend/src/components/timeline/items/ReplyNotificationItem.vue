@@ -45,9 +45,11 @@
         </div>
         <div class="image" v-if="reply.image_name !== null">
           <button @click="showGalleryDialog(reply)">
-            <img
+            <TimelineImage
               :alt="reply.image_caption ? reply.image_caption : $t('投稿された画像')"
+
               :src="constructImagePath(post.floor, post.room, reply)"
+              :preview-src="constructImagePreviewPath(post.floor, post.room, reply)"
             />
           </button>
         </div>
@@ -116,9 +118,11 @@
         </div>
         <div class="image" v-if="post.image_name">
           <button @click="showGalleryDialog(post)">
-            <img
+            <TimelineImage
               :alt="post.image_caption ? post.image_caption : $t('投稿された画像')"
+
               :src="constructImagePath(post.floor, post.room, post)"
+              :preview-src="constructImagePreviewPath(post.floor, post.room, post)"
             />
           </button>
         </div>
@@ -159,6 +163,7 @@
 </template>
 
 <script>
+import TimelineImage from '@/components/timeline/TimelineImage.vue';
 import TimelineAlternativeText from '@/components/timeline/TimelineAlternativeText.vue';
 import UiAvatar from '@/components/ui/UiAvatar.vue';
 import UiIcon from '@/components/ui/UiIcon.vue';
@@ -172,6 +177,7 @@ export default {
   emits: ['onPressNotification'],
   name: 'ReplyNotificationItem',
   components: {
+    TimelineImage,
     TimelineAlternativeText,
     TimelineText,
     UiAvatar,
@@ -239,6 +245,10 @@ export default {
     constructImagePath(floorId, roomId, data) {
       // サムネイルがない画像では元画像を表示する。
       return TimelineUtil.constructImagePath(floorId, roomId, data);
+    },
+    constructImagePreviewPath(floorId, roomId, data) {
+      // サムネイルがない画像では元画像を表示する。
+      return TimelineUtil.constructImagePreviewPath(floorId, roomId, data);
     },
 
     getLocalDateTime(date) {
@@ -362,6 +372,8 @@ export default {
   height: auto;
   max-width: 400px;
   max-width: min(100%, 400px);
+  max-height: 400px;
+  object-fit: contain;
   border-radius: 8px;
 }
 

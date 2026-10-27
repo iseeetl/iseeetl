@@ -1,12 +1,12 @@
 <template>
   <UiDialog class="camera-capture-dialog" :open="open" :title-id="titleId" :close-on-escape="!recording" :close-on-backdrop="false"
-    :aria-busy="starting ? 'true' : 'false'" initial-focus="[data-camera-mode=photo]"
-    @opened="openCamera" @request-close="close" @closed="dispose">
+    :aria-busy="starting ? 'true' : 'false'" :initial-focus="`[data-camera-mode=${initialMode}]`"
+    @opened="startCapture" @request-close="close" @closed="dispose">
     <template #title><h2 :id="titleId">{{ $t('composerSource.camera') }}</h2></template>
     <div class="camera-capture">
       <div role="group" :aria-label="$t('composerSource.camera')" class="camera-modes">
         <UiButton data-camera-mode="photo" :aria-pressed="mode === 'photo'" :disabled="recording || starting" @click="changeMode('photo')">{{ $t('composerSource.photo') }}</UiButton>
-        <UiButton :aria-pressed="mode === 'video'" :disabled="recording || starting" @click="changeMode('video')">{{ $t('composerSource.video') }}</UiButton>
+        <UiButton data-camera-mode="video" :aria-pressed="mode === 'video'" :disabled="recording || starting" @click="changeMode('video')">{{ $t('composerSource.video') }}</UiButton>
         <UiButton :disabled="recording || starting" :aria-label="$t('composerSource.switchCamera')" @click="switchCamera"><UiIcon name="flip_camera_ios" /></UiButton>
       </div>
       <video ref="preview" autoplay muted playsinline :aria-label="$t('composerSource.camera')" @loadeddata="ready = true"></video>
@@ -36,12 +36,13 @@ import UiButton from '@/components/ui/UiButton.vue';
 import UiIcon from '@/components/ui/UiIcon.vue';
 import { MAX_VIDEO_SIZE_IN_BYTES } from '@/constants/mediaConstants';
 export default {
-  components:{ UiDialog, UiButton, UiIcon }, props:{open:Boolean}, emits:['close','capture'],
+  components:{ UiDialog, UiButton, UiIcon }, props:{open:Boolean,initialMode:{type:String,default:'photo',validator:value=>['photo','video'].includes(value)}}, emits:['close','capture'],
   setup() { return { titleId:`capture-${useId()}` }; },
   data() { return { mode:'photo',facing:'environment',starting:false,ready:false,error:false,recording:false,elapsed:0,stream:null,recorder:null,timer:null,generation:0 }; },
   watch:{open(value) { if (!value) this.dispose(); }},
   beforeUnmount() { this.dispose(); },
   methods:{
+    startCapture() { this.mode=this.initialMode;return this.openCamera(); },
     stopTracks() { this.stream?.getTracks().forEach(t=>t.stop());this.stream=null;this.ready=false;if(this.$refs.preview)this.$refs.preview.srcObject=null; },
     dispose() { this.generation++;clearInterval(this.timer);this.timer=null;if(this.recorder?.state==='recording')this.recorder.stop();this.recorder=null;this.recording=false;this.starting=false;this.stopTracks(); },
     close() { if(this.recording)return;this.dispose();this.$emit('close'); },

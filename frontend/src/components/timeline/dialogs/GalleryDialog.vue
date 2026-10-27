@@ -30,36 +30,40 @@
         </UiButton>
       </UiTooltip>
 
-      <img
-        v-if="imageName"
-        class="gallery-image"
-        data-testid="dialog-gallery-image"
-        :alt="imageCaption ? imageCaption : $t('投稿された画像')"
-        :src="imageUrl"
-      />
+      <div class="gallery-media">
+        <img
+          v-if="imageName"
+          class="gallery-image"
+          data-testid="dialog-gallery-image"
+          :alt="imageCaption ? imageCaption : $t('投稿された画像')"
+          :src="imageUrl"
+        />
 
-      <p v-if="downloadError" class="gallery-download-error" role="alert">
-        {{ $t('エラーが発生しました') }}
-      </p>
+        <p v-if="downloadError" class="gallery-download-error" role="alert">
+          {{ $t('エラーが発生しました') }}
+        </p>
 
-      <div v-if="videoName" class="gallery-video">
-        <video
-          :src="videoUrl" :aria-describedby="descriptionId"
-          controls
-          playsinline
-          autoplay
-        >
-          <track
-            v-if="videoSubtitleName"
-            kind="subtitles"
-            :src="'/media/' + $store.getters.floorId + '/' + $store.getters.roomId + '/' + videoSubtitleName"
-            :srclang="videoSubTitleLang"
-            default
-          />
-        </video>
+        <div v-if="videoName" class="gallery-video">
+          <video
+            :src="videoUrl" :aria-describedby="descriptionId"
+            controls
+            playsinline
+            autoplay
+          >
+            <track
+              v-if="videoSubtitleName"
+              kind="subtitles"
+              :src="'/media/' + $store.getters.floorId + '/' + $store.getters.roomId + '/' + videoSubtitleName"
+              :srclang="videoSubTitleLang"
+              default
+            />
+          </video>
+        </div>
+
       </div>
 
-      <TimelineAlternativeText v-if="propsValue && (imageName || videoName)" :item="propsValue"
+      <span v-if="!hasDescription" :id="descriptionId" hidden>{{ $t('altText.missing') }}</span>
+      <TimelineAlternativeText v-if="hasDescription" class="gallery-description" tabindex="0" :item="propsValue"
         :kind="imageName ? 'image' : 'video'" :description-id="descriptionId" read-only />
       <UiTooltip ref="closeButtonTooltipRef" :text="$t('閉じる')">
         <UiButton
@@ -121,6 +125,9 @@ export default {
     },
   },
   computed: {
+    hasDescription() {
+      return Boolean(this.imageName ? this.propsValue?.image_caption : this.videoName && this.propsValue?.video_description);
+    },
     imageUrl() {
       if (!this.imageName) return '';
       return '/media/' + this.$store.getters.floorId + '/' + this.$store.getters.roomId + '/' + this.imageName;
@@ -285,6 +292,7 @@ export default {
 .gallery-content {
   position: relative;
   display: flex;
+  flex-direction: column;
   flex: 1;
   min-width: 0;
   min-height: 0;
@@ -292,6 +300,32 @@ export default {
   justify-content: center;
   overflow: hidden;
   background: #111;
+}
+
+.gallery-media {
+  display: flex;
+  flex: 1;
+  width: 100%;
+  min-width: 0;
+  min-height: 0;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+}
+
+.gallery-description {
+  box-sizing: border-box;
+  flex: 0 1 auto;
+  width: 100%;
+  min-height: 0;
+  max-height: 30%;
+  margin: 0;
+  padding: 12px 16px;
+  border: 0;
+  border-radius: 0;
+  overflow: auto;
+  color: #111;
+  background: #fff;
 }
 
 .gallery-image,

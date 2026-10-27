@@ -8,7 +8,7 @@
       :cancel-label="$t('キャンセル')"
       initial-focus="#post_content"
       data-testid="dialog-edit-post"
-      :blocked="recording || sending || transcribing"
+      :blocked="recording || sending || transcribing || mediaBusy"
       :sending="sending"
       :progress-amount="progressAmount"
       @cancel="onPressCancelButton"
@@ -82,19 +82,21 @@
               @deviceError="handleDeviceError"
             />
             <MobileComposerTools v-if="showMediaInput" class="composer-comment-tools"
-              :sending="sending" :recording="recording" :transcribing="transcribing" :locked="isGuest"
+              :sending="sending || mediaBusy" :recording="recording" :transcribing="transcribing" :locked="isGuest"
               @choose="chooseComposerMedia" @record="toggleRecording" />
           </template>
         </UiField>
         <div v-if="showMediaInput" class="composer-attachment-preview">
           <media-input
               ref="composerMedia"
+              @source-busy-change="mediaSourceBusy = $event"
               hideChoices
               class="composer-body-media"
               id-prefix="timeline-post-media"
               :locked="isGuest"
               @guest-attempt="onGuestMediaAttempt"
               :image-data="imageData"
+              :image-preparing="imagePreparing"
               :image-caption="imageCaption"
               :video-description="videoDescription"
               :video-description-error="v$.videoDescription.maxLength.$invalid"
@@ -297,7 +299,7 @@
 
       <template #input-actions>
         <MobileComposerTools v-if="showMediaInput"
-          :sending="sending" :recording="recording" :transcribing="transcribing" :locked="isGuest"
+          :sending="sending || mediaBusy" :recording="recording" :transcribing="transcribing" :locked="isGuest"
           @choose="chooseComposerMedia" @record="toggleRecording" />
       </template>
 
@@ -367,7 +369,7 @@
       @confirm="onLoginConfirmOk"
     >
     </LoginRequiredDialog>
-    <CameraCaptureDialog :open="cameraVisible" @close="cameraVisible = false" @capture="onCameraCapture" />
+    <CameraCaptureDialog :open="cameraVisible" :initial-mode="cameraMode" @close="cameraVisible = false" @capture="onCameraCapture" />
   </div>
 </template>
 
@@ -382,7 +384,7 @@ import uploadApi from '@/api/upload';
 import { appendApiErrorMessage } from '@/api/apiClient';
 import { discardUnattachedTimelineMedia } from '@/features/timeline/mediaCleanup';
 import { insertTextAtSelection } from '@/features/timeline/textInsertion';
-import loadImage from 'blueimp-load-image';
+import { prepareImageAttachment } from '@/features/timeline/imageAttachment';
 import { useOptionsVuelidate } from '@/utils/validation';
 import { maxLength } from '@vuelidate/validators';
 import {
@@ -396,7 +398,7 @@ import {
 import {
   ALLOWED_IMAGE_TYPES,
   ALLOWED_VIDEO_TYPES,
-  MAX_IMAGE_SIZE_IN_BYTES,
+  VIDEO_FILE_ACCEPT,
   MAX_VIDEO_SIZE_IN_BYTES,
   MAX_VIDEO_DURATION_IN_SECONDS,
   ALLOWED_AUDIO_TYPES,
@@ -489,16 +491,17 @@ export default {
     },
   },
   computed: {
+    mediaBusy() { return this.mediaSourceBusy || this.imagePreparing; },
     submissionDisabled() {
       const hasContent = !!(String(this.content || '').trim() || this.imageFile || this.imageName || this.videoFile || this.videoName || this.audioFile || this.audioName);
       const invalidMedia = (this.videoFile && (this.videoSize > this.maxVideoSize || this.videoDuration > this.maxVideoDuration)) || (this.audioFile && (this.audioSize > this.maxAudioSize || this.audioDuration > this.maxAudioDuration));
-      return !!(this.sending || this.recording || this.transcribing || !hasContent || this.v$?.$invalid || invalidMedia);
+      return !!(this.sending || this.mediaBusy || this.recording || this.transcribing || !hasContent || this.v$?.$invalid || invalidMedia);
     },
     allowedImageTypes() {
       return ALLOWED_IMAGE_TYPES.join(',');
     },
     allowedVideoTypes() {
-      return ALLOWED_VIDEO_TYPES.join(',');
+      return VIDEO_FILE_ACCEPT;
     },
     allowedAudioTypes() {
       return ALLOWED_AUDIO_TYPES.join(',');
@@ -600,7 +603,11 @@ export default {
       quickTextExpanded: Object.create(null), // グループIDごとの開閉状態（trueで開く）
 
       cameraVisible: false,
+      cameraMode: 'photo',
       sending: false,
+      mediaSourceBusy: false,
+      imagePreparing: false,
+      imageGeneration: 0,
       progressAmount: 0,
       continuousPosting: false,
     };
@@ -612,11 +619,8 @@ export default {
       else this.handleVideoChange(file);
     },
     chooseComposerMedia(kind) {
-      if (this.sending || this.recording || this.transcribing) return;
-      if (kind === 'camera') {
-        if (this.isGuest) { this.onGuestMediaAttempt(); return; }
-        this.cameraVisible = true;
-      } else this.$refs.composerMedia?.chooseSourceFile(kind === 'library');
+      if (this.sending || this.mediaBusy || this.recording || this.transcribing) return;
+      if (kind === 'file') this.$refs.composerMedia?.openAttachment();
     },
     openAndFocus() {
       this.visible = true;
@@ -674,7 +678,7 @@ export default {
     },
 
     handleEditorShortcut(keyboardEvent) {
-      if (this.cameraVisible || this.sending || this.recording || this.transcribing) return;
+      if (this.cameraVisible || this.sending || this.mediaBusy || this.recording || this.transcribing) return;
 
       const isEnter = keyboardEvent.key === 'Enter' || keyboardEvent.keyCode === 13;
       const isCtrlOrCmd = keyboardEvent.ctrlKey || keyboardEvent.metaKey;
@@ -697,6 +701,7 @@ export default {
 
     // 録音と文字起こし
     async toggleRecording() {
+      if (this.mediaBusy || this.sending) return;
       if (this.isGuest) {
         this.onGuestMediaAttempt();
         return;
@@ -821,7 +826,7 @@ export default {
     },
 
     async submit(isContinuous = false, position = 'shortcut') {
-      if (this.recording || this.transcribing || this.sending) return;
+      if (this.mediaBusy || this.recording || this.transcribing || this.sending) return;
       this.sending = true;
       const attempt = this.editorSubmissionTracker.begin({ position, mode: this.isAnimationPost ? 'flow' : isContinuous ? 'continuous' : 'single', content: 'post', action: this.postId === null ? 'create' : 'update' });
       let outcome = 'validation_error';
@@ -1026,7 +1031,7 @@ export default {
     imageUpload(onProgress) {
       let formData = new FormData();
       formData.append('room_id', this.$store.getters.roomId);
-      formData.append('image_file', this.imageFile, 'image.jpg');
+      formData.append('image_file', this.imageFile, this.imageFile.type === 'image/png' ? 'image.png' : 'image.jpg');
       return uploadApi
         .uploadTimelineImage(formData, { onUploadProgress: onProgress })
         .then((res) => {
@@ -1103,37 +1108,24 @@ export default {
         .catch((e) => this.handleHttpError(e, 'ファイルのアップロードに失敗しました'));
     },
 
-    handleImageChange(file) {
+    async handleImageChange(file, { preserveCaption = false } = {}) {
       if (!file) return;
-      this.removeMedia();
-      loadImage.parseMetaData(file, () => {
-        const options = { maxHeight: 1200, maxWidth: 1200, canvas: true };
-        loadImage(
-          file,
-          (canvas) => {
-            canvas.toBlob(
-              (blob) => {
-                if (!blob) {
-                  this.setSnackbar(this.$t('ファイルのアップロードに失敗しました'), 'alert');
-                  return;
-                }
-                if (blob.size > MAX_IMAGE_SIZE_IN_BYTES) {
-                  this.setSnackbar(this.$t('メディアのファイルサイズが上限を超えています。'), 'alert');
-                  return;
-                }
-                if (typeof this.imageData === 'string' && this.imageData.startsWith('blob:')) {
-                  window.URL.revokeObjectURL(this.imageData);
-                }
-                this.imageFile = blob;
-                this.imageData = window.URL.createObjectURL(blob);
-              },
-              'image/jpeg',
-              0.8
-            );
-          },
-          options
-        );
-      });
+      const generation = ++this.imageGeneration;
+      this.imagePreparing = true;
+      try {
+        const image = await prepareImageAttachment(file);
+        if (generation !== this.imageGeneration) return;
+        const caption = this.imageCaption;
+        const url = window.URL.createObjectURL(image);
+        this.removeMedia();
+        this.imageFile = image;
+        this.imageData = url;
+        if (preserveCaption) this.imageCaption = caption;
+      } catch (_error) {
+        if (generation === this.imageGeneration) this.setSnackbar(this.$t('ファイルのアップロードに失敗しました'), 'alert');
+      } finally {
+        if (generation === this.imageGeneration) this.imagePreparing = false;
+      }
     },
 
     handleVideoChange(file) {
@@ -1283,7 +1275,7 @@ export default {
     },
 
     onPressCancelButton() {
-      if (this.sending || this.recording || this.transcribing) return;
+      if (this.sending || this.mediaBusy || this.recording || this.transcribing) return;
       this.continuousPosting = false;
       this.visible = false;
     },
@@ -1330,6 +1322,10 @@ export default {
     },
 
     clearValue() {
+      this.$refs?.composerMedia?.resetAttachment?.();
+      this.mediaSourceBusy = false;
+      this.imageGeneration++;
+      this.imagePreparing = false;
       this.v$.$reset();
 
       this.postId = null;
@@ -1353,7 +1349,7 @@ export default {
 
     closedDialog(payload) {
       // 送信・録音・文字起こし中は入力を初期化せず、キーリスナーの解除と非表示への切り替えだけを行う。
-      if (this.sending || this.recording || this.transcribing) {
+      if (this.sending || this.mediaBusy || this.recording || this.transcribing) {
         document.removeEventListener('keydown', this.handleEditorShortcut);
         this.visible = false;
         return;
@@ -1447,6 +1443,7 @@ export default {
     },
   },
   beforeUnmount() {
+    this.imageGeneration++;
     document.removeEventListener('keydown', this.handleEditorShortcut);
   },
 };

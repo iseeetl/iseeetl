@@ -943,25 +943,28 @@
     "bottom": "下部の送信操作"
   },
   "composerSource": {
-    "library": "フォトライブラリ（写真・動画）",
+    "sound": "音を添付",
+    "library": "写真・動画を選ぶ",
     "libraryShort": "ライブラリ",
-    "camera": "カメラ",
-    "file": "ファイルを添付",
-    "fileShort": "ファイル",
-    "record": "音を録音する",
+    "camera": "撮影",
+    "file": "写真・動画・音・PDFを添付する",
+    "fileShort": "添付",
+    "record": "その場で音を録音する",
     "recordShort": "録音",
     "stop": "停止",
     "photo": "写真",
     "video": "動画",
     "takePhoto": "撮影する",
     "recordVideo": "動画を録画する",
-    "cameraError": "カメラを利用できません。端末の権限を確認するか、ライブラリ・ファイル添付をご利用ください。",
+    "cameraError": "カメラを利用できません。端末の権限を確認するか、ライブラリ・ファイルをご利用ください。",
     "retry": "再試行",
     "loading": "カメラを準備しています",
-    "unsupported": "写真・動画・音の対応ファイルを選んでください。",
+    "unsupported": "対応する写真・動画・音、またはPDFを選んでください。",
     "switchCamera": "カメラを切り替える",
     "elapsed": "撮影時間：{seconds} / 30秒",
-    "textLimit": "{count}文字まで"
+    "textLimit": "{count}文字まで",
+    "capturePhoto": "写真を撮る",
+    "captureVideo": "動画を撮る"
   },
   "altText": {
     "heading": "代替テキスト",
@@ -1017,5 +1020,21 @@
     "postTarget": "この投稿へのリアクション",
     "replyTarget": "この返信へのリアクション",
     "suppTarget": "この付加情報へのリアクション"
+  },
+  "composerPdf": {
+    "converting": "PDFを画像に変換しています…",
+    "preview": "PDF全{count}ページのうち、{page}ページ目を画像として添付します。PDF本体と他のページは共有されません。",
+    "files": "ファイルを選ぶ（写真・動画・音・PDF）",
+    "tooLarge": "20 MB以下のPDFを選んでください。元の添付は保持しています。",
+    "password": "パスワード付きPDFは変換できません。ロックを解除したコピーを選んでください。元の添付は保持しています。",
+    "timeout": "PDFの変換に時間がかかりすぎました。小さいPDFをお試しください。元の添付は保持しています。",
+    "failed": "PDFを画像に変換できませんでした。元の添付は保持しています。別のPDFか画像を選んでください。",
+    "pageLabel": "画像にするページ",
+    "pageTotal": "／ 全{count}ページ",
+    "invalidPage": "PDFに含まれるページ番号を選んでください。",
+    "imagePreparing": "画像を準備しています…",
+    "zoomImage": "さらに拡大",
+    "fitImage": "全体を表示",
+    "panImage": "拡大画像。スクロールして移動できます"
   }
 }

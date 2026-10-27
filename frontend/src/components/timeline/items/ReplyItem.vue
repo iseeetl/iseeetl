@@ -81,9 +81,11 @@
         </div>
         <div class="image" v-if="reply.image_name">
           <button @click.stop="showGalleryDialog(reply, $event)" :aria-label="$t('画像を拡大表示')" :aria-describedby="`${idPrefix}-image-alt-${reply._id}`">
-            <img
+            <TimelineImage
               :alt="reply.image_caption ? reply.image_caption : $t('投稿された画像')"
+
               :src="constructImagePath(post.floor, post.room, reply)"
+              :preview-src="constructImagePreviewPath(post.floor, post.room, reply)"
             />
           </button>
         </div>
@@ -289,6 +291,7 @@
 </template>
 
 <script>
+import TimelineImage from '@/components/timeline/TimelineImage.vue';
 import { canManageFloor } from '@/utils/floorPermissions';
 import DateUtil from '@/utils/dateUtil.js';
 import TimelineUtil from '@/features/timeline/timelineUtil.js';
@@ -321,6 +324,7 @@ export default {
   name: 'ReplyItem',
   inject: { readOnly: { from: 'timelineReadOnly', default: false } },
   components: {
+    TimelineImage,
     SupplementItem,
     ReactionItem,
     ReactionPicker,
@@ -459,6 +463,10 @@ export default {
     constructImagePath(floorId, roomId, data) {
       // サムネイルがない画像では元画像を表示する。
       return TimelineUtil.constructImagePath(floorId, roomId, data);
+    },
+    constructImagePreviewPath(floorId, roomId, data) {
+      // サムネイルがない画像では元画像を表示する。
+      return TimelineUtil.constructImagePreviewPath(floorId, roomId, data);
     },
 
     needsTranslation(data) {
@@ -708,6 +716,8 @@ export default {
   height: auto;
   max-width: 400px;
   max-width: min(100%, 400px);
+  max-height: 400px;
+  object-fit: contain;
   border-radius: 8px;
 }
 

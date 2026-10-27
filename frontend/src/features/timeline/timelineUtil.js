@@ -99,6 +99,10 @@ export default {
     return dir + '/' + image;
   },
 
+  constructImagePreviewPath(floorId, roomId, data) {
+    return data.image_name ? '/media/' + floorId + '/' + roomId + '/' + data.image_name + '?preview=800' : '';
+  },
+
   tokenizeTimelineText(content) {
     return tokenizeTimelineText(content);
   },

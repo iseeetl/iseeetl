@@ -98,6 +98,15 @@ const createWrapper = (overrides = {}) =>
   });
 
 describe('投稿の表示と操作', () => {
+  it('一覧にサムネイルと800pxプレビューを渡す', async () => {
+    const wrapper = createWrapper();
+    await wrapper.setProps({ post: { ...wrapper.props('post'), image_name: 'full.png', image_thumbnail_name: 'thumb.png' } });
+    const image = wrapper.findComponent({ name: 'TimelineImage' });
+    expect(image.props('src')).to.equal('/media/floor-1/room-1/thumb.png');
+    expect(image.props('previewSrc')).to.equal('/media/floor-1/room-1/full.png?preview=800');
+    wrapper.unmount();
+  });
+
   it.each([
     ['FloorEditor', true],
     ['FloorMember', true],

@@ -943,11 +943,12 @@
     "bottom": "Кнопки надсилання внизу"
   },
   "composerSource": {
+    "sound": "Звук",
     "library": "Photo library (photos and videos)",
     "libraryShort": "Library",
     "camera": "Camera",
-    "file": "Attach a file",
-    "fileShort": "File",
+    "file": "Додати фото, відео або звукові файли",
+    "fileShort": "Додати",
     "record": "Record sound",
     "recordShort": "Record",
     "stop": "Stop",
@@ -955,13 +956,15 @@
     "video": "Video",
     "takePhoto": "Take photo",
     "recordVideo": "Record video",
-    "cameraError": "Camera unavailable. Check device permissions, or use Library or File.",
+    "cameraError": "Camera unavailable. Check device permissions or use Library or File.",
     "retry": "Try again",
     "loading": "Starting camera",
     "unsupported": "Select a supported image, video, or sound file.",
     "switchCamera": "Switch camera",
     "elapsed": "Recording: {seconds} / 30 seconds",
-    "textLimit": "Up to {count} characters"
+    "textLimit": "Up to {count} characters",
+    "capturePhoto": "Take a photo",
+    "captureVideo": "Record a video"
   },
   "altText": {
     "heading": "Alternative text",
@@ -1017,5 +1020,21 @@
     "postTarget": "Reaction to this post",
     "replyTarget": "Reaction to this reply",
     "suppTarget": "Reaction to this supplementary information"
+  },
+  "composerPdf": {
+    "converting": "Converting the PDF page to an image…",
+    "preview": "Page {page} of {count} will be attached as an image. The PDF file and other pages will not be shared.",
+    "files": "Choose a file (photo, video, sound or PDF)",
+    "tooLarge": "Choose a PDF up to 20 MB. Your previous attachment is still here.",
+    "password": "This PDF needs a password. Choose an unlocked copy. Your previous attachment is still here.",
+    "timeout": "PDF conversion took too long. Try a smaller PDF. Your previous attachment is still here.",
+    "failed": "Could not convert this PDF. Your previous attachment is still here. Try another PDF or an image.",
+    "pageLabel": "Page to attach",
+    "pageTotal": "/ {count} pages",
+    "invalidPage": "Choose a page number within this PDF.",
+    "imagePreparing": "Preparing the image…",
+    "zoomImage": "Zoom in",
+    "fitImage": "Fit image",
+    "panImage": "Image preview. Scroll to move around the image."
   }
 }

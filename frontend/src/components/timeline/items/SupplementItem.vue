@@ -69,9 +69,11 @@
       </button>
       <div class="image" v-if="supplement.image_name">
         <button @click="onPressShowSupplementMedia(supplement, $event)" :aria-label="$t('画像を拡大表示')" :aria-describedby="`${idPrefix}-image-alt-${supplement._id}`">
-          <img
+          <TimelineImage
             :alt="supplement.image_caption ? supplement.image_caption : ''"
-            :src="constructImagePath($store.getters.floorId, $store.getters.roomId, supplement)"
+
+              :src="constructImagePath($store.getters.floorId, $store.getters.roomId, supplement)"
+              :preview-src="constructImagePreviewPath($store.getters.floorId, $store.getters.roomId, supplement)"
           />
         </button>
       </div>
@@ -185,6 +187,7 @@
 </template>
 
 <script>
+import TimelineImage from '@/components/timeline/TimelineImage.vue';
 import { supplementPreview } from '@/features/timeline/supplementLength';
 import { getSupplementTitle } from '@/features/timeline/supplementTitle';
 import { canManageFloor } from '@/utils/floorPermissions';
@@ -215,6 +218,7 @@ export default {
   name: 'SupplementItem',
   inject: { readOnly: { from: 'timelineReadOnly', default: false } },
   components: {
+    TimelineImage,
     ReactionItem,
     ReactionPicker,
     TimelineAlternativeText,
@@ -348,6 +352,9 @@ export default {
     },
     constructImagePath(floorId, roomId, data) {
       return TimelineUtil.constructImagePath(floorId, roomId, data);
+    },
+    constructImagePreviewPath(floorId, roomId, data) {
+      return TimelineUtil.constructImagePreviewPath(floorId, roomId, data);
     },
 
     isUserAllowedToEdit(suplement) {
@@ -496,6 +503,8 @@ export default {
   height: auto;
   max-width: 400px;
   max-width: min(100%, 400px);
+  max-height: 400px;
+  object-fit: contain;
   border-radius: 8px;
 }
 
