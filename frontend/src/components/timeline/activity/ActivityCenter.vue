@@ -286,4 +286,13 @@ export default {
 <style scoped>
 .activity-controls{display:flex;gap:12px;flex-wrap:wrap;margin-bottom:12px}.activity-panel label{display:flex;gap:8px;align-items:center;margin:10px 0}.activity-panel input{width:18px;height:18px}.activity-panel fieldset{border:1px solid #788399;margin:12px 0;padding:12px}.activity-panel select{font:inherit;max-width:100%;padding:6px}.category{border-bottom:1px solid #9a9a9a;padding:12px 0}.category strong{display:block}.category-help{margin:4px 0;font-size:inherit}.delivery-choices{display:flex;gap:8px 16px;flex-wrap:wrap}.delivery-choices label{min-height:32px}.activity-list article{border-bottom:1px solid #778399}.activity-list button{display:block;width:100%;text-align:start;font:inherit;background:transparent;color:inherit;border:0;padding:12px;cursor:pointer}.activity-list .unread{border-inline-start:4px solid #3768ac}.activity-list time{display:block;font-size:12px}.activity-list p{white-space:pre-wrap;overflow-wrap:anywhere;margin:6px 0}.activity-list .preview-button{width:auto;padding:6px 12px;font-size:inherit}.activity-list button:focus-visible{outline:3px solid #486ad4;outline-offset:-3px}
 
+:global(.activity-panel .ui-dialog__actions) {
+  flex-wrap: wrap;
+}
+:global(.activity-panel .ui-dialog__actions > .ui-button) {
+  min-width: 0;
+  max-width: calc(100% - 16px);
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
 </style>

@@ -108,3 +108,5 @@ Googleログインの公開クライアントIDはサーバーの設定から取
 - [通知とアクティビティ](docs/spec/backend/activity-notifications.md)：3対象それぞれの上部・プッシュ・履歴に範囲を指定します。アクティビティの投稿タップは現在のタブを優先し、表示できない場合のみタイムラインへ移動します。schemaVersion 3の変更・互換移行・検証方法は通知仕様を参照。実機の通知受信確認は、自動テストの結果と区別します。
 
 Webプッシュの公開アプリIDは[機能設定API](docs/spec/backend/api/capabilities.md#onesignalの公開設定)から取得し、ビルドへの公開ID指定がない場合も既存のサーバー設定を利用します。
+
+アクティビティの下部操作は、狭い画面ではボタンを折り返して全文を表示します。[通知画面の表示](frontend/src/components/timeline/activity/README.md#狭い画面の下部操作)を参照してください。
