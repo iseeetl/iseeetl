@@ -1,6 +1,6 @@
 <template>
   <UiTooltip v-if="center?.enabled" :text="$t(subscribed ? 'activity.unfollow' : 'activity.follow')">
-    <UiButton appearance="text" tone="neutral" density="dense" iconOnly :disabled="busy" :aria-pressed="String(subscribed)"
+    <UiButton class="thread-subscription" appearance="text" tone="neutral" density="dense" iconOnly :disabled="busy" :aria-pressed="String(subscribed)"
       :aria-label="$t(subscribed ? 'activity.unfollow' : 'activity.follow')" @click.stop="toggle">
       <UiIcon :name="subscribed ? 'notifications_active' : 'notifications_none'" :size="20" />
     </UiButton>
@@ -15,3 +15,9 @@ export default { components: { UiButton, UiIcon, UiTooltip }, props: { postId: S
   computed: { center() { return this.activityController?.center(); }, subscribed() { return this.center?.subscribedIds.includes(this.postId) || false; } },
   methods: { async toggle() { if (this.busy) return; this.busy = true; try { await this.center.subscribe(this.postId, !this.subscribed); } finally { this.busy = false; } } } };
 </script>
+
+<style scoped>
+.thread-subscription.ui-button { color: rgb(195, 209, 255); }
+.thread-subscription.ui-button[aria-pressed="true"] { color: #ffdb67; }
+.thread-subscription.ui-button:focus-visible { outline-color: currentColor; }
+</style>

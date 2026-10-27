@@ -110,3 +110,5 @@ Googleログインの公開クライアントIDはサーバーの設定から取
 Webプッシュの公開アプリIDは[機能設定API](docs/spec/backend/api/capabilities.md#onesignalの公開設定)から取得し、ビルドへの公開ID指定がない場合も既存のサーバー設定を利用します。
 
 アクティビティの下部操作は、狭い画面ではボタンを折り返して全文を表示します。[通知画面の表示](frontend/src/components/timeline/activity/README.md#狭い画面の下部操作)を参照してください。
+
+購読ベルは他の投稿操作と同じ明るさにし、選択中は色と形で区別します。[ベルの表示](frontend/src/components/timeline/activity/README.md#購読ベルの表示)を参照してください。
