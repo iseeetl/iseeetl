@@ -90,7 +90,7 @@ Googleログインの公開クライアントIDはサーバーの設定から取
 
 ## 投稿と情報の共同編集
 
-[投稿欄](docs/spec/frontend/compact-composer.md)はライブラリ・カメラ・ファイル・録音から添付し、解析の目的はAI対応タグで指定します。スマホ下部は同じ操作へのショートカットです。
+[投稿欄](docs/spec/frontend/native-media-picker.md)は添付・録音からメディアを追加し、解析の目的はAI対応タグで指定します。スマホ下部は同じ操作へのショートカットです。
 
 画像・動画・音に最大2,000文字の[代替テキスト](docs/spec/frontend/shared-alternative-text.md)を付けられます。ルーム管理者が `collaborative_text_editing` を有効にすると、一般のログインユーザーも他人の代替テキストと人・AIの付加情報本文を編集できます。初期値はオフです。編集履歴の復元は未実装です。
 
@@ -99,3 +99,8 @@ Googleログインの公開クライアントIDはサーバーの設定から取
 テストのメール例は予約ドメインの[合成データヘルパー](backend/tests/_helpers/README.md)で作成します。
 
 共同編集の保存通知は、代替テキストと付加情報の本文を区別します。詳細は[共同編集仕様](docs/spec/frontend/shared-alternative-text.md)を参照してください。
+
+
+[添付・画像解像度とPDFページ選択](docs/spec/frontend/native-media-picker.md)は、画像を長辺3,000px・送信3MiB以内へ調整し、PDFの選択ページを端末内で画像化します。Androidでは添付の中から写真一覧・撮影・ファイルを選択します。iPhoneとPCはOSの選択画面を使います。
+
+一覧画像は400pxを先に表示し、表示サイズと画素密度に応じて認可付き800pxプレビューへ切り替えます。拡大時のみ保存画像を取得し、説明欄は画像下へ配置します。仕様と検証方法は[メディア選択](docs/spec/frontend/native-media-picker.md)を参照してください。

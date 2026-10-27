@@ -1,4 +1,5 @@
 const cookieParser = require('cookie-parser');
+const syntheticMail = require('../../_helpers/syntheticMail');
 const express = require('express');
 const fs = require('fs');
 const jwt = require('jsonwebtoken');
@@ -52,7 +53,7 @@ const createContext = async ({ memberOnly = false } = {}) => {
   mediaSequence += 1;
   const owner = await User.create({
     username: `MediaOwner-${mediaSequence}`,
-    mail: `media-owner-${mediaSequence}@example.com`,
+    mail: syntheticMail(`media-owner-${mediaSequence}`),
     lang: 'ja',
     role: 'Editor',
   });
@@ -96,6 +97,22 @@ describe('ルームのメディア取得権限', () => {
     expect(response.body).toEqual(Buffer.from('0123456789'));
   });
 
+  test('800px版も毎回認可され、元画像を公開しない', async () => {
+    const context = await createContext({ memberOnly: true });
+    context.fileName = 'page.png';
+    await require('sharp')({ create: { width: 1200, height: 600, channels: 3, background: '#fff' } }).png().toFile(
+      path.join(mediaRoot, String(context.floor._id), String(context.room._id), context.fileName)
+    );
+    const url = mediaPath(context) + '?preview=800';
+    const cookie = `${USER_MEDIA_COOKIE}=${buildUserToken(context.owner)}`;
+    const response = await request(app).get(url).set('Cookie', cookie);
+    expect(response.status).toBe(200);
+    expect(response.headers['cache-control']).toBe('private, no-store');
+    expect((await require('sharp')(response.body).metadata()).width).toBe(800);
+    expect((await request(app).get(url)).status).not.toBe(200);
+    expect((await request(app).get(mediaPath(context) + '?preview=3000').set('Cookie', cookie)).status).toBe(400);
+  });
+
   test('認可済みメディアはRange リクエストを維持する', async () => {
     const context = await createContext({ memberOnly: true });
     const token = buildUserToken(context.owner);
@@ -114,7 +131,7 @@ describe('ルームのメディア取得権限', () => {
     const context = await createContext({ memberOnly: true });
     const outsider = await User.create({
       username: `MediaOutsider-${Date.now()}`,
-      mail: `media-outsider-${Date.now()}@example.com`,
+      mail: syntheticMail(`media-outsider-${Date.now()}`),
       lang: 'ja',
     });
 
@@ -130,7 +147,7 @@ describe('ルームのメディア取得権限', () => {
     const context = await createContext();
     const kicked = await User.create({
       username: `MediaKicked-${Date.now()}`,
-      mail: `media-kicked-${Date.now()}@example.com`,
+      mail: syntheticMail(`media-kicked-${Date.now()}`),
       lang: 'ja',
     });
     await KickedUser.create({

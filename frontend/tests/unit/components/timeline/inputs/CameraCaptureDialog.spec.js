@@ -1,7 +1,7 @@
 import { describe,it,expect,vi,afterEach } from 'vitest';
 import { mount } from '@vue/test-utils';
 import CameraCaptureDialog from '@/components/timeline/inputs/CameraCaptureDialog.vue';
-const make=()=>mount(CameraCaptureDialog,{props:{open:true},global:{mocks:{$t:key=>key},stubs:{UiDialog:{template:'<div><slot name="title"/><slot/><slot name="actions"/></div>'}}}});
+const make=(props={})=>mount(CameraCaptureDialog,{props:{open:true,...props},global:{mocks:{$t:key=>key},stubs:{UiDialog:{template:'<div><slot name="title"/><slot/><slot name="actions"/></div>'}}}});
 const media=()=>({getTracks:()=>[track],id:'synthetic'});
 let track;
 afterEach(()=>{vi.restoreAllMocks();vi.unstubAllGlobals();});
@@ -26,4 +26,11 @@ describe('camera capture',()=>{
   class Recorder {static isTypeSupported(){return true;}constructor(){this.state='inactive';}start(){this.state='recording';}stop(){this.state='inactive';this.ondataavailable?.({data:new Blob(['video'],{type:'video/mp4'})});this.onstop?.();}}
   vi.stubGlobal('MediaRecorder',Recorder);const w=make();w.vm.mode='video';await w.vm.openCamera();w.vm.ready=true;w.vm.toggleVideo();expect(w.vm.recording).toBe(true);w.vm.changeMode('photo');expect(w.vm.mode).toBe('video');await vi.advanceTimersByTimeAsync(30000);expect(w.emitted('capture')).toHaveLength(1);expect(w.emitted('capture')[0][0].kind).toBe('video');expect(track.stop).toHaveBeenCalled();w.unmount();vi.useRealTimers();
  });
+});
+
+it('opens the selected desktop capture mode, including on later opens',async()=>{
+  track={stop:vi.fn()};const getUserMedia=vi.fn().mockResolvedValue(media());
+  vi.stubGlobal('navigator',{mediaDevices:{getUserMedia}});vi.spyOn(HTMLMediaElement.prototype,'play').mockResolvedValue();
+  const w=make({initialMode:'video'});await w.vm.startCapture();expect(w.vm.mode).toBe('video');expect(getUserMedia.mock.calls[0][0].audio).toBe(true);
+  await w.setProps({initialMode:'photo'});await w.vm.startCapture();expect(w.vm.mode).toBe('photo');expect(getUserMedia.mock.calls[1][0].audio).toBe(false);w.unmount();
 });

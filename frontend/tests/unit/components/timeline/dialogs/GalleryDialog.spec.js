@@ -74,6 +74,20 @@ describe('メディアのギャラリー', () => {
     expect(wrapper.vm.videoSubTitleLang).to.equal('ja');
   });
 
+  it('説明を画像と別の下段へ置き、説明がなければ空欄を作らない', async () => {
+    const wrapper = createWrapper({ image_name: 'image.png', image_caption: '小さい文字のある資料' });
+    wrapper.vm.openedDialog();
+    await wrapper.vm.$nextTick();
+    expect(wrapper.find('.gallery-media .gallery-image').exists()).to.equal(true);
+    expect(wrapper.find('.gallery-media .gallery-description').exists()).to.equal(false);
+    expect(wrapper.find('.gallery-content > .gallery-description').exists()).to.equal(true);
+    await wrapper.setProps({ propsValue: { image_name: 'image.png' } });
+    expect(wrapper.find('.gallery-description').exists()).to.equal(false);
+    await wrapper.setProps({ propsValue: { video_name: 'movie.mp4', video_description: '動画の説明' } });
+    await wrapper.setData({ imageName: null, videoName: 'movie.mp4' });
+    expect(wrapper.find('.gallery-description').exists()).to.equal(true);
+  });
+
   it('キャンセル操作でダイアログが閉じる', async () => {
     const wrapper = createWrapper();
 

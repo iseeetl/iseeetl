@@ -7,16 +7,16 @@ import EditSupplementDialog from '@/components/timeline/dialogs/EditSupplementDi
 const create = props => mount(MobileComposerTools,{props,global:{mocks:{$t:key=>key}}});
 describe('direct composer shortcuts', () => {
   it('uses named native buttons and directly invokes existing media/record actions', async () => {
-    const w=create({});const buttons=w.findAll('button');expect(buttons.map(b=>b.attributes('aria-label'))).toEqual(['composerSource.library','composerSource.camera','composerSource.file','composerSource.record']);
+    const w=create({});const buttons=w.findAll('button');expect(buttons.map(b=>b.attributes('aria-label'))).toEqual(['composerSource.file','composerSource.record']);
     for(const b of buttons) { expect(b.element.tabIndex).toBe(0);expect(b.attributes('aria-expanded')).toBeUndefined();await b.trigger('click'); }
-    expect(w.emitted('choose')).toEqual([['library'],['camera'],['file']]);expect(w.emitted('record')).toHaveLength(1);w.unmount();
+    expect(w.emitted('choose')).toEqual([['file']]);expect(w.emitted('record')).toHaveLength(1);w.unmount();
   });
   it('keeps guest buttons operable so the existing login dialog handles all four', async () => {
     const w=create({locked:true});for(const b of w.findAll('button')) {expect(b.attributes('aria-description')).toBe('ログインが必要です');expect(b.element.disabled).toBe(false);expect(b.classes()).toContain('is-locked');await b.trigger('click');}
-    expect(w.emitted('choose')).toHaveLength(3);expect(w.emitted('record')).toHaveLength(1);w.unmount();
+    expect(w.emitted('choose')).toHaveLength(1);expect(w.emitted('record')).toHaveLength(1);w.unmount();
   });
   it('allows stopping from either microphone toolbar during recording', async () => {
-    const w=create({recording:true});expect(w.findAll('button').slice(0,3).every(b=>b.element.disabled)).toBe(true);const stop=w.get('button[aria-label="録音停止"]');expect(stop.element.disabled).toBe(false);expect(stop.attributes('aria-pressed')).toBe('true');await stop.trigger('click');expect(w.emitted('record')).toHaveLength(1);w.unmount();
+    const w=create({recording:true});expect(w.findAll('button').slice(0,1).every(b=>b.element.disabled)).toBe(true);const stop=w.get('button[aria-label="録音停止"]');expect(stop.element.disabled).toBe(false);expect(stop.attributes('aria-pressed')).toBe('true');await stop.trigger('click');expect(w.emitted('record')).toHaveLength(1);w.unmount();
   });
   it('disables all controls while sending or transcribing', () => {
     for(const props of [{sending:true},{transcribing:true}]) {const w=create(props);expect(w.findAll('button').every(b=>b.element.disabled)).toBe(true);w.unmount();}
@@ -47,7 +47,7 @@ for (const dialog of [EditPostDialog,EditReplyDialog]) {
 }
 
 it('uses neutral microphone at rest and a named stop control when recording', async () => {
-  const w=create({});const mic=w.findAll('button')[3];
+  const w=create({});const mic=w.get('button[aria-label="composerSource.record"]');
   expect(mic.classes()).toContain('ui-button--neutral');expect(mic.attributes('aria-pressed')).toBe('false');
   await w.setProps({recording:true});expect(mic.classes()).toContain('ui-button--danger');expect(mic.attributes('aria-label')).toBe('録音停止');expect(mic.attributes('title')).toBe('録音停止');
   w.unmount();
@@ -59,4 +59,32 @@ for(const dialog of [EditPostDialog,EditReplyDialog,EditSupplementDialog]) {
   expect(rules.audioTitle.maxLength.$validator('a'.repeat(201))).toBe(false);
   if(dialog!==EditSupplementDialog)expect(rules.content.maxLength.$validator('a'.repeat(401))).toBe(false);
  });
+}
+
+for (const dialog of [EditPostDialog, EditReplyDialog, EditSupplementDialog]) {
+  it('routes both toolbar copies to the same attachment flow and blocks busy drafts', () => {
+    const media={openAttachment:vi.fn()};
+    const ctx={$refs:{composerMedia:media}};
+    dialog.methods.chooseComposerMedia.call(ctx,'file');
+    expect(media.openAttachment).toHaveBeenCalledOnce();
+    for(const flag of ['sending','recording','transcribing','mediaBusy']) dialog.methods.chooseComposerMedia.call({...ctx,[flag]:true},'file');
+    expect(media.openAttachment).toHaveBeenCalledOnce();
+    expect(dialog.computed.submissionDisabled.call({content:'ready',mediaBusy:true})).toBe(true);
+  });
+}
+
+
+for (const dialog of [EditPostDialog, EditReplyDialog, EditSupplementDialog]) {
+  it('uses video-only picker hints and preserves a draft when a non-video is selected', () => {
+    const accept = dialog.computed.allowedVideoTypes.call({});
+    expect(accept).not.toContain('application/octet-stream');
+    expect(accept).toContain('.mov');
+    const prior = {name:'prior.mp4',type:'video/mp4'};
+    const ctx={videoData:'existing-preview',videoFile:prior,removeMedia:vi.fn(),setSnackbar:vi.fn(),$t:key=>key};
+    dialog.methods.handleVideoChange.call(ctx,{name:'notes.pdf',type:'application/pdf',size:32});
+    expect(ctx.removeMedia).not.toHaveBeenCalled();
+    expect(ctx.videoFile).toBe(prior);
+    expect(ctx.videoData).toBe('existing-preview');
+    expect(ctx.setSnackbar).toHaveBeenCalledOnce();
+  });
 }

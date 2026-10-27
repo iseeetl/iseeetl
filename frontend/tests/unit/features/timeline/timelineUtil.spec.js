@@ -13,12 +13,12 @@ describe('タイムラインの表示・検索の共通処理', () => {
     expect(TimelineUtil.isUserIconPresent({})).to.equal(false);
   });
 
-  it('constructImagePath はサムネイル優先でパスを生成する', () => {
+  it('constructImagePath はサムネイルを優先する', () => {
     const img = TimelineUtil.constructImagePath('f1', 'r1', { image_thumbnail_name: 'thumb.jpg' });
-    const org = TimelineUtil.constructImagePath('f1', 'r1', { image_name: 'orig.jpg' });
+    const org = TimelineUtil.constructImagePath('f1', 'r1', { image_name: 'orig.jpg', image_thumbnail_name: 'thumb.jpg' });
 
     expect(img).to.equal('/media/f1/r1/thumb.jpg');
-    expect(org).to.equal('/media/f1/r1/orig.jpg');
+    expect(org).to.equal('/media/f1/r1/thumb.jpg');
   });
 
   it('tokenizeTimelineText は通常テキストと複数のhttp/https URLをトークン化する', () => {

@@ -57,7 +57,7 @@ describe('メディアの選択・入力（MediaInput）', () => {
   it('外部の添付メニューを使う場合も入力とプレビューは維持する', () => {
     const wrapper = factory({ hideChoices: true, imageData: 'image-data' });
     expect(wrapper.findAll('.media-button')).to.have.lengthOf(0);
-    expect(wrapper.findAll('input[type="file"]')).to.have.lengthOf(5);
+    expect(wrapper.findAll('input[type="file"]')).to.have.lengthOf(7);
     expect(wrapper.find('.image-preview-wrapper img').exists()).to.equal(true);
     expect(wrapper.find('.media-remove-button').exists()).to.equal(true);
   });
@@ -66,7 +66,7 @@ describe('メディアの選択・入力（MediaInput）', () => {
     const wrapper = factory({ videoData: 'video-data' });
     const fileInputs = wrapper.findAll('input[type="file"]');
 
-    expect(fileInputs).to.have.lengthOf(6);
+    expect(fileInputs).to.have.lengthOf(8);
     fileInputs.forEach((input) => {
       expect(input.attributes('aria-hidden')).to.equal('true');
       expect(input.attributes('tabindex')).to.equal('-1');
@@ -377,7 +377,7 @@ describe('source-based file selection', () => {
     for(const [name,type,event] of [['a.jpg','image/jpeg','image-change'],['a.mp4','video/mp4','video-change'],['a.wav','audio/wav','audio-change']]) {
       MediaInput.methods.handleSourceSelection.call(ctx,{target:{files:[new File(['x'],name,{type})]}},false);expect(emitted.at(-1)[0]).to.equal(event);
     }
-    MediaInput.methods.handleSourceSelection.call(ctx,{target:{files:[new File(['x'],'notes.pdf',{type:'application/pdf'})]}},false);expect(ctx.sourceError).to.equal(true);expect(emitted).to.have.length(3);
+    MediaInput.methods.handleSourceSelection.call(ctx,{target:{files:[new File(['x'],'notes.txt',{type:'text/plain'})]}},false);expect(ctx.sourceError).to.equal(true);expect(emitted).to.have.length(3);
   });
 });
 
@@ -387,4 +387,57 @@ it('uses 2000-unit alternative text and no separate title input', async () => {
  expect(caption.attributes('maxlength')).to.equal('2000');expect(description.attributes('maxlength')).to.equal('2000');expect(w.find('[data-testid="media-audio-title"]').exists()).to.equal(false);
  await caption.setValue('あ'.repeat(2000));await description.setValue('a'.repeat(2000));
  expect(w.emitted('image-caption-change').at(-1)[0]).to.equal('あ'.repeat(2000));expect(w.emitted('audio-description-change').at(-1)[0]).to.equal('a'.repeat(2000));w.unmount();
+});
+
+
+describe('native camera and library entry points', () => {
+  afterEach(() => vi.restoreAllMocks());
+  it.each(['iPhone Mobile Safari','Android Chrome'])('opens the requested capture directly for %s', userAgent => {
+    vi.spyOn(navigator, 'userAgent', 'get').mockReturnValue(userAgent);
+    const w=factory(),photo=w.vm.$refs.inputCameraPhoto,video=w.vm.$refs.inputCameraVideo;
+    photo.click=vi.fn();video.click=vi.fn();
+    expect(w.vm.chooseCameraFile('photo')).toBe(true);
+    expect(photo.click).toHaveBeenCalledOnce();expect(video.click).not.toHaveBeenCalled();
+    expect(photo.accept.split(',').every(t=>t.startsWith('image/'))).toBe(true);expect(photo.getAttribute('capture')).toBe('environment');
+    expect(w.vm.chooseCameraFile('video')).toBe(true);
+    expect(video.click).toHaveBeenCalledOnce();expect(video.accept.split(',').every(t=>t.startsWith('video/'))).toBe(true);expect(video.getAttribute('capture')).toBe('environment');
+    expect(w.emitted('image-change')).toBeUndefined();expect(w.emitted('video-change')).toBeUndefined();w.unmount();
+  });
+  it('keeps all library MIME types within Android photo picker categories', () => {
+    const w=factory(),library=w.vm.$refs.inputLibrary,file=w.vm.$refs.inputAttachment;
+    library.click=vi.fn();file.click=vi.fn();w.vm.chooseSourceFile('library');
+    expect(library.click).toHaveBeenCalledOnce();expect(file.click).not.toHaveBeenCalled();
+    expect(library.accept.split(',').every(t=>t.startsWith('image/') || t.startsWith('video/'))).toBe(true);
+    expect(library.accept).toContain('image/');expect(library.accept).toContain('video/');expect(library.getAttribute('capture')).toBeNull();w.unmount();
+  });
+  it('retains the general file entry for supported photos, videos and sounds', () => {
+    const w=factory(),input=w.vm.$refs.inputAttachment;input.click=vi.fn();
+    w.vm.chooseSourceFile('file');expect(input.click).toHaveBeenCalledOnce();expect(input.accept).toContain('image/');expect(input.accept).toContain('video/');expect(input.accept).toContain('audio/');
+    for(const [name,type,event] of [['a.jpg','image/jpeg','image-change'],['a.mp4','video/mp4','video-change'],['a.wav','audio/wav','audio-change']]) {
+      const file=new File(['synthetic'],name,{type});w.vm.handleSourceSelection({target:{files:[file]}});expect(w.emitted(event)[0]).toEqual([file]);
+    }
+    w.unmount();
+  });
+  it('cancelling any native entry preserves the existing attachment and description', () => {
+    vi.spyOn(navigator,'userAgent','get').mockReturnValue('Android Chrome');
+    const w=factory({imageData:'existing-image',imageCaption:'Keep this description'});
+    for(const ref of ['inputLibrary','inputAttachment','inputCameraPhoto','inputCameraVideo']) w.vm.$refs[ref].click=vi.fn();
+    for(const kind of ['library','file','photo','video']) {
+      if(['photo','video'].includes(kind))w.vm.chooseCameraFile(kind);else w.vm.chooseSourceFile(kind);
+      w.vm.handleSourceSelection({target:{files:[]}});
+      expect(w.vm.localImageCaption).toBe('Keep this description');expect(w.get('.image-preview-wrapper img').attributes('src')).toBe('existing-image');
+    }
+    expect(w.emitted('remove-media')).toBeUndefined();expect(w.emitted('image-change')).toBeUndefined();w.unmount();
+  });
+  it('returns to the existing internal camera on desktop for both modes', () => {
+    vi.spyOn(navigator,'userAgent','get').mockReturnValue('Macintosh Safari');const w=factory();
+    expect(w.vm.chooseCameraFile('photo')).toBe(false);expect(w.vm.chooseCameraFile('video')).toBe(false);w.unmount();
+  });
+  it.each([{locked:true},{sending:true},{recording:true}])('blocks disabled or guest capture and file selection: %o', props => {
+    vi.spyOn(navigator,'userAgent','get').mockReturnValue('iPhone Mobile Safari');const w=factory(props);
+    for(const ref of ['inputLibrary','inputAttachment','inputCameraPhoto','inputCameraVideo'])w.vm.$refs[ref].click=vi.fn();
+    w.vm.chooseCameraFile('photo');w.vm.chooseCameraFile('video');w.vm.chooseSourceFile('library');w.vm.chooseSourceFile('file');
+    for(const ref of ['inputLibrary','inputAttachment','inputCameraPhoto','inputCameraVideo'])expect(w.vm.$refs[ref].click).not.toHaveBeenCalled();
+    if(props.locked)expect(w.emitted('guest-attempt')).toHaveLength(4);w.unmount();
+  });
 });

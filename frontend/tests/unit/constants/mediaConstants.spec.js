@@ -1,6 +1,7 @@
 import { expect } from 'vitest';
 import {
   isAllowedVideoFile,
+  VIDEO_FILE_ACCEPT,
   isAllowedAudioFile,
   isAllowedImageFile,
   isImageSizeWithinLimit,
@@ -53,5 +54,20 @@ describe('メディアの形式と容量制限', () => {
   it('音声: 非許可 MIME は拒否される', () => {
     const file = makeFile('sound.aac', 'audio/aac');
     expect(isAllowedAudioFile(file)).to.equal(false);
+  });
+});
+
+
+describe('動画の選択画面と取り込み検証を分離する', () => {
+  it('OSへの選択条件に汎用データや画像・音・文書を含めない', () => {
+    const types = VIDEO_FILE_ACCEPT.split(',');
+    expect(types.every(type => type.startsWith('video/') || ['.mp4', '.mov', '.webm', '.ogv'].includes(type))).to.equal(true);
+    expect(types).not.to.include('application/octet-stream');
+    expect(types).to.include('.mov');
+  });
+  it('OS側で他形式が選べても文書・画像・音を動画として取り込まない', () => {
+    for (const file of [makeFile('document.pdf', 'application/pdf'), makeFile('data.bin', 'application/octet-stream'), makeFile('picture.png', 'image/png'), makeFile('sound.mp3', 'audio/mpeg')]) {
+      expect(isAllowedVideoFile(file)).to.equal(false);
+    }
   });
 });

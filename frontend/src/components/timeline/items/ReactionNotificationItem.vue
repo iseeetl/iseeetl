@@ -70,9 +70,11 @@
         </div>
         <div class="image" v-if="post.image_name">
           <button @click="showGalleryDialog(post)">
-            <img
+            <TimelineImage
               :alt="post.image_caption ? post.image_caption : $t('投稿された画像')"
+
               :src="constructImagePath(post.floor, post.room, post)"
+              :preview-src="constructImagePreviewPath(post.floor, post.room, post)"
             />
           </button>
         </div>
@@ -113,6 +115,7 @@
 </template>
 
 <script>
+import TimelineImage from '@/components/timeline/TimelineImage.vue';
 import TimelineAlternativeText from '@/components/timeline/TimelineAlternativeText.vue';
 import UiAvatar from '@/components/ui/UiAvatar.vue';
 import UiButton from '@/components/ui/UiButton.vue';
@@ -128,6 +131,7 @@ export default {
   emits: ['onPressNotification'],
   name: 'ReactionNotificationItem',
   components: {
+    TimelineImage,
     TimelineAlternativeText,
     TimelineText,
     UiAvatar,
@@ -211,6 +215,10 @@ export default {
     constructImagePath(floorId, roomId, data) {
       // サムネイルがない画像では元画像を表示する。
       return TimelineUtil.constructImagePath(floorId, roomId, data);
+    },
+    constructImagePreviewPath(floorId, roomId, data) {
+      // サムネイルがない画像では元画像を表示する。
+      return TimelineUtil.constructImagePreviewPath(floorId, roomId, data);
     },
 
     getLocalDateTime(date) {
@@ -322,6 +330,8 @@ export default {
   width: auto;
   height: auto;
   max-width: min(100%, 400px);
+  max-height: 400px;
+  object-fit: contain;
   border-radius: 8px;
 }
 

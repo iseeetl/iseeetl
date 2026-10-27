@@ -1,8 +1,39 @@
 <template>
   <div role="group" class="media-input-group">
-    <input ref="inputLibrary" type="file" accept="image/jpeg,image/png,video/mp4,video/quicktime,video/webm,.jpg,.jpeg,.png,.mp4,.mov,.webm" tabindex="-1" aria-hidden="true" style="display:none" :disabled="sending || recording" @change="handleSourceSelection($event, true)" />
-    <input ref="inputFile" type="file" accept="*/*" tabindex="-1" aria-hidden="true" style="display:none" :disabled="sending || recording" @change="handleSourceSelection($event, false)" />
+    <input ref="inputAttachment" type="file" accept="image/jpeg,image/png,video/mp4,video/quicktime,video/webm,video/ogv,audio/x-m4a,audio/m4a,audio/mp4,audio/webm,audio/ogg,audio/mpeg,audio/mp3,audio/wav,application/pdf,.pdf,.jpg,.jpeg,.png,.mp4,.mov,.webm,.ogv,.m4a,.mp3,.wav,.ogg"
+      tabindex="-1" aria-hidden="true" style="display:none" :disabled="sending || recording" @change="handleSourceSelection" />
+    <input ref="inputLibrary" type="file" accept="image/jpeg,image/png,video/mp4,video/quicktime,video/webm,video/ogv"
+      tabindex="-1" aria-hidden="true" style="display:none" :disabled="sending || recording" @change="handleSourceSelection" />
+    <input ref="inputCameraPhoto" type="file" accept="image/jpeg,image/png" capture="environment"
+      tabindex="-1" aria-hidden="true" style="display:none" :disabled="sending || recording" @change="handleSourceSelection" />
+    <input ref="inputCameraVideo" type="file" accept="video/mp4,video/quicktime,video/webm" capture="environment"
+      tabindex="-1" aria-hidden="true" style="display:none" :disabled="sending || recording" @change="handleSourceSelection" />
     <p v-if="sourceError" role="alert">{{ $t('composerSource.unsupported') }}</p>
+    <p v-if="pdfError" role="alert">{{ $t(pdfError) }}</p>
+    <div v-if="pdfConverting" class="pdf-conversion" aria-busy="true">
+      <p role="status">{{ $t('composerPdf.converting') }}</p>
+      <UiButton @click="cancelPdf">{{ $t('キャンセル') }}</UiButton>
+    </div>
+    <p v-if="pdfInfo && imageData" role="status" class="pdf-notice">{{ $t('composerPdf.preview', { count: pdfInfo.pageCount, page: pdfInfo.pageNumber }) }}</p>
+    <div v-if="pdfInfo && pdfSource && pdfInfo.pageCount > 1 && imageData" class="pdf-page-choice">
+      <label :for="mediaId('pdf-page')">{{ $t('composerPdf.pageLabel') }}</label>
+      <select v-if="pdfInfo.pageCount <= 200" :id="mediaId('pdf-page')" v-model.number="pdfPage" :disabled="sending || recording || pdfConverting || imagePreparing" @change="changePdfPage">
+        <option v-for="page in pdfInfo.pageCount" :key="page" :value="page">{{ page }}</option>
+      </select>
+      <input v-else :id="mediaId('pdf-page')" type="number" min="1" :max="pdfInfo.pageCount" step="1" v-model.number="pdfPage" :disabled="sending || recording || pdfConverting || imagePreparing" @change="changePdfPage" />
+      <span>{{ $t('composerPdf.pageTotal', { count: pdfInfo.pageCount }) }}</span>
+    </div>
+    <p v-if="imagePreparing" role="status">{{ $t('composerPdf.imagePreparing') }}</p>
+    <UiDialog :open="attachmentMenu" :title-id="mediaId('attachment-title')" class="attachment-source-dialog" @request-close="attachmentMenu = false">
+      <template #title><h2 :id="mediaId('attachment-title')">{{ $t('composerSource.fileShort') }}</h2></template>
+      <div class="attachment-source-options">
+        <UiButton @click="pickAttachmentSource('library')"><UiIcon name="photo_library" />{{ $t('composerSource.library') }}</UiButton>
+        <UiButton @click="pickAttachmentSource('photo')"><UiIcon name="photo_camera" />{{ $t('composerSource.capturePhoto') }}</UiButton>
+        <UiButton @click="pickAttachmentSource('video')"><UiIcon name="videocam" />{{ $t('composerSource.captureVideo') }}</UiButton>
+        <UiButton @click="pickAttachmentSource('file')"><UiIcon name="attach_file" />{{ $t('composerPdf.files') }}</UiButton>
+      </div>
+      <template #actions><UiButton @click="attachmentMenu = false">{{ $t('キャンセル') }}</UiButton></template>
+    </UiDialog>
     <UiTooltip v-if="!hideChoices" :text="$t('画像データを添付する')">
       <UiButton
         class="media-button"
@@ -82,8 +113,17 @@
       style="display: none"
     />
 
+    <UiDialog :open="imagePreviewOpen && !!imageData" :title-id="mediaId('image-preview-title')" class="attachment-image-dialog" @request-close="imagePreviewOpen = false">
+      <template #title><h2 :id="mediaId('image-preview-title')">{{ $t('画像を拡大表示') }}</h2></template>
+      <div class="attachment-image-scroll" tabindex="0" role="region" :aria-label="$t('composerPdf.panImage')">
+        <img class="attachment-large-image" :class="{ 'is-zoomed': imagePreviewZoom }" :src="imageData || undefined" :alt="localImageCaption || $t('投稿された画像')" />
+      </div>
+      <template #actions><UiButton :aria-pressed="imagePreviewZoom" @click="imagePreviewZoom = !imagePreviewZoom">{{ $t(imagePreviewZoom ? 'composerPdf.fitImage' : 'composerPdf.zoomImage') }}</UiButton><UiButton @click="imagePreviewOpen = false">{{ $t('閉じる') }}</UiButton></template>
+    </UiDialog>
     <div class="image-preview-wrapper" v-if="imageData">
-      <img :src="imageData" :alt="localImageCaption || ''" />
+      <button type="button" class="image-preview-open" :aria-label="$t('画像を拡大表示')" :disabled="imagePreparing || pdfConverting" @click="imagePreviewOpen = true; imagePreviewZoom = false">
+        <img :src="imageData" :alt="localImageCaption || ''" />
+      </button>
       <UiButton
         class="image-remove-button media-remove-button"
         appearance="text"
@@ -293,6 +333,10 @@
 
 <script>
 import { SUPPLEMENT_CONTENT_LIMIT } from '@/features/timeline/supplementLength';
+import { markRaw } from 'vue';
+import UiDialog from '@/components/ui/UiDialog.vue';
+import { pdfFirstPage, isPdfFile } from '@/features/timeline/pdfFirstPage';
+import { usesAttachmentMenu, usesNativeCamera } from '@/features/timeline/mediaPicker';
 import { isAllowedImageFile, isAllowedVideoFile, isAllowedAudioFile } from '@/constants/mediaConstants';
 import UiButton from '@/components/ui/UiButton.vue';
 import UiField from '@/components/ui/UiField.vue';
@@ -302,6 +346,7 @@ import { getAudioDuration } from '@/utils/getAudioDuration';
 
 export default {
   emits: [
+    'source-busy-change',
     'audio-change',
     'audio-description-change',
     'audio-duration-change',
@@ -317,6 +362,7 @@ export default {
   ],
   name: 'MediaInput',
   components: {
+    UiDialog,
     UiButton,
     UiField,
     UiIcon,
@@ -329,6 +375,7 @@ export default {
     locked: { type: Boolean, default: false },
 
     imageData: { type: String, default: null },
+    imagePreparing: { type: Boolean, default: false },
     imageCaption: { type: String, default: null },
     imageCaptionError: { type: Boolean, default: false },
 
@@ -367,6 +414,16 @@ export default {
   data() {
     return {
       sourceError: false,
+      imagePreviewOpen: false,
+      imagePreviewZoom: false,
+      attachmentMenu: false,
+      pdfConverting: false,
+      pdfError: null,
+      pdfInfo: null,
+      pdfSource: null,
+      pdfPage: 1,
+      pdfAbort: null,
+      sourceGeneration: 0,
       descriptionLimit: SUPPLEMENT_CONTENT_LIMIT,
       localImageCaption: this.imageCaption,
       localAudioTitle: this.audioTitle,
@@ -374,7 +431,9 @@ export default {
       localAudioFile: null,
     };
   },
+  beforeUnmount() { this.resetAttachment(); },
   watch: {
+    sourceBusy(value) { this.$emit('source-busy-change', value); },
     imageCaption(val) {
       this.localImageCaption = val;
     },
@@ -386,6 +445,7 @@ export default {
     },
   },
   computed: {
+    sourceBusy() { return this.attachmentMenu || this.pdfConverting; },
     videoSizeText() {
       if (!this.videoSize || !this.maxVideoSize) return '';
       return (
@@ -419,20 +479,98 @@ export default {
       return false;
     },
 
-    chooseSourceFile(library = false) {
+    chooseCameraFile(kind = 'photo') {
+      if (kind !== 'photo' && kind !== 'video') return true;
+      if (!usesNativeCamera()) return false;
+      if (this.sending || this.recording || this.guard()) return true;
+      this.sourceError = false;
+      const input = kind === 'photo' ? this.$refs.inputCameraPhoto : this.$refs.inputCameraVideo;
+      input.value = '';
+      // Open the native capture input directly in the initiating tap.
+      input.click();
+      return true;
+    },
+    openAttachment() {
+      if (this.sending || this.recording || this.sourceBusy || this.guard()) return;
+      if (usesAttachmentMenu()) this.attachmentMenu = true;
+      else this.chooseSourceFile('file');
+    },
+    pickAttachmentSource(kind) {
+      this.attachmentMenu = false;
+      // Keep native input.click in the user's synchronous activation.
+      if (kind === 'photo' || kind === 'video') this.chooseCameraFile(kind);
+      else this.chooseSourceFile(kind);
+    },
+    cancelPdf() {
+      this.sourceGeneration++;
+      this.pdfAbort?.abort();
+      this.pdfAbort = null;
+      this.pdfConverting = false;
+      this.pdfPage = this.pdfInfo?.pageNumber || 1;
+    },
+    resetAttachment() {
+      this.imagePreviewOpen = false;
+      this.cancelPdf();
+      this.attachmentMenu = false;
+      this.pdfInfo = null;
+      this.pdfSource = null;
+      this.pdfPage = 1;
+      this.pdfError = null;
+      this.sourceError = false;
+    },
+    changePdfPage() {
+      if (!Number.isInteger(this.pdfPage) || this.pdfPage < 1 || this.pdfPage > this.pdfInfo.pageCount) {
+        this.pdfPage = this.pdfInfo.pageNumber;
+        this.pdfError = 'composerPdf.invalidPage';
+        return;
+      }
+      if (this.pdfPage !== this.pdfInfo.pageNumber) return this.convertPdf(this.pdfSource, this.pdfPage, true);
+    },
+    async convertPdf(file, pageNumber = 1, preserveCaption = false) {
+      this.cancelPdf();
+      this.pdfError = null;
+      const generation = this.sourceGeneration;
+      const controller = markRaw(new AbortController());
+      this.pdfAbort = controller;
+      this.pdfConverting = true;
+      let timedOut = false;
+      const timer = setTimeout(() => { timedOut = true; controller.abort(); }, 45000);
+      try {
+        const result = await pdfFirstPage(file, { signal: controller.signal, pageNumber });
+        if (generation !== this.sourceGeneration || controller.signal.aborted) return;
+        this.pdfInfo = { pageCount: result.pageCount, pageNumber: result.pageNumber || pageNumber };
+        this.pdfPage = this.pdfInfo.pageNumber;
+        this.pdfSource = markRaw(file);
+        this.$emit('image-change', result.file, { preserveCaption });
+      } catch (error) {
+        if (generation !== this.sourceGeneration) return;
+        this.pdfPage = this.pdfInfo?.pageNumber || 1;
+        if (timedOut) this.pdfError = 'composerPdf.timeout';
+        else if (error.name === 'PasswordException') this.pdfError = 'composerPdf.password';
+        else if (error.message === 'PDF_TOO_LARGE') this.pdfError = 'composerPdf.tooLarge';
+        else this.pdfError = 'composerPdf.failed';
+      } finally {
+        clearTimeout(timer);
+        if (generation === this.sourceGeneration) { this.pdfConverting = false; this.pdfAbort = null; }
+      }
+    },
+    chooseSourceFile(kind = 'file') {
       if (this.sending || this.recording || this.guard()) return;
       this.sourceError = false;
-      const input = library ? this.$refs.inputLibrary : this.$refs.inputFile;
+      // Audio MIME types prevent Android Chrome from using its photo picker.
+      const input = kind === 'library' ? this.$refs.inputLibrary : this.$refs.inputAttachment;
       input.value = ''; input.click();
     },
-    handleSourceSelection(event, library) {
+    async handleSourceSelection(event) {
       if (this.guard()) { event.target.value = ''; return; }
       const file = event.target.files?.[0];
       if (!file) return;
       this.sourceError = false;
-      if (isAllowedImageFile(file)) this.$emit('image-change', file);
-      else if (isAllowedVideoFile(file)) this.$emit('video-change', file);
-      else if (!library && isAllowedAudioFile(file)) this.$emit('audio-change', file);
+      this.pdfError = null;
+      if (isPdfFile(file)) return this.convertPdf(file);
+      if (isAllowedImageFile(file)) { this.pdfInfo = null; this.pdfSource = null; this.$emit('image-change', file); }
+      else if (isAllowedVideoFile(file)) { this.pdfInfo = null; this.pdfSource = null; this.$emit('video-change', file); }
+      else if (isAllowedAudioFile(file)) { this.pdfInfo = null; this.pdfSource = null; this.$emit('audio-change', file); }
       else this.sourceError = true;
     },
     chooseImageFile() {
@@ -502,7 +640,8 @@ export default {
     },
 
     remove(type) {
-      if (this.guard()) return;
+      if (this.imagePreparing || this.pdfConverting || this.guard()) return;
+      this.cancelPdf(); this.pdfInfo = null; this.pdfSource = null; this.pdfError = null;
       this.$emit('remove-media', type);
     },
 
@@ -534,6 +673,8 @@ export default {
 </script>
 
 <style scoped>
+
+
 .edit-input-field :deep(.ui-field__label) { position:static;display:block;margin-bottom:4px; }
 .edit-input-field :deep(.ui-field__counter) { position:static;display:block;height:auto;text-align:end; }
 .edit-input-field textarea { min-height:76px; }
@@ -598,7 +739,7 @@ export default {
   clear: both;
   width: 200px;
   height: 200px;
-  background: #000;
+  background: transparent;
 }
 .image-preview-wrapper img {
   width: 100%;
@@ -648,4 +789,21 @@ export default {
 .media-input-error {
   color: var(--ui-color-danger);
 }
+</style>
+
+<style scoped>
+.pdf-page-choice { display:flex; align-items:center; flex-wrap:wrap; gap:8px; margin:8px 0; }
+.pdf-page-choice select, .pdf-page-choice input { min-height:44px; min-width:64px; max-width:100px; font:inherit; border:1px solid currentColor; border-radius:4px; padding:6px; background:var(--color-surface, white); color:inherit; }
+.pdf-page-choice select:focus-visible, .pdf-page-choice input:focus-visible { outline:3px solid #1675c9; outline-offset:2px; }
+
+.image-preview-open { display:block; padding:0; border:0; background:none; width:100%; height:100%; cursor:zoom-in; }
+.image-preview-open:focus-visible { outline:3px solid #1675c9; outline-offset:2px; }
+:global(.attachment-image-dialog .ui-dialog__panel) { width:min(96vw,1100px); max-width:96vw; }
+.attachment-image-scroll { max-height:70dvh; overflow:auto; }
+.attachment-large-image.is-zoomed { max-width:none; }
+.attachment-large-image { display:block; max-width:100%; height:auto; margin:auto; }
+.attachment-source-options { display:flex; flex-direction:column; gap:8px; }
+.attachment-source-options .ui-button { min-height:44px; justify-content:flex-start; }
+.pdf-notice { font-size:.875rem; line-height:1.5; margin:8px 0; }
+.pdf-conversion { display:flex; flex-wrap:wrap; gap:8px; align-items:center; }
 </style>

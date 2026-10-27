@@ -2,6 +2,7 @@
 
 export const ALLOWED_IMAGE_TYPES = ['image/jpg', 'image/jpeg', 'image/png'];
 export const MAX_IMAGE_SIZE_IN_BYTES = 3 * 1024 * 1024;
+export const MAX_IMAGE_EDGE = 3000;
 
 export const ALLOWED_VIDEO_TYPES = [
   'video/mp4',
@@ -11,6 +12,11 @@ export const ALLOWED_VIDEO_TYPES = [
   'application/octet-stream',
 ];
 const ALLOWED_VIDEO_EXTENSIONS = ['.mp4', '.ogv', '.webm', '.mov'];
+// The generic MIME fallback is for validation only, not the OS picker filter.
+export const VIDEO_FILE_ACCEPT = [
+  ...ALLOWED_VIDEO_TYPES.filter(type => type.startsWith('video/')),
+  ...ALLOWED_VIDEO_EXTENSIONS,
+].join(',');
 export const MAX_VIDEO_SIZE_IN_BYTES = 150 * 1024 * 1024;
 export const MAX_VIDEO_DURATION_IN_SECONDS = 30;
 

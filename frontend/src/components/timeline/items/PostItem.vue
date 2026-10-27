@@ -76,9 +76,11 @@
             @click.stop="showGalleryDialog(post, $event)"
             :aria-label="$t('画像を拡大表示')" :aria-describedby="`${idPrefix}-image-alt-${post._id}`"
           >
-            <img
+            <TimelineImage
               :alt="post.image_caption ? post.image_caption : $t('投稿された画像')"
+
               :src="constructImagePath(post)"
+              :preview-src="constructImagePreviewPath(post)"
             />
           </button>
         </div>
@@ -305,6 +307,7 @@
 </template>
 
 <script>
+import TimelineImage from '@/components/timeline/TimelineImage.vue';
 import { canManageFloor } from '@/utils/floorPermissions';
 import { API_BASE_URL } from '@/api/apiClient';
 import DateUtil from '@/utils/dateUtil.js';
@@ -341,6 +344,7 @@ export default {
   name: 'PostItem',
   inject: { readOnly: { from: 'timelineReadOnly', default: false } },
   components: {
+    TimelineImage,
     SupplementItem,
     ReactionItem,
     ReactionPicker,
@@ -469,6 +473,10 @@ export default {
     constructImagePath(data) {
       // サムネイルがない画像では元画像を表示する。
       return TimelineUtil.constructImagePath(data.floor, data.room, data);
+    },
+    constructImagePreviewPath(data) {
+      // サムネイルがない画像では元画像を表示する。
+      return TimelineUtil.constructImagePreviewPath(data.floor, data.room, data);
     },
 
     // 表示中にルームタグが削除される場合があるため、現在のタグ一覧で存在を確認する。
@@ -698,6 +706,8 @@ export default {
   width: auto;
   height: auto;
   max-width: min(100%, 400px);
+  max-height: 400px;
+  object-fit: contain;
   border-radius: 8px;
 }
 

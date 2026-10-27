@@ -1,5 +1,6 @@
 const fs = require('node:fs');
 const path = require('node:path');
+const { pdfAssetsPlugin } = require('./scripts/pdf-assets.cjs');
 const vueModule = require('@vitejs/plugin-vue');
 const { loadEnv } = require('vite');
 const { buildLicensesPlugin } = require('./scripts/build-licenses.mjs');
@@ -235,6 +236,7 @@ const createViteConfig = async ({
     ...(cacheDir ? { cacheDir } : {}),
     plugins: [
       buildLicensesPlugin(),
+      pdfAssetsPlugin(),
       ...(mode === 'e2e' ? [createE2EApplicationEntryPlugin()] : []),
       vue({
         template: {

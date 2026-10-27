@@ -34,7 +34,8 @@
     "vue-router": "5.2.0",
     "vuedraggable": "4.1.0",
     "vuex": "4.1.0",
-    "wavesurfer.js": "7.12.1"
+    "wavesurfer.js": "7.12.1",
+    "pdfjs-dist": "6.4.299"
   },
   "devDependencies": {
     "@vitejs/plugin-vue": "6.0.8",
