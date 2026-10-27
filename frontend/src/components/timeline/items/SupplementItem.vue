@@ -216,7 +216,7 @@ export default {
     'showGalleryDialog',
   ],
   name: 'SupplementItem',
-  inject: { readOnly: { from: 'timelineReadOnly', default: false } },
+  inject: { readOnly: { from: 'timelineReadOnly', default: false }, activityTemporaryTarget: { default: null } },
   components: {
     TimelineImage,
     ReactionItem,
@@ -247,14 +247,16 @@ export default {
       thumbOrientation: {}, // 付加情報IDごとのサムネイルの向き（portraitは縦長、landscapeは横長）
 
       reactionPickerVisible: false,
-      contentExpanded: false,
+      contentExpanded: this.activityTemporaryTarget?.()?.supplementId === this.supplement._id,
     };
   },
   watch: {
-    'supplement.content'() { this.contentExpanded = false; },
-    '$i18n.locale'() { this.contentExpanded = false; },
+    selectedActivityTarget: { immediate: true, handler(value) { if (value) this.contentExpanded = true; } },
+    'supplement.content'() { this.contentExpanded = !!this.selectedActivityTarget; },
+    '$i18n.locale'() { this.contentExpanded = !!this.selectedActivityTarget; },
   },
   computed: {
+    selectedActivityTarget() { const target = this.activityTemporaryTarget?.(); return target?.supplementId === this.supplement._id ? target : null; },
     contentRegionId() { return `${this.idPrefix}-supplement-body-${this.supplement._id}`; },
     canExpand() {
       return ((this.supplement.content || '').length > 400 ||

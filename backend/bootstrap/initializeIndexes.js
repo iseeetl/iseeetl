@@ -3,6 +3,10 @@ const initializeIndexes = async (models = [
   require('../models/FloorMember'),
   require('../models/RoomMember'),
   require('../models/KickedUser'),
+  ...(process.env.ACTIVITY_NOTIFICATIONS_ENABLED === 'true' ? [
+    require('../models/ActivityEvent'), require('../models/ActivityNotification'), require('../models/ActivityRead'),
+    require('../models/ActivityPreference'), require('../models/ActivitySubscription'), require('../models/ActivityPushWindow'),
+  ] : []),
 ]) => {
   await Promise.all(models.map(async (model) => {
     try {

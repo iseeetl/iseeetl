@@ -128,6 +128,7 @@
         </div>
 
         <div class="action" v-if="!readOnly && $store.getters.displayActionButton">
+          <ThreadSubscriptionButton :post-id="post._id" />
           <div class="reply-container">
             <UiTooltip :text="$t('返信')">
               <UiButton
@@ -267,7 +268,7 @@
             </UiButton>
           </UiTooltip>
         </div>
-        <div class="supplementaries" v-if="visibleSupplements.length && !hideInfo">
+        <div class="supplementaries" v-if="visibleSupplements.length">
           <SupplementItem
             v-for="supplement in visibleSupplements"
             :key="supplement._id"
@@ -291,6 +292,7 @@
 </template>
 
 <script>
+import ThreadSubscriptionButton from '@/components/timeline/activity/ThreadSubscriptionButton.vue';
 import TimelineImage from '@/components/timeline/TimelineImage.vue';
 import { canManageFloor } from '@/utils/floorPermissions';
 import DateUtil from '@/utils/dateUtil.js';
@@ -322,8 +324,9 @@ export default {
     'showGalleryDialog',
   ],
   name: 'ReplyItem',
-  inject: { readOnly: { from: 'timelineReadOnly', default: false } },
+  inject: { readOnly: { from: 'timelineReadOnly', default: false }, activityTemporaryTarget: { default: null } },
   components: {
+    ThreadSubscriptionButton,
     TimelineImage,
     SupplementItem,
     ReactionItem,
@@ -364,7 +367,7 @@ export default {
   },
   computed: {
     visibleSupplements() {
-      return (this.reply.supplementaries || []).filter((item) => this.$store.getters.isSupplementVisible?.(item, this.post.room) ?? this.$store.getters.displaySupplement);
+      return (this.reply.supplementaries || []).filter((item) => this.activityTemporaryTarget?.()?.supplementId === item._id || (!this.hideInfo && (this.$store.getters.isSupplementVisible?.(item, this.post.room) ?? this.$store.getters.displaySupplement)));
     },
     canManageFloor() {
       return canManageFloor(this.$store.getters.userRole, this.$store.getters.roomRole);

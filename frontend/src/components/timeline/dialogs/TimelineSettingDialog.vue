@@ -81,7 +81,8 @@
       </div>
     </section>
 
-    <UpdateNoticeSettings v-if="visible && editingRoomId" v-model="updatePreference" :room-title="roomTitle" />
+    <p v-if="activityController?.center()?.enabled"><button type="button" @click="visible = false; activityController.center().showSettings()">{{ $t('activity.settings') }}</button></p>
+    <UpdateNoticeSettings v-else-if="visible && editingRoomId" v-model="updatePreference" :room-title="roomTitle" />
     <section class="setting-section" aria-labelledby="timeline_setting_animation_title">
       <h3 id="timeline_setting_animation_title" class="setting-section-title">{{ $t('流す') }}</h3>
       <label class="setting-choice" for="enable_text_animation">
@@ -127,6 +128,7 @@ import BaseEditDialog from '@/components/common/BaseEditDialog.vue';
 import ConfirmDialog from '@/components/common/ConfirmDialog.vue';
 
 export default {
+  inject: { activityController: { default: null } },
   emits: ['close', 'success'],
   name: 'TimelineSettingDialog',
   components: {

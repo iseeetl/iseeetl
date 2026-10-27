@@ -32,6 +32,7 @@ const serializeReply = (reply, { preserveDeleted = false } = {}) => {
   const result = cloneValue(reply);
   if (!result || typeof result !== 'object') return result;
   delete result.analysis_source_revision;
+  delete result.activity_outbox;
   if (Array.isArray(result.supplementaries)) {
     result.supplementaries = result.supplementaries
       .filter((supplement) => preserveDeleted || !supplement?.delete_flg)
@@ -45,6 +46,7 @@ const serializeTimelinePost = (data, { preserveDeleted = false } = {}) => {
   if (!result || typeof result !== 'object') return result;
 
   delete result.analysis_source_revision;
+  delete result.activity_outbox;
   if (Array.isArray(result.replies)) {
     result.replies = result.replies
       .filter((reply) => preserveDeleted || !reply?.delete_flg)

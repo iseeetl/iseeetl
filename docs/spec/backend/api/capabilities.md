@@ -88,3 +88,7 @@ AI解析の設定・実行境界は[AI解析設定・実行仕様](../../ai-anal
 `GET /api/capabilities/google-login` は認証不要で、`Cache-Control: no-store` と `{ "clientId": "..." }` を返す。サーバーでGoogleログインが有効な場合だけ、起動時設定の `GOOGLE_OAUTH_CLIENT_ID` を返す。無効時は空文字列で、外部通信・DB更新は行わない。公開されるのはOAuthの公開クライアントIDだけで、秘密値や設定オブジェクト全体は返さない。既存の `/api/capabilities` の真偽値8項目は変更しない。
 
 フロントエンドはGoogleのcapabilityがtrueの場合に取得し、Google Identity ServicesとIDトークン検証で同じIDを使う。正常に取得したIDをビルド時の `VITE_GOOGLE_OAUTH_CLIENT_ID` より優先する。取得失敗・未対応サーバーの場合のみ従来のビルド時IDへ戻る。ビルド時IDも無い場合はGoogleボタンを出さず、LINEとメールログインの利用可否は維持する。設定変更時にはサーバーを再起動する。
+
+## OneSignalの公開設定
+
+`GET /api/capabilities/onesignal` は認証前に公開アプリIDのみ `{ appId }` として返します。無効時は空文字列。`Cache-Control: no-store`。REST APIキーや外部ID署名用の秘密値は返しません。画面は実行時のIDを使い、旧サーバーでエンドポイントが使えない場合だけビルド時の公開IDへ戻ります。

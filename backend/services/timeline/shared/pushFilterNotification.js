@@ -9,6 +9,7 @@ const buildSnippet = (content) => (content ? `${content.slice(0, SNIPPET_LIMIT)}
 const normalizeId = (value) => (value == null ? null : value.toString());
 
 async function notifyPushFilterUsers({ roomId, msgInfo, excludeUserId, headings, contents, url }) {
+  if (process.env.ACTIVITY_NOTIFICATIONS_ENABLED === 'true') return [];
   const room = normalizeId(roomId);
   const exclude = normalizeId(excludeUserId);
 

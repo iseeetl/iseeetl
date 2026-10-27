@@ -23,6 +23,7 @@ async function notifySupplementAuthor({
   logger,
   logPrefix,
 }) {
+  if (process.env.ACTIVITY_NOTIFICATIONS_ENABLED === 'true') return [];
   try {
     if (!authorId || authorId === excludeUserId) return;
 

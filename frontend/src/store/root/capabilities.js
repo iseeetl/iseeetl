@@ -24,6 +24,7 @@ export const createCapabilityValues = () =>
 export const createCapabilitiesState = () => ({
   status: 'idle',
   googleLoginClientId: null,
+  oneSignalAppId: null,
   values: createCapabilityValues(),
 });
 
@@ -61,6 +62,7 @@ const googleLoginClientId = (state) =>
 
 export const capabilitiesDomain = {
   getters: {
+    oneSignalAppId: (state) => state.capabilities.oneSignalAppId ?? import.meta.env.VITE_ONESIGNAL_APP_ID ?? '',
     capabilityStatus: (state) => state.capabilities.status,
     capabilitiesFailed: (state) => state.capabilities.status === 'error',
     googleLoginClientId,
@@ -70,7 +72,7 @@ export const capabilitiesDomain = {
     lineLoginAvailable: (state) => capabilityEnabled(state, 'lineLogin'),
     mailDeliveryAvailable: (state) => capabilityEnabled(state, 'mailDelivery'),
     oneSignalPushAvailable: (state) =>
-      capabilityEnabled(state, 'oneSignalPush') && hasPublicConfigValue(import.meta.env.VITE_ONESIGNAL_APP_ID),
+      capabilityEnabled(state, 'oneSignalPush') && hasPublicConfigValue(state.capabilities.oneSignalAppId ?? import.meta.env.VITE_ONESIGNAL_APP_ID),
     googleTranslateAvailable: (state) => capabilityEnabled(state, 'googleTranslate'),
     openaiTranscriptionAvailable: (state) => capabilityEnabled(state, 'openaiTranscription'),
     openaiAnalysisAvailable: (state) => capabilityEnabled(state, 'openaiAnalysis'),
@@ -80,8 +82,10 @@ export const capabilitiesDomain = {
     startCapabilitiesLoad(state) {
       state.capabilities.status = 'loading';
       state.capabilities.googleLoginClientId = null;
+      state.capabilities.oneSignalAppId = null;
       state.capabilities.values = createCapabilityValues();
     },
+    setOneSignalAppId(state, appId) { state.capabilities.oneSignalAppId = appId; },
     setGoogleLoginClientId(state, clientId) {
       state.capabilities.googleLoginClientId = clientId;
     },
@@ -92,6 +96,7 @@ export const capabilitiesDomain = {
     setCapabilitiesError(state) {
       state.capabilities.status = 'error';
       state.capabilities.googleLoginClientId = null;
+      state.capabilities.oneSignalAppId = null;
       state.capabilities.values = createCapabilityValues();
     },
   },
@@ -110,6 +115,13 @@ export const capabilitiesDomain = {
           } catch {
             // Older servers can use the build-time ID; other login methods remain available.
           }
+        }
+        if (values.oneSignalPush) {
+          try {
+            const config = await capabilitiesApi.fetchOneSignalConfig();
+            if (typeof config?.data?.appId !== 'string') throw new TypeError('invalid public app ID');
+            commit('setOneSignalAppId', config.data.appId.trim());
+          } catch { /* Older servers retain the build-time public ID. */ }
         }
         commit('setCapabilitiesReady', values);
         return values;

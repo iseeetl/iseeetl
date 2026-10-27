@@ -6,6 +6,7 @@ const SupplementSchema = require('./Supplement');
 const TranslationSchema = require('./Translation');
 
 const PostSchema = new Schema({
+  activity_outbox: { type: [require('./ActivityOutbox')], default: undefined, select: false },
   floor: {
     type: Schema.Types.ObjectId,
     ref: 'Floor',
