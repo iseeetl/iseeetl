@@ -49,7 +49,7 @@
             <time>{{ new Date(entry.occurredAt).toLocaleString($i18n.locale) }}</time>
             <span v-if="!entry.read">{{ $t('activity.unread') }}</span>
             <p>{{ !entry.available ? $t('postDefaults.unavailable') : entry.hidden ? $t('activity.hidden') : entry.preview }}</p>
-            
+
           </button>
           <button type="button" class="preview-button" :aria-label="$t('activity.previewUpdate')" @click="openTarget(entry, true)">📺 {{ $t('activity.previewUpdate') }}</button>
         </article>
@@ -94,7 +94,7 @@ export default {
   methods: {
     entryLabel(entry) { const kind = entry.type === 'reaction' ? entry.media ? 'reactionAlternative' : entry.supplementId ? 'reactionSupplement' : entry.replyId ? 'reactionReply' : 'reaction' : entry.type; return this.$t(`activity.${kind}`); },
     async initialize() {
-      const generation = ++this.generation; this.queuedTarget = null; this.targetRequest++; clearInterval(this.timer); this.enabled = false; this.opened = false; this.preferences = null; this.target = null; this.settings = false; this.busy = false; this.saving = false; this.request++; 
+      const generation = ++this.generation; this.queuedTarget = null; this.targetRequest++; clearInterval(this.timer); this.enabled = false; this.opened = false; this.preferences = null; this.target = null; this.settings = false; this.busy = false; this.saving = false; this.request++;
       this.pending = false; this.seenIds = new Set(); this.subscribedIds = []; this.entries = []; this.error = '';
       if (!this.roomId || !this.identity) return;
       try {
