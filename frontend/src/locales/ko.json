@@ -1,4 +1,9 @@
 {
+  "roomGuides": {
+    "title": "고정 안내",
+    "unavailable": "안내를 불러올 수 없습니다. 연결을 확인하고 다시 시도하세요.",
+    "languageNote": "안내를 열어도 입력 언어는 바뀌지 않습니다. 입력하기 전에 프로필에서 언어를 설정하고 저장하세요."
+  },
   "supplementTitle": {
     "label": "제목",
     "settingLabel": "추가 정보 제목",

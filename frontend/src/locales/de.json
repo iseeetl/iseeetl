@@ -1,4 +1,9 @@
 {
+  "roomGuides": {
+    "title": "Angeheftete Anleitungen",
+    "unavailable": "Die Anleitung konnte nicht geladen werden. Prüfen Sie die Verbindung und versuchen Sie es erneut.",
+    "languageNote": "Das Öffnen der Anleitung ändert die Eingabesprache nicht. Stellen Sie vor der Eingabe die Sprache im Profil ein und speichern Sie sie."
+  },
   "supplementTitle": {
     "label": "Titel",
     "settingLabel": "Titel der Zusatzinformation",

@@ -1,4 +1,9 @@
 {
+  "roomGuides": {
+    "title": "固定案内",
+    "unavailable": "案内を読み込めません。通信状態を確認して再試行してください。",
+    "languageNote": "案内を開くだけでは入力言語は変わりません。入力前にプロフィールの言語を設定・保存してください。"
+  },
   "supplementTitle": {
     "label": "タイトル",
     "settingLabel": "付加情報のタイトル",

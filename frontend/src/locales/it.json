@@ -1,4 +1,9 @@
 {
+  "roomGuides": {
+    "title": "Guide fissate",
+    "unavailable": "Impossibile caricare la guida. Controlla la connessione e riprova.",
+    "languageNote": "Aprire la guida non cambia la lingua di inserimento. Prima di scrivere, imposta e salva la lingua nel tuo profilo."
+  },
   "supplementTitle": {
     "label": "Titolo",
     "settingLabel": "Titolo delle informazioni aggiuntive",
