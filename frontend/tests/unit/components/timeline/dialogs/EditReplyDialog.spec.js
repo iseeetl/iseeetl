@@ -882,3 +882,13 @@ it('keeps saved tags until This tab is explicitly selected, then clears feedback
   expect(wrapper.findAll('.tag-action-button[aria-pressed="true"]')).toHaveLength(0);
   wrapper.unmount();
 });
+
+
+it('corrects only the text language without changing the display language or body',async()=>{
+  const original=chatApi.updateReply;const calls=[];
+  chatApi.updateReply=body=>{calls.push(body);return Promise.resolve({data:{room_tags:[]}})};
+  const wrapper=createWrapper({props:{replyValue:{_id:'post',content:'Hello.',lang:'ja',room_tags:[],animation:null},postValue:{_id:'parent'}}});
+  try{wrapper.vm.openedDialog();wrapper.vm.sourceLanguage='en';wrapper.vm.notifyAll=false;await wrapper.vm.editReply();
+    expect(calls).to.deep.equal([{room_id:'room-1',post_id:'parent',_id:'post',lang:'en'}]);expect(wrapper.vm.$i18n.locale).to.equal('ja');
+  }finally{chatApi.updateReply=original;wrapper.unmount();}
+});

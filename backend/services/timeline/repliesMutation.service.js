@@ -27,6 +27,7 @@ const {
   buildMediaStateMatch,
   mergeTimelinePatch,
 } = require('./shared/partialMutation');
+const { hasAnalysisSourceChanged } = require('./shared/analysisSourceRevision');
 const { resolveMutationTargetLangs } = require('./shared/targetLanguages');
 const { assertResourceContent, isUnchangedResource } = require('./shared/resourceMutation');
 
@@ -112,7 +113,7 @@ exports.update = async (body, jwtPayload, io, { errors, requireContentOrMedia = 
   const unchanged = requireContentOrMedia && isUnchangedResource(foundReply, updateReply);
   if (unchanged && !notifyAll) return serializeTimeline(await populateReplies(foundChat));
   const translationEnabled = isGoogleTranslateEnabled();
-  if (translationSourceChanged && translationEnabled) {
+  if (translationSourceChanged) {
     updateReply.translations = [];
   }
 
@@ -137,7 +138,9 @@ exports.update = async (body, jwtPayload, io, { errors, requireContentOrMedia = 
     if (requireContentOrMedia && error.code === 'INVALID_PARAMS') throw new AppError({ code: 'CONFLICT' });
     throw error;
   });
-  const sourceChanged = sourceMutation.sourceChanged;
+  // Language correction rebuilds translations without generating duplicate AI supplements.
+  const sourceChanged = sourceMutation.sourceChanged &&
+    hasAnalysisSourceChanged(foundReply, { ...updateReply, lang: foundReply.lang });
   const populatedChat = await populateReplies(sourceMutation.document);
   if (!populatedChat) throw buildReplyNotFoundError();
   const postForEmit = serializeTimeline(populatedChat);

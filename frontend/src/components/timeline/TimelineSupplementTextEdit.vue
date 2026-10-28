@@ -8,12 +8,13 @@
     </UiTooltip>
     <BaseEditDialog :visible="editing" :sending="saving" :title-id="`${bodyId}-title`"
       :title-text="$t('sharedText.edit')" :confirm-label="$t('managementUi.save')" :cancel-label="$t('キャンセル')"
-      :confirm-disabled="!draft.trim() || draft.length > 2000 || conflicted" @opened="focusText" @confirm="save" @cancel="editing = false" @closed="editing = false">
+      :confirm-disabled="!sourceLanguage || !draft.trim() || draft.length > 2000 || conflicted" @opened="focusText" @confirm="save" @cancel="editing = false" @closed="editing = false">
       <p>{{ $t('sharedText.hint') }}</p><p>{{ $t('sharedText.noHistory') }}</p>
       <UiField class="alt-edit-field" :control-id="`${bodyId}-input`" :label="$t('sharedText.content')" counter stacked
         :invalid="draft.length > 2000" :error="draft.length > 2000 ? $t('composerSource.textLimit', { count: 2000 }) : ''">
         <template #default="{ controlAttrs }"><textarea ref="draftInput" v-bind="controlAttrs" v-model="draft" maxlength="2000" rows="8" :disabled="saving" /></template>
       </UiField>
+      <SourceLanguageField v-model="sourceLanguage" :control-id="`${bodyId}-language`" :disabled="saving" />
       <p role="alert" v-if="error">{{ error }}</p>
       <UiButton v-if="conflicted" appearance="filled" tone="neutral" @click="refresh">{{ $t('altText.reload') }}</UiButton>
     </BaseEditDialog>
@@ -21,6 +22,7 @@
   </section>
 </template>
 <script>
+import SourceLanguageField from './SourceLanguageField.vue';
 import { canEditSharedText } from '@/features/timeline/sharedTextPermission';
 import UiIcon from '@/components/ui/UiIcon.vue';
 import UiTooltip from '@/components/ui/UiTooltip.vue';
@@ -32,13 +34,13 @@ import chatApi from '@/api/chat';
 const mediaTextSnapshot = (item) => ({ content: item.content ?? null, lang: item.lang ?? null });
 
 export default {
-  components: { UiIcon, UiTooltip, UiButton, UiField, BaseEditDialog },
+  components: { SourceLanguageField, UiIcon, UiTooltip, UiButton, UiField, BaseEditDialog },
   props: { item: { type: Object, required: true }, kind: { type: String, required: true },
     descriptionId: String, postId: String, replyId: String, supplementId: String,
     readOnly: { type: Boolean, default: false }, roomId: String },
   setup() { return { bodyId: `alternative-text-${useId()}` }; },
   data() { return { editing: false, saving: false,
-    draft: '', expected: null, error: '', status: '', conflicted: false, savedItem: null }; },
+    draft: '', sourceLanguage: null, expected: null, error: '', status: '', conflicted: false, savedItem: null }; },
   computed: {
     current() { return this.savedItem || this.item; },
     text() { return this.current.content || ''; },
@@ -49,7 +51,7 @@ export default {
   methods: {
 
     focusText() { this.$nextTick(() => { const input = this.$refs.draftInput; if (input) { input.focus(); input.setSelectionRange(0, 0); input.scrollTop = 0; } }); },
-    startEdit() { this.draft = this.text; this.expected = mediaTextSnapshot(this.current); this.error = ''; this.conflicted = false; this.editing = true; },
+    startEdit() { this.draft = this.text; this.sourceLanguage = this.current.lang || null; this.expected = mediaTextSnapshot(this.current); this.error = ''; this.conflicted = false; this.editing = true; },
     extract(post) {
       const parent = this.replyId ? post.replies?.find((x) => x._id === this.replyId) : post;
       return this.supplementId ? parent?.supplementaries?.find((x) => x._id === this.supplementId) : parent;
@@ -64,11 +66,11 @@ export default {
       } catch { this.error = this.$t('altText.failed'); } finally { this.saving = false; }
     },
     async save() {
-      if (this.saving || this.conflicted || !this.draft.trim() || this.draft.length > 2000) return;
+      if (!this.sourceLanguage || this.saving || this.conflicted || !this.draft.trim() || this.draft.length > 2000) return;
       this.saving = true; this.error = '';
       try {
         const { data } = await chatApi.updateSupplementText({ room_id: this.effectiveRoom, post_id: this.postId,
-          reply_id: this.replyId, supplement_id: this.supplementId, text: this.draft, lang: this.current.lang || this.$i18n.locale, expected: this.expected });
+          reply_id: this.replyId, supplement_id: this.supplementId, text: this.draft, lang: this.sourceLanguage, expected: this.expected });
         this.savedItem = this.extract(data); this.editing = false; this.status = this.$t('sharedText.saved');
       } catch (error) {
         this.conflicted = error.response?.status === 409;

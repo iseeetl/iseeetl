@@ -60,7 +60,7 @@ const translateMainContentIfNeeded = ({ userId, chatId, content, lang, targetLan
     translate: () => translationService.translateContent(userId, content, lang, targetLangs),
     update: (translations) =>
       Chat.findOneAndUpdate(
-        { _id: chatId, delete_flg: false },
+        { _id: chatId, delete_flg: false, content, lang },
         { $set: { translations } },
         { new: true, runValidators: true }
       ),
@@ -76,7 +76,7 @@ const translateGuestMainContentIfNeeded = ({ guestId, chatId, content, lang, tar
     translate: () => translationService.translateGuestContent(guestId, content, lang, targetLangs),
     update: (translations) =>
       Chat.findOneAndUpdate(
-        { _id: chatId, delete_flg: false },
+        { _id: chatId, delete_flg: false, content, lang },
         { $set: { translations } },
         { new: true, runValidators: true }
       ),
@@ -93,9 +93,9 @@ const translateReply = ({ chatId, reply, targetLangs, io, translate }) =>
     translate,
     update: (translations) =>
       Chat.findOneAndUpdate(
-        { _id: chatId, delete_flg: false },
+        { _id: chatId, delete_flg: false, replies: { $elemMatch: { _id: reply._id, delete_flg: false, content: reply.content, lang: reply.lang } } },
         { $set: { 'replies.$[reply].translations': translations } },
-        { arrayFilters: [{ 'reply._id': reply._id }], new: true, runValidators: true }
+        { arrayFilters: [{ 'reply._id': reply._id, 'reply.delete_flg': false, 'reply.content': reply.content, 'reply.lang': reply.lang }], new: true, runValidators: true }
       ),
     event: 'REPLY_UPDATE',
     io,
@@ -127,9 +127,9 @@ const translateSupplementIfNeeded = ({ chatId, supplementId, content, lang, targ
     translate: () => translationService.translateContent(userId, content, lang, targetLangs),
     update: (translations) =>
       Chat.findOneAndUpdate(
-        { _id: chatId, delete_flg: false },
+        { _id: chatId, delete_flg: false, supplementaries: { $elemMatch: { _id: supplementId, delete_flg: false, content, lang } } },
         { $set: { 'supplementaries.$[supplement].translations': translations } },
-        { arrayFilters: [{ 'supplement._id': supplementId }], new: true, runValidators: true }
+        { arrayFilters: [{ 'supplement._id': supplementId, 'supplement.delete_flg': false, 'supplement.content': content, 'supplement.lang': lang }], new: true, runValidators: true }
       ),
     event: 'SUPPLEMENT_UPDATE',
     io,
@@ -152,10 +152,10 @@ const translateReplySupplementIfNeeded = ({
     translate: () => translationService.translateContent(userId, content, lang, targetLangs),
     update: (translations) =>
       Chat.findOneAndUpdate(
-        { _id: chatId, delete_flg: false },
+        { _id: chatId, delete_flg: false, replies: { $elemMatch: { _id: replyId, delete_flg: false, supplementaries: { $elemMatch: { _id: supplementId, delete_flg: false, content, lang } } } } },
         { $set: { 'replies.$[reply].supplementaries.$[supp].translations': translations } },
         {
-          arrayFilters: [{ 'reply._id': replyId }, { 'supp._id': supplementId }],
+          arrayFilters: [{ 'reply._id': replyId, 'reply.delete_flg': false }, { 'supp._id': supplementId, 'supp.delete_flg': false, 'supp.content': content, 'supp.lang': lang }],
           new: true,
           runValidators: true,
         }

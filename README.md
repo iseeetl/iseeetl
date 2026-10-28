@@ -112,3 +112,5 @@ Webプッシュの公開アプリIDは[機能設定API](docs/spec/backend/api/ca
 アクティビティの下部操作は、狭い画面ではボタンを折り返して全文を表示します。[通知画面の表示](frontend/src/components/timeline/activity/README.md#狭い画面の下部操作)を参照してください。
 
 購読ベルは他の投稿操作と同じ明るさにし、選択中は色と形で区別します。[ベルの表示](frontend/src/components/timeline/activity/README.md#購読ベルの表示)を参照してください。
+
+投稿・返信・付加情報の「本文の言語」は画面の言語と分けて訂正できます。AI文字起こしは翻訳APIによる原文言語の判定を使います。[本文言語の訂正と文字起こし翻訳](docs/spec/frontend/source-language.md)に手順・失敗時・既存データの扱いを記載しています。

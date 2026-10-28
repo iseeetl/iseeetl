@@ -24,7 +24,7 @@ describe('direct composer shortcuts', () => {
 });
 for (const dialog of [EditPostDialog,EditReplyDialog,EditSupplementDialog]) {
   it(`${dialog.__file}: disables empty/invalid/busy drafts but allows text or retained media`, () => {
-    const state={content:'',v$:{$invalid:false},maxVideoSize:10,maxVideoDuration:10,maxAudioSize:10,maxAudioDuration:10};
+    const state={sourceLanguage:'ja',content:'',v$:{$invalid:false},maxVideoSize:10,maxVideoDuration:10,maxAudioSize:10,maxAudioDuration:10};
     const disabled=overrides=>dialog.computed.submissionDisabled.call({...state,...overrides});
     expect(disabled({})).toBe(true);expect(disabled({content:'hello'})).toBe(false);expect(disabled({imageName:'saved.png'})).toBe(false);
     expect(disabled({content:'hello',v$:{$invalid:true}})).toBe(true);expect(disabled({content:'hello',recording:true})).toBe(true);

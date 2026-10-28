@@ -987,7 +987,7 @@
     "optionHint": "Signed-in participants can edit other people’s alternative text and human or AI supplementary text. This does not allow deleting items or changing files.",
     "content": "Supplementary text",
     "edit": "Edit supplementary text",
-    "hint": "Edit text only, using its original language. The author, AI source and attached files stay the same.",
+    "hint": "पाठ और उसकी भाषा बदलें। लेखक, AI स्रोत और संलग्न फ़ाइलें वही रहती हैं।",
     "noHistory": "Edit history and undo are not available yet. Check the text before saving.",
     "saved": "Additional information text saved."
   },
@@ -1103,5 +1103,10 @@
     "scope_matching": "Follow filters",
     "scope_all": "Ignore filters",
     "previewUpdate": "Preview update"
+  },
+  "sourceLanguage": {
+    "label": "पाठ की भाषा",
+    "hint": "पाठ में इस्तेमाल की गई भाषा चुनें। बदलाव सहेजने पर अनुवाद फिर से बनाए जाते हैं। स्क्रीन की भाषा नहीं बदलती।",
+    "unknown": "अज्ञात (भाषा चुनें)"
   }
 }

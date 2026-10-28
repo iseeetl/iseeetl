@@ -600,6 +600,7 @@ describe('postsのサービス', () => {
         expect(translateMainContentIfNeeded).toHaveBeenCalledWith(
           expect.objectContaining({ content: 'same', lang: 'ja', targetLangs: ['en'] })
         );
+        expect(runPostAnalyses).not.toHaveBeenCalled();
       } finally {
         global.setImmediate = originalSetImmediate;
       }
@@ -749,18 +750,18 @@ describe('postsのサービス', () => {
           expect.objectContaining({ content: 'REPLACED:new', lang: 'ja' })
         );
         expect(Object.keys(update.$set).sort()).toEqual(
-          ['content', 'lang', 'updated_at'].sort()
+          ['content', 'lang', 'translations', 'updated_at'].sort()
         );
       }
     });
 
-    test('Google翻訳無効時は内容更新後も保存済み翻訳を変更しない', async () => {
+    test('Google翻訳無効時も変更前の翻訳を消し、古い翻訳を表示しない', async () => {
       mockIsGoogleTranslateEnabled.mockReturnValue(false);
 
       await postsService.update(bodyBase, jwt, io);
 
       const setObj = Chat.findOneAndUpdate.mock.calls[0][1].$set;
-      expect(setObj).not.toHaveProperty('translations');
+      expect(setObj.translations).toEqual([]);
     });
 
     test.each(['成功', '失敗'])('翻訳%s後も解析を実行する', async (translationState) => {

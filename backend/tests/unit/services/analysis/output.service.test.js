@@ -289,18 +289,18 @@ describe('AI解析結果の整形', () => {
   test('文字起こしの原文は省略し、翻訳には省略前の本文を渡して長い結果を保持する', async () => {
     const providerOutput = '文字起こし'.repeat(500);
     const translated = 'transcribed '.repeat(60);
-    const translateContent = jest.fn().mockResolvedValue([{ lang: 'en', content: translated }]);
+    const translateTranscription = jest.fn().mockResolvedValue({ lang: 'ja', translations: [{ lang: 'en', content: translated }] });
     const log = logger();
     const value = await buildAnalysisSupplement({
       snapshot: snapshot({ kind: 'speech', source: { _id: 'post-1', lang: 'ja' }, targetLangs: ['en'] }),
       providerOutput,
-      translateContent,
+      translateTranscription,
       logger: log,
     });
 
     expect(value.content).toHaveLength(2000);
     expect(value.content.endsWith('…')).toBe(true);
-    expect(translateContent).toHaveBeenCalledWith('user-1', providerOutput, 'ja', ['en'], expect.objectContaining({
+    expect(translateTranscription).toHaveBeenCalledWith('user-1', providerOutput, ['en', 'ja'], expect.objectContaining({
       post_id: 'post-1', setting_id: 'setting-1', field: 'body',
     }));
     expect(value.translations[0].content).toBe(`#Advice ${translated.trim()}`);
@@ -352,5 +352,20 @@ describe('AI解析結果の整形', () => {
     const last = beforeEllipsis.charCodeAt(beforeEllipsis.length - 1);
     expect(last >= 0xd800 && last <= 0xdbff).toBe(false);
     expect(result.length).toBeLessThanOrEqual(2000);
+  });
+});
+
+
+describe('transcript language is independent of post language', () => {
+  test.each([['ja','en','The exhibit is on the right.','展示は右側です。'],['en','ja','展示は右側です。','The exhibit is on the right.']])('%s post with %s speech',async(postLang,spokenLang,text,translated)=>{
+    const translateTranscription=jest.fn().mockResolvedValue({lang:spokenLang,translations:[{lang:postLang,content:translated},{lang:spokenLang,content:text}]});
+    const value=await buildAnalysisSupplement({snapshot:snapshot({kind:'speech',source:{_id:'post-1',lang:postLang},targetLangs:[spokenLang]}),providerOutput:text,translateTranscription,logger:logger()});
+    expect(value.lang).toBe(spokenLang); expect(value.content).toContain(text);
+    expect(value.translations).toEqual([expect.objectContaining({lang:postLang,content:expect.stringContaining(translated)})]);
+    expect(translateTranscription).toHaveBeenCalledWith('user-1',text,[spokenLang,postLang],expect.any(Object));
+  });
+  test('translation failure preserves the transcript without guessing its language',async()=>{
+    const value=await buildAnalysisSupplement({snapshot:snapshot({kind:'speech',source:{_id:'post-1',lang:'ja'}}),providerOutput:'Hello.',translateTranscription:jest.fn().mockRejectedValue(new Error('fixture failure')),logger:logger()});
+    expect(value.lang).toBeNull();expect(value.content).toContain('Hello.');expect(value.translations).toEqual([]);
   });
 });

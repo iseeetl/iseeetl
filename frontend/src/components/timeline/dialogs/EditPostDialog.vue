@@ -86,6 +86,7 @@
               @choose="chooseComposerMedia" @record="toggleRecording" />
           </template>
         </UiField>
+        <SourceLanguageField v-if="!isGuestReactionOnly" v-model="sourceLanguage" control-id="post_source_language" :disabled="sending || recording || transcribing" />
         <div v-if="showMediaInput" class="composer-attachment-preview">
           <media-input
               ref="composerMedia"
@@ -374,6 +375,7 @@
 </template>
 
 <script>
+import SourceLanguageField from '@/components/timeline/SourceLanguageField.vue';
 import { SUPPLEMENT_CONTENT_LIMIT } from '@/features/timeline/supplementLength';
 import { editorSubmissionMixin } from '@/features/analytics/editorSubmission.js';
 import { useId } from 'vue';
@@ -441,6 +443,7 @@ export default {
     };
   },
   components: {
+    SourceLanguageField,
     MobileComposerTools,
     CameraCaptureDialog,
     ConfirmDialog,
@@ -557,6 +560,7 @@ export default {
       tagSource: null,
       roomTags: [],
       content: null,
+      sourceLanguage: null,
       contentSelectionStart: null,
       contentSelectionEnd: null,
       animation: null,
@@ -627,6 +631,7 @@ export default {
     },
 
     openedDialog() {
+      this.sourceLanguage = this.propsPost?.lang || this.$i18n.locale;
       this.continuousPosting = false;
       this.postBaseline = this.propsPost ? JSON.parse(JSON.stringify(this.propsPost)) : null;
 
@@ -942,7 +947,7 @@ export default {
       const data = {
         room_id: this.$store.getters.roomId,
         content: this.content,
-        lang: this.postId ? (this.postBaseline?.lang || this.propsPost?.lang || this.$i18n.locale) : this.$i18n.locale,
+        lang: this.sourceLanguage || this.$i18n.locale,
         room_tags: this.submittableRoomTagIds,
         animation: this.animation,
         image_name: this.imageName,
@@ -985,7 +990,7 @@ export default {
         room_title: this.$store.getters.roomTitle,
         guest_name: this.$store.getters.guestName,
         content: this.content,
-        lang: this.$i18n.locale,
+        lang: this.sourceLanguage || this.$i18n.locale,
         room_tags: this.submittableRoomTagIds,
         animation: this.animation,
         keyup: this.keyup.join(','),

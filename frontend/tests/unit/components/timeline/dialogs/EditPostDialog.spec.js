@@ -960,3 +960,13 @@ describe('上下共通の送信と計測', () => {
     expect(wrapper.vm.sending).toBe(false); expect(wrapper.emitted().close).toBeUndefined(); wrapper.unmount();
   });
 });
+
+
+it('corrects only the text language without changing the display language or body',async()=>{
+  const original=chatApi.updatePost;const calls=[];
+  chatApi.updatePost=body=>{calls.push(body);return Promise.resolve({data:{room_tags:[]}})};
+  const wrapper=createWrapper({props:{propsPost:{_id:'post',content:'Hello.',lang:'ja',room_tags:[],animation:null},postValue:{_id:'parent'}}});
+  try{wrapper.vm.openedDialog();wrapper.vm.sourceLanguage='en';wrapper.vm.notifyAll=false;await wrapper.vm.editPost();
+    expect(calls).to.deep.equal([{room_id:'room-1',_id:'post',lang:'en'}]);expect(wrapper.vm.$i18n.locale).to.equal('ja');
+  }finally{chatApi.updatePost=original;wrapper.unmount();}
+});

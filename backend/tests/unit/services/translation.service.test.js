@@ -1,5 +1,6 @@
 jest.mock('../../../integrations/google/translate.client', () => ({
   translateText: jest.fn(),
+  translateTextWithMetadata: jest.fn(),
 }));
 jest.mock('../../../services/googleApiUsage.service', () => ({
   canTranslate: jest.fn(),
@@ -12,7 +13,7 @@ jest.mock('../../../config/featureFlags', () => ({
   isGoogleTranslateEnabled: mockIsGoogleTranslateEnabled,
 }));
 
-const { translateText } = require('../../../integrations/google/translate.client');
+const { translateText, translateTextWithMetadata } = require('../../../integrations/google/translate.client');
 const { canTranslate } = require('../../../services/googleApiUsage.service');
 const logger = require('../../../utils/logger');
 const translationService = require('../../../services/translation.service');
@@ -28,17 +29,18 @@ describe('translationのサービス', () => {
     ['translateTag', () => translationService.translateTag('u1', { name: 'tag', lang: 'ja' }, ['en'])],
     ['translateQuickTextGroup', () => translationService.translateQuickTextGroup('u1', { title: 'group', lang: 'ja' }, ['en'])],
     ['translateQuickTextItem', () => translationService.translateQuickTextItem('u1', { label: 'item', lang: 'ja' }, ['en'])],
+    ['translateTranscription', () => translationService.translateTranscription('u1', 'hello', ['ja'])],
     ['translateContent', () => translationService.translateContent('u1', 'hello', 'ja', ['en'])],
     ['translateGuestContent', () => translationService.translateGuestContent('g1', 'hello', 'ja', ['en'])],
   ])('%sは利用量DBの障害を一度だけERRORに記録して翻訳を中止する', async (operation, translate) => {
     canTranslate.mockRejectedValue(Object.assign(new Error('private-fixture'), { code: 13 }));
 
-    await expect(translate()).resolves.toEqual([]);
+    await expect(translate()).resolves.toEqual(operation === 'translateTranscription' ? {lang:null,translations:[]} : []);
 
     expect(translateText).not.toHaveBeenCalled();
     expect(logger.error).toHaveBeenCalledTimes(1);
     expect(logger.error).toHaveBeenCalledWith(`[translation.service] ${operation} failed`, {
-      reason: 'usage_check_failed', source_language: 'ja', target_languages: ['en'],
+      reason: 'usage_check_failed', source_language: operation === 'translateTranscription' ? null : 'ja', target_languages: operation === 'translateTranscription' ? ['ja'] : ['en'],
       error_code: 13, error_type: 'Error', http_status: null, request_id: null,
     });
   });
@@ -333,5 +335,31 @@ describe('translationのサービス', () => {
         expect.objectContaining({ reason: 'provider_failed', error_type: 'Error', target_language: 'en' })
       );
     });
+  });
+});
+
+
+describe('transcript source detection', () => {
+  beforeEach(() => { jest.resetAllMocks(); mockIsGoogleTranslateEnabled.mockReturnValue(true); canTranslate.mockResolvedValue(true); });
+  test('detects the spoken language independently and includes the post language among targets', async () => {
+    translateTextWithMetadata.mockImplementation(async ({targetLanguageCode}) => [{text:targetLanguageCode === 'ja' ? '展示は右側です。' : 'The exhibit is on the right.',detectedLanguageCode:'en'}]);
+    const result = await translationService.translateTranscription('u', 'The exhibit is on the right.', ['ja','en','ja']);
+    expect(result.lang).toBe('en'); expect(result.translations.map(x=>x.lang)).toEqual(['ja','en']);
+    for (const [request] of translateTextWithMetadata.mock.calls) expect(request).not.toHaveProperty('sourceLanguageCode');
+  });
+  test.each([null, 'xx', 'ja'])('conflicting or unavailable detection (%s) stays unknown', async (second) => {
+    translateTextWithMetadata.mockResolvedValueOnce([{text:'訳',detectedLanguageCode:'en'}]).mockResolvedValueOnce([{text:'text',detectedLanguageCode:second}]);
+    expect((await translationService.translateTranscription('u','sample',['ja','en'])).lang).toBeNull();
+  });
+  test('a failed target retains the successful translation and original language',async()=>{
+    translateTextWithMetadata.mockResolvedValueOnce([{text:'説明',detectedLanguageCode:'en'}]).mockRejectedValueOnce(new Error('fixture failure'));
+    const result=await translationService.translateTranscription('u','description',['ja','fr']);
+    expect(result.lang).toBe('en'); expect(result.translations).toHaveLength(1);
+    expect(translationService.getFailedTranslationLanguages(result.translations)).toEqual(['fr']);
+  });
+  test('disabled translation neither requests nor assigns the post language',async()=>{
+    mockIsGoogleTranslateEnabled.mockReturnValue(false);
+    expect(await translationService.translateTranscription('u','description',['ja'])).toEqual({lang:null,translations:[]});
+    expect(translateTextWithMetadata).not.toHaveBeenCalled();
   });
 });

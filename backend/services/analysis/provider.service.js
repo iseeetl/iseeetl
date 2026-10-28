@@ -200,7 +200,7 @@ const analyzeWithProvider = async ({
       buffer: media.audioBuffer,
       mimetype: 'audio/mpeg',
       filename: media.audioFileName || 'audio.mp3',
-      language,
+      // Detect the spoken language; the post language may describe a different text.
       prompt: additionalPrompt || undefined,
       signal,
     });

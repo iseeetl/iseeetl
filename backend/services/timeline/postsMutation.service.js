@@ -31,7 +31,7 @@ const {
   persistPostAnalysisSourceMutation,
   buildExpectedRevisionCondition,
 } = require('./shared/analysisSourceMutation');
-const { areRoomTagSetsEqual } = require('./shared/analysisSourceRevision');
+const { areRoomTagSetsEqual, hasAnalysisSourceChanged } = require('./shared/analysisSourceRevision');
 const { runPostAnalyses } = require('../../services/analysis.service');
 const { translateMainContentIfNeeded } = require('../../services/timeline/timelineTranslation.service');
 const { runBackgroundSteps } = require('../backgroundTaskRunner');
@@ -126,7 +126,7 @@ exports.update = async (body, jwtPayload, io, { errors, requireContentOrMedia = 
     updated_at: Date.now(),
   };
   const translationEnabled = isGoogleTranslateEnabled();
-  if (translationSourceChanged && translationEnabled) {
+  if (translationSourceChanged) {
     updateFields.translations = [];
   }
 
@@ -151,7 +151,9 @@ exports.update = async (body, jwtPayload, io, { errors, requireContentOrMedia = 
     }
     throw error;
   });
-  const sourceChanged = sourceMutation.sourceChanged;
+  // Keep the revision guard, but do not regenerate AI supplements for a language-only edit.
+  const sourceChanged = sourceMutation.sourceChanged &&
+    hasAnalysisSourceChanged(foundChat, { ...desiredPost, lang: foundChat.lang });
 
   const analysisEnabled = isAIAnalysisExecutionEnabled();
 

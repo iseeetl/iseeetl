@@ -260,12 +260,13 @@ describe('設定に基づくAI解析の結合動作（外部サービスはモ�
     });
     const providerOutput = kind === 'speech' ? 'a'.repeat(2400) : 'valid result';
     const translateContent = jest.fn();
+    const translateTranscription = jest.fn();
     const { emit, io } = createIo();
     const executor = createAnalysisExecutor({
       executionEnabled: () => true,
       prepareInput,
       analyze: async () => providerOutput,
-      buildSupplement: (options) => buildAnalysisSupplement({ ...options, translateContent }),
+      buildSupplement: (options) => buildAnalysisSupplement({ ...options, translateContent, translateTranscription }),
     });
     const args = {
       chatId: context.post._id,
@@ -285,6 +286,7 @@ describe('設定に基づくAI解析の結合動作（外部サービスはモ�
         { lang: 'ja', content: translatedBody },
         { lang: 'fr', content: 'réponse' },
       ]);
+      translateTranscription.mockResolvedValue({lang:'en',translations:[{lang:'ja',content:translatedBody},{lang:'fr',content:'réponse'}]});
       await expect(executor.executeSetting(args)).resolves.toMatchObject({ status: revision === 1 ? 'created' : 'updated' });
       const supplements = await sourceSupplements({ postId: context.post._id, replyId: args.replyId });
       expect(supplements).toHaveLength(1);
@@ -303,8 +305,11 @@ describe('設定に基づくAI解析の結合動作（外部サービスはモ�
       } else {
         expect(saved.content).toBe(`#Custom analysis ${providerOutput}`);
       }
-      expect(translateContent).toHaveBeenLastCalledWith(
-        context.resultUser._id.toString(), providerOutput, 'en', ['ja', 'fr'],
+      const expectedArgs = kind === 'speech'
+        ? [context.resultUser._id.toString(), providerOutput, ['ja', 'fr', 'en']]
+        : [context.resultUser._id.toString(), providerOutput, 'en', ['ja', 'fr']];
+      expect(kind === 'speech' ? translateTranscription : translateContent).toHaveBeenLastCalledWith(
+        ...expectedArgs,
         expect.objectContaining({
           post_id: context.post._id.toString(),
           reply_id: withReply ? context.replyId.toString() : null,

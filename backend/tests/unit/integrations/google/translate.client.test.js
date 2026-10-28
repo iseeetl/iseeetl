@@ -104,3 +104,12 @@ describe('Google翻訳クライアント', () => {
     ).resolves.toEqual([]);
   });
 });
+
+
+test('source omission uses automatic detection and retains the detected source metadata', async () => {
+  mockGetGoogleTranslateConfig.mockReturnValue({ projectId: 'proj-test', location: 'global', credentialsPath: '/test-fixtures/google/credentials.json' });
+  const { translateTextWithMetadata } = loadModule();
+  mockTranslateFn.mockResolvedValue([{ translations: [{ translatedText: 'こんにちは', detectedLanguageCode: 'en' }] }]);
+  await expect(translateTextWithMetadata({contents:['Hello'],targetLanguageCode:'ja'})).resolves.toEqual([{text:'こんにちは',detectedLanguageCode:'en'}]);
+  expect(mockTranslateFn.mock.calls[0][0]).not.toHaveProperty('sourceLanguageCode');
+});

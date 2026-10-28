@@ -1,4 +1,4 @@
-const { translateText } = require('../integrations/google/translate.client');
+const { translateText, translateTextWithMetadata } = require('../integrations/google/translate.client');
 const { canTranslate } = require('./googleApiUsage.service');
 const { ALLOWED_LANGUAGES } = require('../constants/languages');
 const logger = require('../utils/logger');
@@ -69,6 +69,26 @@ const getFailedTranslationLanguages = (translations) =>
   Array.isArray(translations?.failedLanguages) ? translations.failedLanguages : [];
 
 module.exports = {
+  // Use automatic source detection for transcripts; the UI/post language is not the spoken language.
+  async translateTranscription(userId, content, targetLanguageCodes, logContext) {
+    const context = translationLogContext(logContext);
+    const empty = { lang: null, translations: [] };
+    if (!isGoogleTranslateEnabled()) return empty;
+    const targets = uniqFilteredTargets(targetLanguageCodes, null);
+    if (!content || !targets.length) return empty;
+    if (!await checkTranslationUsage('translateTranscription', content, null, targets, context)) return empty;
+    const detected = [];
+    const translations = await translateTargets('translateTranscription', targets, async (lang) => {
+      const [result] = await translateTextWithMetadata({ contents: [content], targetLanguageCode: lang });
+      if (typeof result?.text !== 'string' || !result.text.trim()) throw new Error('Empty translation');
+      const source = String(result.detectedLanguageCode || '').toLowerCase().split('-')[0];
+      detected.push(ALLOWED_LANGUAGES.includes(source) ? source : null);
+      return { user: userId || null, guest_id: null, lang, content: result.text };
+    }, context);
+    const sources = [...new Set(detected)];
+    const lang = sources.length === 1 ? sources[0] : null;
+    return { lang, translations };
+  },
   async translateTitleAndDescription(userId, title, description, sourceLanguageCode, targetLanguageCodes) {
     if (!isGoogleTranslateEnabled()) return [];
     try {

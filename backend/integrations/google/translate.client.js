@@ -16,7 +16,7 @@ const getClient = (config) => {
 };
 
 // contentsを指定した1言語へ翻訳し、入力順に翻訳結果を返す。
-async function translateText({ contents, sourceLanguageCode, targetLanguageCode, mimeType = 'text/plain' }) {
+async function translateTextWithMetadata({ contents, sourceLanguageCode, targetLanguageCode, mimeType = 'text/plain' }) {
   const config = getGoogleTranslateConfig();
   if (!config) return [];
   if (!Array.isArray(contents) || contents.length === 0) return [];
@@ -25,11 +25,15 @@ async function translateText({ contents, sourceLanguageCode, targetLanguageCode,
     parent,
     contents,
     mimeType,
-    sourceLanguageCode,
+    ...(sourceLanguageCode ? { sourceLanguageCode } : {}),
     targetLanguageCode,
   });
   const translations = res?.translations || [];
-  return translations.map((t) => t.translatedText);
+  return translations.map((t) => ({ text: t.translatedText, detectedLanguageCode: t.detectedLanguageCode || null }));
 }
 
-module.exports = { translateText };
+async function translateText(options) {
+  return (await translateTextWithMetadata(options)).map((entry) => entry.text);
+}
+
+module.exports = { translateText, translateTextWithMetadata };

@@ -987,7 +987,7 @@
     "optionHint": "Signed-in participants can edit other people’s alternative text and human or AI supplementary text. This does not allow deleting items or changing files.",
     "content": "Supplementary text",
     "edit": "Edit supplementary text",
-    "hint": "Edit text only, using its original language. The author, AI source and attached files stay the same.",
+    "hint": "본문과 본문 언어를 수정할 수 있습니다. 작성자, AI 출처 및 첨부 파일은 유지됩니다.",
     "noHistory": "Edit history and undo are not available yet. Check the text before saving.",
     "saved": "Additional information text saved."
   },
@@ -1103,5 +1103,10 @@
     "scope_matching": "Follow filters",
     "scope_all": "Ignore filters",
     "previewUpdate": "Preview update"
+  },
+  "sourceLanguage": {
+    "label": "본문 언어",
+    "hint": "본문에 사용된 언어입니다. 변경 후 저장하면 번역을 다시 만듭니다. 화면 언어는 바뀌지 않습니다.",
+    "unknown": "알 수 없음 (언어 선택)"
   }
 }
