@@ -19,6 +19,6 @@ export default {
 };
 </script>
 <style scoped>
-select { box-sizing: border-box; max-width: 100%; min-height: 40px; padding: 6px 10px; font: inherit; color: inherit; background: #222b3b; border: 1px solid #8a96aa; border-radius: 4px; }
-select:focus-visible { outline: 2px solid #c3d1ff; outline-offset: 2px; }
+select { box-sizing: border-box; max-width: 100%; min-height: 40px; padding: 6px 10px; font: inherit; color: #111111; background: var(--ui-color-surface, #ffffff); border: 1px solid var(--ui-color-border, #767676); border-radius: 4px; }
+select:focus-visible { outline: 2px solid var(--ui-color-focus, #005aff); outline-offset: 2px; }
 </style>
