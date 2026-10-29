@@ -1107,6 +1107,10 @@
   "sourceLanguage": {
     "label": "Ngôn ngữ văn bản",
     "hint": "Chọn ngôn ngữ của văn bản. Khi lưu thay đổi, bản dịch sẽ được tạo lại. Ngôn ngữ giao diện không đổi.",
-    "unknown": "Không xác định (chọn ngôn ngữ)"
+    "unknown": "Không xác định (chọn ngôn ngữ)",
+    "edit": "Sửa ngôn ngữ văn bản",
+    "permissionHint": "Người dùng đã đăng nhập có thể sửa ngôn ngữ mà không thay đổi nội dung.",
+    "saved": "Đã sửa ngôn ngữ. Bản dịch sẽ được cập nhật.",
+    "original": "Văn bản gốc"
   }
 }

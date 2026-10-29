@@ -1107,6 +1107,10 @@
   "sourceLanguage": {
     "label": "Metin dili",
     "hint": "Metnin dilini seçin. Değişiklik kaydedildiğinde çeviriler yeniden oluşturulur. Arayüz dili değişmez.",
-    "unknown": "Bilinmiyor (bir dil seçin)"
+    "unknown": "Bilinmiyor (bir dil seçin)",
+    "edit": "Metnin dilini düzelt",
+    "permissionHint": "Giriş yapan kullanıcılar metni değiştirmeden dilini düzeltebilir.",
+    "saved": "Metnin dili düzeltildi. Çeviriler güncellenecek.",
+    "original": "Özgün metin"
   }
 }

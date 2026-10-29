@@ -153,3 +153,9 @@ Socket.IO配信は`REPLY_CREATE/UPDATE/DELETE`、`SUPPLEMENT_CREATE/UPDATE/DELET
 ユーザBearer/ゲストx-guest-tokenを必須とし、ルーム閲覧権限・対象所在・添付有無・本人/既存管理者の削除権限を検証。二重付与は409、入力不正400、対象なし404。既存の限定ルーム権限エラー401も維持。成功200は最新の親投稿を返し、POST_UPDATEを配信。投稿本文や投稿時刻は変更しない。
 
 フロア/ルームquick-text APIのgroup作成/編集で `is_emoji:boolean`、item作成/編集で `emoji:string`（最大32 UTF-16単位）を任意受付。既存の管理権限を使用。詳細は [仕様](../../frontend/update-notices-emoji.md)。
+
+## 本文言語のみの訂正
+
+`PUT /rooms/:room_id/timeline/posts/:post_id/source-language`。返信、付加情報、返信への付加情報も、それぞれのリソースURLの末尾に `/source-language` を付ける。
+
+リクエストは `{ "lang": "en", "expected": { "content": "Hello.", "lang": "ja" } }` の2項目のみ。追加フィールドを拒否する。`expected.lang` は不明時null。入室できる有効なログインユーザーなら所有者・共同編集設定によらず利用可能。ゲスト認証は受け付けない。変更対象は本文の `lang` と再生成する `translations` だけ。本文・作者・添付・保存済みのAI出自を維持する。投稿・返信では既存の解析元revisionを進め、古い処理結果を破棄する。再解析は起動しない。既存の本文編集APIの権限は変更しない。競合は409、別ルーム・削除済み対象は404。成功は更新後投稿を返す。詳細は[本文言語仕様](../../frontend/source-language.md)。

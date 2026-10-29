@@ -1107,6 +1107,10 @@
   "sourceLanguage": {
     "label": "Idioma do texto",
     "hint": "Selecione o idioma do texto. Ao salvar a alteração, as traduções serão refeitas. O idioma da interface não muda.",
-    "unknown": "Desconhecido (selecione um idioma)"
+    "unknown": "Desconhecido (selecione um idioma)",
+    "edit": "Corrigir o idioma do texto",
+    "permissionHint": "Os usuários conectados podem corrigir o idioma sem alterar o texto.",
+    "saved": "Idioma corrigido. As traduções serão atualizadas.",
+    "original": "Texto original"
   }
 }

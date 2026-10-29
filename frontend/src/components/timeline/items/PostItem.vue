@@ -214,7 +214,8 @@
             </UiButton>
           </UiTooltip>
 
-          <UiTooltip v-if="canEditTag(post.user)" :text="$t('タグ更新')">
+          <TimelineSourceLanguageEdit :item="post" :post-id="post._id"  :read-only="readOnly" />
+        <UiTooltip v-if="canEditTag(post.user)" :text="$t('タグ更新')">
             <UiButton
               appearance="text"
               tone="neutral"
@@ -308,6 +309,7 @@
 </template>
 
 <script>
+import TimelineSourceLanguageEdit from '@/components/timeline/TimelineSourceLanguageEdit.vue';
 import ThreadSubscriptionButton from '@/components/timeline/activity/ThreadSubscriptionButton.vue';
 import TimelineImage from '@/components/timeline/TimelineImage.vue';
 import { canManageFloor } from '@/utils/floorPermissions';
@@ -346,6 +348,7 @@ export default {
   name: 'PostItem',
   inject: { readOnly: { from: 'timelineReadOnly', default: false }, activityTemporaryTarget: { default: null } },
   components: {
+    TimelineSourceLanguageEdit,
     ThreadSubscriptionButton,
     TimelineImage,
     SupplementItem,

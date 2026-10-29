@@ -24,6 +24,7 @@ const EXTERNAL_MOCKED_SPECS = [
   'services/activity.push.int.test.js',
   'services/onesignal.notification.int.test.js',
   'services/sourceLanguageCorrection.int.test.js',
+  'services/sourceLanguagePermission.int.test.js',
   'services/timelinePostSave.int.test.js',
   'services/transcription.service.int.test.js',
 ];

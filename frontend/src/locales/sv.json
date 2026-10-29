@@ -1107,6 +1107,10 @@
   "sourceLanguage": {
     "label": "Textens språk",
     "hint": "Välj textens språk. När ändringen sparas skapas översättningarna på nytt. Gränssnittets språk ändras inte.",
-    "unknown": "Okänt (välj ett språk)"
+    "unknown": "Okänt (välj ett språk)",
+    "edit": "Korrigera textens språk",
+    "permissionHint": "Inloggade användare kan korrigera språket utan att ändra texten.",
+    "saved": "Språket har korrigerats. Översättningarna uppdateras.",
+    "original": "Originaltext"
   }
 }
