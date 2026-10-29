@@ -983,11 +983,11 @@
     "reactionTarget": "Reaction to alternative text"
   },
   "sharedText": {
-    "option": "Allow users to edit alternative text and supplementary text",
-    "optionHint": "Signed-in participants can edit other people’s alternative text and human or AI supplementary text. This does not allow deleting items or changing files.",
+    "option": "Allow other users to edit descriptions",
+    "optionHint": "Signed-in users can edit alternative text and additional information written by people or AI. Correcting the text language is available regardless of this setting.",
     "content": "Supplementary text",
     "edit": "Edit supplementary text",
-    "hint": "Edit text only, using its original language. The author, AI source and attached files stay the same.",
+    "hint": "Edit the text and its language. The author, AI origin, and attachments stay the same.",
     "noHistory": "Edit history and undo are not available yet. Check the text before saving.",
     "saved": "Additional information text saved."
   },
@@ -1103,5 +1103,14 @@
     "scope_matching": "Follow filters",
     "scope_all": "Ignore filters",
     "previewUpdate": "Preview update"
+  },
+  "sourceLanguage": {
+    "label": "Text language",
+    "hint": "Select the language of this text. Saving a change rebuilds its translations. This does not change your display language.",
+    "unknown": "Unknown (select a language)",
+    "edit": "Correct text language",
+    "permissionHint": "Any signed-in user can correct the text language. This does not edit the text.",
+    "saved": "Text language corrected. Translations will be updated.",
+    "original": "Original text"
   }
 }

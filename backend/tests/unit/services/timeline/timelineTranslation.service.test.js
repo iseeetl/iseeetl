@@ -148,7 +148,7 @@ describe('timelineTranslationのサービス', () => {
       await timelineTranslation.translateMainContentIfNeeded({ ...baseParams, io });
 
       expect(Chat.findOneAndUpdate).toHaveBeenCalledWith(
-        { _id: 'c1', delete_flg: false },
+        { _id: 'c1', delete_flg: false, content: 'hello', lang: 'en' },
         { $set: { translations } },
         expect.objectContaining({ new: true, runValidators: true })
       );
@@ -264,7 +264,7 @@ describe('timelineTranslationのサービス', () => {
       });
 
       const options = Chat.findOneAndUpdate.mock.calls[0][2];
-      expect(options.arrayFilters[0]).toEqual({ 'reply._id': 'r1' });
+      expect(options.arrayFilters[0]).toEqual({ 'reply._id': 'r1', 'reply.delete_flg': false, 'reply.content': 'hi', 'reply.lang': 'en' });
       expect(io.to).toHaveBeenCalledWith('room1');
       expect(toCtx.emit).toHaveBeenCalledWith('REPLY_UPDATE', expect.any(Object));
     });
@@ -341,7 +341,7 @@ describe('timelineTranslationのサービス', () => {
       });
 
       const opts = Chat.findOneAndUpdate.mock.calls[0][2];
-      expect(opts.arrayFilters[0]).toEqual({ 'supplement._id': 's1' });
+      expect(opts.arrayFilters[0]).toEqual({ 'supplement._id': 's1', 'supplement.delete_flg': false, 'supplement.content': '情報', 'supplement.lang': 'ja' });
       expect(io.to).toHaveBeenCalledWith('room1');
       expect(toCtx.emit).toHaveBeenCalledWith('SUPPLEMENT_UPDATE', expect.any(Object));
     });
@@ -384,7 +384,7 @@ describe('timelineTranslationのサービス', () => {
       });
 
       const opts = Chat.findOneAndUpdate.mock.calls[0][2];
-      expect(opts.arrayFilters).toEqual([{ 'reply._id': 'r3' }, { 'supp._id': 's2' }]);
+      expect(opts.arrayFilters).toEqual([{ 'reply._id': 'r3', 'reply.delete_flg': false }, { 'supp._id': 's2', 'supp.delete_flg': false, 'supp.content': 'add', 'supp.lang': 'en' }]);
       expect(io.to).toHaveBeenCalledWith('room1');
       expect(toCtx.emit).toHaveBeenCalledWith('REPLY_SUPPLEMENT_UPDATE', expect.any(Object));
     });

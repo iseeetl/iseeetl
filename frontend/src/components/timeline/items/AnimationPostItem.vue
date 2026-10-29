@@ -35,6 +35,8 @@
         </UiButton>
       </UiTooltip>
 
+      <TimelineSourceLanguageEdit v-if="!animatingItemsColumn[post._id]" :item="post" :post-id="post._id"  />
+
       <UiTooltip v-if="canShowEditTagButton" :text="$t('タグ更新')">
         <UiButton
           appearance="text"
@@ -79,6 +81,7 @@
 </template>
 
 <script>
+import TimelineSourceLanguageEdit from '@/components/timeline/TimelineSourceLanguageEdit.vue';
 import { canManageFloor } from '@/utils/floorPermissions';
 import UiButton from '@/components/ui/UiButton.vue';
 import UiIcon from '@/components/ui/UiIcon.vue';
@@ -96,6 +99,7 @@ export default {
   ],
   name: 'AnimationPostItem',
   components: {
+    TimelineSourceLanguageEdit,
     UiButton,
     UiIcon,
     UiTooltip,

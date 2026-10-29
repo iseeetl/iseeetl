@@ -987,7 +987,7 @@
     "optionHint": "Signed-in participants can edit other people’s alternative text and human or AI supplementary text. This does not allow deleting items or changing files.",
     "content": "Supplementary text",
     "edit": "Edit supplementary text",
-    "hint": "Edit text only, using its original language. The author, AI source and attached files stay the same.",
+    "hint": "Sửa văn bản và ngôn ngữ của văn bản. Tác giả, nguồn AI và tệp đính kèm được giữ nguyên.",
     "noHistory": "Edit history and undo are not available yet. Check the text before saving.",
     "saved": "Additional information text saved."
   },
@@ -1103,5 +1103,14 @@
     "scope_matching": "Follow filters",
     "scope_all": "Ignore filters",
     "previewUpdate": "Preview update"
+  },
+  "sourceLanguage": {
+    "label": "Ngôn ngữ văn bản",
+    "hint": "Chọn ngôn ngữ của văn bản. Khi lưu thay đổi, bản dịch sẽ được tạo lại. Ngôn ngữ giao diện không đổi.",
+    "unknown": "Không xác định (chọn ngôn ngữ)",
+    "edit": "Sửa ngôn ngữ văn bản",
+    "permissionHint": "Người dùng đã đăng nhập có thể sửa ngôn ngữ mà không thay đổi nội dung.",
+    "saved": "Đã sửa ngôn ngữ. Bản dịch sẽ được cập nhật.",
+    "original": "Văn bản gốc"
   }
 }

@@ -187,12 +187,36 @@ const buildAnalysisSupplement = async ({
   snapshot,
   providerOutput,
   translateContent = translationService.translateContent,
+  translateTranscription = translationService.translateTranscription,
   logger = defaultLogger,
   startedAt = Date.now(),
 }) => {
-  const base = buildBaseContent({ snapshot, providerOutput, logger, startedAt });
+  let baseSnapshot = snapshot;
+  let speechTranslations;
+  const transcript = normalizeProviderOutput(providerOutput);
+  if (snapshot.kind === 'speech' && !resolveNotice(snapshot, providerOutput) && transcript) {
+    let result = { lang: null, translations: [] };
+    try {
+      result = await translateTranscription(snapshot.resultUserId, transcript,
+        [...new Set([...snapshot.targetLangs, snapshot.source.lang].filter(Boolean))],
+        translationLogContext(snapshot, 'body'));
+    } catch (error) {
+      logger.error('AI_ANALYSIS_TRANSLATION_FAILED', {
+        ...analysisLogContext(snapshot, 'translation_failed', startedAt), ...errorLogDetails(error), field: 'body',
+      });
+    }
+    const language = result?.lang || null;
+    baseSnapshot = { ...snapshot, source: { ...snapshot.source, lang: language } };
+    speechTranslations = (Array.isArray(result?.translations) ? result.translations : []).flatMap((entry) => {
+      const text = normalizeProviderOutput(entry?.content);
+      if (!entry?.lang || entry.lang === language || !text) return [];
+      return [{ user: snapshot.resultUserId, guest_id: null, lang: entry.lang,
+        content: prefixWithLabel(makeLabelByLangFromTag(snapshot.triggerTag)(entry.lang), text) }];
+    });
+  }
+  const base = buildBaseContent({ snapshot: baseSnapshot, providerOutput, logger, startedAt });
   if (!base) return null;
-  const translations = await buildTranslations({
+  const translations = speechTranslations ?? await buildTranslations({
     snapshot,
     base,
     translateContent,

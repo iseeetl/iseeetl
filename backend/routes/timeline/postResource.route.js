@@ -23,6 +23,10 @@ module.exports = () => {
         catch(error){next(error);}
       });
     }
+    router.put(`${target}/source-language`, ensureJsonWebToken, async (req, res, next) => {
+      try { res.json(await require('../../services/timeline/sourceLanguage.service').update(req.params, req.body, req.jwtPayload, req.io)); }
+      catch (error) { next(error); }
+    });
     router.put(`${target}/alternative-text`, ensureJsonWebToken, async (req, res, next) => {
       try { res.json(await alternativeText.update(req.params, req.body, req.jwtPayload, req.io)); }
       catch (error) { next(error); }

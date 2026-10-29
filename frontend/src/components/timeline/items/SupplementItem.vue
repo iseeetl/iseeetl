@@ -152,6 +152,7 @@
           </UiTooltip>
         </div>
 
+        <TimelineSourceLanguageEdit :item="supplement" :post-id="postId" :reply-id="replyId" :supplement-id="supplement._id" :read-only="readOnly" />
         <TimelineSupplementTextEdit v-if="!isUserAllowedToEdit(supplement)" :item="supplement"
           kind="supplement" :post-id="postId" :reply-id="replyId" :supplement-id="supplement._id" />
         <UiTooltip v-if="isUserAllowedToEdit(supplement)" :text="$t('編集')">
@@ -187,6 +188,7 @@
 </template>
 
 <script>
+import TimelineSourceLanguageEdit from '@/components/timeline/TimelineSourceLanguageEdit.vue';
 import TimelineImage from '@/components/timeline/TimelineImage.vue';
 import { supplementPreview } from '@/features/timeline/supplementLength';
 import { getSupplementTitle } from '@/features/timeline/supplementTitle';
@@ -218,6 +220,7 @@ export default {
   name: 'SupplementItem',
   inject: { readOnly: { from: 'timelineReadOnly', default: false }, activityTemporaryTarget: { default: null } },
   components: {
+    TimelineSourceLanguageEdit,
     TimelineImage,
     ReactionItem,
     ReactionPicker,

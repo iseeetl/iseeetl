@@ -243,7 +243,6 @@ describe('AI解析用の外部サービス呼出', () => {
       buffer: expect.any(Buffer),
       mimetype: 'audio/mpeg',
       filename: 'audio.mp3',
-      language: 'ja',
       prompt: 'speech prompt',
       signal: controller.signal,
     });

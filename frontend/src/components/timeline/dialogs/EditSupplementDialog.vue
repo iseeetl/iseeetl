@@ -88,6 +88,7 @@
               @choose="chooseComposerMedia" @record="toggleRecording" />
           </template>
         </UiField>
+        <SourceLanguageField v-model="sourceLanguage" control-id="supplement_source_language" :disabled="sending || recording || transcribing" />
         <div v-if="$store.getters.userIsLogin" class="composer-attachment-preview">
           <media-input
               ref="composerMedia"
@@ -229,6 +230,7 @@
 </template>
 
 <script>
+import SourceLanguageField from '@/components/timeline/SourceLanguageField.vue';
 import { editorSubmissionMixin } from '@/features/analytics/editorSubmission.js';
 import { supplementContentLimit, SUPPLEMENT_CONTENT_LIMIT } from '@/features/timeline/supplementLength';
 import { isValidSupplementTitle, supplementTitleLanguage } from '@/features/timeline/supplementTitle';
@@ -288,6 +290,7 @@ export default {
     };
   },
   components: {
+    SourceLanguageField,
     MobileComposerTools,
     CameraCaptureDialog,
     ConfirmDialog,
@@ -338,7 +341,7 @@ export default {
     submissionDisabled() {
       const hasContent = !!(String(this.content || '').trim() || this.imageFile || this.imageName || this.videoFile || this.videoName || this.audioFile || this.audioName);
       const invalidMedia = (this.videoFile && (this.videoSize > this.maxVideoSize || this.videoDuration > this.maxVideoDuration)) || (this.audioFile && (this.audioSize > this.maxAudioSize || this.audioDuration > this.maxAudioDuration));
-      return !!(this.sending || this.mediaBusy || this.recording || this.transcribing || !hasContent || this.v$?.$invalid || invalidMedia);
+      return !!(this.sending || this.mediaBusy || this.recording || this.transcribing || !this.sourceLanguage || !hasContent || this.v$?.$invalid || invalidMedia);
     },
     contentLimit() { return supplementContentLimit(this.supplementValue); },
     allowedImageTypes() {
@@ -381,6 +384,7 @@ export default {
       supplementId: null,
       title: '',
       content: null,
+      sourceLanguage: null,
       contentSelectionStart: null,
       contentSelectionEnd: null,
       keyup: [],
@@ -447,6 +451,7 @@ export default {
       this.visible = true;
     },
     openedDialog() {
+      this.sourceLanguage = this.supplementValue ? (this.supplementValue.lang ?? null) : this.$i18n.locale;
       this.mutationBaseline = this.supplementValue ? JSON.parse(JSON.stringify(this.supplementValue)) : null;
       this.postIdLocal = this.postId;
       this.replyIdLocal = this.replyId;
@@ -848,7 +853,7 @@ export default {
         title: this.title?.trim() || null,
         title_lang: supplementTitleLanguage(this.title, this.mutationBaseline?.title, this.mutationBaseline?.title_lang, this.lang),
         content: this.content,
-        lang: this.supplementId ? (this.mutationBaseline?.lang || this.supplementValue?.lang || this.$i18n.locale) : this.$i18n.locale,
+        lang: this.sourceLanguage || this.$i18n.locale,
         image_name: this.imageName,
         image_thumbnail_name: this.imageThumbnailName,
         video_name: this.videoName,

@@ -987,7 +987,7 @@
     "optionHint": "Signed-in participants can edit other people’s alternative text and human or AI supplementary text. This does not allow deleting items or changing files.",
     "content": "Supplementary text",
     "edit": "Edit supplementary text",
-    "hint": "Edit text only, using its original language. The author, AI source and attached files stay the same.",
+    "hint": "Redigera texten och dess språk. Författare, AI-ursprung och bilagor behålls.",
     "noHistory": "Edit history and undo are not available yet. Check the text before saving.",
     "saved": "Additional information text saved."
   },
@@ -1103,5 +1103,14 @@
     "scope_matching": "Follow filters",
     "scope_all": "Ignore filters",
     "previewUpdate": "Preview update"
+  },
+  "sourceLanguage": {
+    "label": "Textens språk",
+    "hint": "Välj textens språk. När ändringen sparas skapas översättningarna på nytt. Gränssnittets språk ändras inte.",
+    "unknown": "Okänt (välj ett språk)",
+    "edit": "Korrigera textens språk",
+    "permissionHint": "Inloggade användare kan korrigera språket utan att ändra texten.",
+    "saved": "Språket har korrigerats. Översättningarna uppdateras.",
+    "original": "Originaltext"
   }
 }

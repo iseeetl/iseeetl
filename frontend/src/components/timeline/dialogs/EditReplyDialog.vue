@@ -146,6 +146,7 @@
               @choose="chooseComposerMedia" @record="toggleRecording" />
           </template>
         </UiField>
+        <SourceLanguageField v-if="!isGuestReactionOnly" v-model="sourceLanguage" control-id="reply_source_language" :disabled="sending || recording || transcribing" />
         <div v-if="showMediaInput" class="composer-attachment-preview">
           <media-input
               ref="composerMedia"
@@ -429,6 +430,7 @@
 </template>
 
 <script>
+import SourceLanguageField from '@/components/timeline/SourceLanguageField.vue';
 import TimelineImage from '@/components/timeline/TimelineImage.vue';
 import { SUPPLEMENT_CONTENT_LIMIT } from '@/features/timeline/supplementLength';
 import { editorSubmissionMixin } from '@/features/analytics/editorSubmission.js';
@@ -501,6 +503,7 @@ export default {
     };
   },
   components: {
+    SourceLanguageField,
     TimelineImage,
     MobileComposerTools,
     CameraCaptureDialog,
@@ -610,6 +613,7 @@ export default {
       postId: null,
       replyId: null,
       content: null,
+      sourceLanguage: null,
       contentSelectionStart: null,
       contentSelectionEnd: null,
       roomTagsSelected: [],
@@ -697,6 +701,7 @@ export default {
       this.visible = true;
     },
     openedDialog() {
+      this.sourceLanguage = this.replyValue?.lang || this.$i18n.locale;
       this.mutationBaseline = this.replyValue ? JSON.parse(JSON.stringify(this.replyValue)) : null;
       document.addEventListener('keydown', this.handleEditorShortcut);
 
@@ -1175,7 +1180,7 @@ export default {
         room_id: this.$store.getters.roomId,
         post_id: this.postId,
         content: this.content,
-        lang: this.replyId ? (this.mutationBaseline?.lang || this.replyValue?.lang || this.$i18n.locale) : this.$i18n.locale,
+        lang: this.sourceLanguage || this.$i18n.locale,
         room_tags: this.submittableRoomTagIds,
         animation: this.animation,
         image_name: this.imageName,
@@ -1218,7 +1223,7 @@ export default {
         post_id: this.postId,
         guest_name: this.$store.getters.guestName,
         content: this.content,
-        lang: this.$i18n.locale,
+        lang: this.sourceLanguage || this.$i18n.locale,
         room_tags: this.submittableRoomTagIds,
         animation: this.animation,
         keyup: this.keyup.join(','),

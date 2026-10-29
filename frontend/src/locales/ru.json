@@ -987,7 +987,7 @@
     "optionHint": "Signed-in participants can edit other people’s alternative text and human or AI supplementary text. This does not allow deleting items or changing files.",
     "content": "Supplementary text",
     "edit": "Edit supplementary text",
-    "hint": "Edit text only, using its original language. The author, AI source and attached files stay the same.",
+    "hint": "Измените текст и его язык. Автор, источник ИИ и вложения сохраняются.",
     "noHistory": "Edit history and undo are not available yet. Check the text before saving.",
     "saved": "Additional information text saved."
   },
@@ -1103,5 +1103,14 @@
     "scope_matching": "Follow filters",
     "scope_all": "Ignore filters",
     "previewUpdate": "Preview update"
+  },
+  "sourceLanguage": {
+    "label": "Язык текста",
+    "hint": "Выберите язык текста. После сохранения изменения переводы будут созданы заново. Язык интерфейса не изменится.",
+    "unknown": "Неизвестен (выберите язык)",
+    "edit": "Исправить язык текста",
+    "permissionHint": "Вошедшие пользователи могут исправить язык, не меняя сам текст.",
+    "saved": "Язык исправлен. Переводы будут обновлены.",
+    "original": "Исходный текст"
   }
 }

@@ -987,7 +987,7 @@
     "optionHint": "Signed-in participants can edit other people’s alternative text and human or AI supplementary text. This does not allow deleting items or changing files.",
     "content": "Supplementary text",
     "edit": "Edit supplementary text",
-    "hint": "Edit text only, using its original language. The author, AI source and attached files stay the same.",
+    "hint": "Modifica il testo e la sua lingua. Autore, origine IA e allegati restano invariati.",
     "noHistory": "Edit history and undo are not available yet. Check the text before saving.",
     "saved": "Additional information text saved."
   },
@@ -1103,5 +1103,14 @@
     "scope_matching": "Follow filters",
     "scope_all": "Ignore filters",
     "previewUpdate": "Preview update"
+  },
+  "sourceLanguage": {
+    "label": "Lingua del testo",
+    "hint": "Seleziona la lingua del testo. Salvando la modifica, le traduzioni vengono rigenerate. La lingua dell’interfaccia non cambia.",
+    "unknown": "Sconosciuta (seleziona una lingua)",
+    "edit": "Correggi la lingua del testo",
+    "permissionHint": "Gli utenti connessi possono correggere la lingua senza modificare il testo.",
+    "saved": "Lingua corretta. Le traduzioni saranno aggiornate.",
+    "original": "Testo originale"
   }
 }

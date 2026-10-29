@@ -88,6 +88,12 @@ const tagReply = ({ room_id, post_id, _id, room_tags }, options) =>
 const updateSupplementText = ({room_id, post_id, reply_id, supplement_id, ...body}) =>
   apiClient.put(`${supplementPath(room_id,post_id,reply_id,supplement_id)}/text`,body);
 
+const updateSourceLanguage = ({ room_id, post_id, reply_id = null, supplement_id = null, lang, expected }) => {
+  const target = supplement_id ? supplementPath(room_id, post_id, reply_id, supplement_id)
+    : reply_id ? replyPath(room_id, post_id, reply_id) : postPath(room_id, post_id);
+  return apiClient.put(`${target}/source-language`, { lang, expected });
+};
+
 const updateAlternativeText = ({ room_id, post_id, reply_id = null, supplement_id = null, ...body }) => {
   const target = supplement_id ? supplementPath(room_id, post_id, reply_id, supplement_id)
     : reply_id ? replyPath(room_id, post_id, reply_id) : postPath(room_id, post_id);
@@ -214,6 +220,7 @@ export default {
   tagPost,
   tagReply,
   updateAlternativeText,
+  updateSourceLanguage,
   updateSupplementText,
   transcribeAudio,
   managementTimelineEstimate,

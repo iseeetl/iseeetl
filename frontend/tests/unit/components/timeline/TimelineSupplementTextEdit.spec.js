@@ -22,3 +22,10 @@ describe('room text editing option',()=>{
   expect(w.vm.draft).toBe('updated');expect(w.vm.conflicted).toBe(true);w.unmount();
  });
 });
+
+
+it('corrects an AI transcript language while preserving its body and conflict guard',async()=>{
+  const w=mount(Editor,{props:{item:{_id:'s',content:'Hello.',lang:'ja',user:{_id:'owner'},ai_origin:{kind:'speech'}},kind:'supplement',postId:'p',supplementId:'s'},global:{mocks:{$t:k=>k,$i18n:{locale:'ja'},$store:{getters:{userId:'owner',roomId:'r'}}},stubs:{BaseEditDialog:true}}});
+  chatApi.updateSupplementText.mockResolvedValueOnce({data:{}});w.vm.startEdit();w.vm.sourceLanguage='en';await w.vm.save();
+  expect(chatApi.updateSupplementText).toHaveBeenLastCalledWith({room_id:'r',post_id:'p',reply_id:undefined,supplement_id:'s',text:'Hello.',lang:'en',expected:{content:'Hello.',lang:'ja'}});w.unmount();
+});

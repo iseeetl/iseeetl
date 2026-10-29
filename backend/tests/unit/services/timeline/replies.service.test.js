@@ -469,6 +469,7 @@ describe('repliesのサービス', () => {
             targetLangs: ['en'],
           })
         );
+        expect(runReplyAnalyses).not.toHaveBeenCalled();
       } finally {
         global.setImmediate = originalSetImmediate;
       }
